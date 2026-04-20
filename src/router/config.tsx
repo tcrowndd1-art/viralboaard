@@ -1,0 +1,86 @@
+import type { RouteObject } from "react-router-dom";
+import NotFound from "../pages/NotFound";
+import Home from "../pages/home/page";
+import Login from "../pages/login/page";
+import Signup from "../pages/signup/page";
+import Dashboard from "../pages/dashboard/page";
+import Rankings from "../pages/rankings/page";
+import VideoRankings from "../pages/video-rankings/page";
+import ChannelDetail from "../pages/channel-detail/page";
+import SearchPage from "../pages/search/page";
+import InsightsPage from "../pages/insights/page";
+import TrendingLivePage from "../pages/trending-live/page";
+import AiStudioPage from "../pages/ai-studio/page";
+import CommentManagerPage from "../pages/comment-manager/page";
+import VideoEditorPage from "../pages/video-editor/page";
+import ChromeExtensionPage from "../pages/chrome-extension/page";
+import RevenueCalculatorPage from "../pages/revenue-calculator/page";
+
+const routes: RouteObject[] = [
+  {
+    path: "/",
+    element: <Home />,
+  },
+  {
+    path: "/login",
+    element: <Login />,
+  },
+  {
+    path: "/signup",
+    element: <Signup />,
+  },
+  {
+    path: "/dashboard",
+    element: <Dashboard />,
+  },
+  {
+    path: "/rankings",
+    element: <Rankings />,
+  },
+  {
+    path: "/video-rankings",
+    element: <VideoRankings />,
+  },
+  {
+    path: "/channel/:channelId",
+    element: <ChannelDetail />,
+  },
+  {
+    path: "/search",
+    element: <SearchPage />,
+  },
+  {
+    path: "/insights",
+    element: <InsightsPage />,
+  },
+  {
+    path: "/trending-live",
+    element: <TrendingLivePage />,
+  },
+  {
+    path: "/ai-studio",
+    element: <AiStudioPage />,
+  },
+  {
+    path: "/comment-manager",
+    element: <CommentManagerPage />,
+  },
+  {
+    path: "/video-editor",
+    element: <VideoEditorPage />,
+  },
+  {
+    path: "/chrome-extension",
+    element: <ChromeExtensionPage />,
+  },
+  {
+    path: "/revenue-calculator",
+    element: <RevenueCalculatorPage />,
+  },
+  {
+    path: "*",
+    element: <NotFound />,
+  },
+];
+
+export default routes;

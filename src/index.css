@@ -1,0 +1,68 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ══════════════════════════════════════════
+   SIDEBAR — hidden scrollbar (all browsers)
+   ══════════════════════════════════════════ */
+
+/* Hide scrollbar but keep scroll functionality */
+.sidebar-scroll {
+  scrollbar-width: none;        /* Firefox */
+  -ms-overflow-style: none;     /* IE / Edge */
+}
+.sidebar-scroll::-webkit-scrollbar {
+  display: none;                /* Chrome / Safari / Opera */
+}
+
+/* ══════════════════════════════════════════
+   GLOBAL — thin minimal scrollbar for content
+   ══════════════════════════════════════════ */
+:root {
+  --scrollbar-thumb: #d1d5db;
+  --scrollbar-track: transparent;
+}
+
+.dark {
+  --scrollbar-thumb: #2a2a2a;
+  --scrollbar-track: transparent;
+}
+
+/* Thin scrollbar for main content areas */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+
+*::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+*::-webkit-scrollbar-track {
+  background: var(--scrollbar-track);
+}
+
+*::-webkit-scrollbar-thumb {
+  background-color: var(--scrollbar-thumb);
+  border-radius: 9999px;
+}
+
+*::-webkit-scrollbar-thumb:hover {
+  background-color: #9ca3af;
+}
+
+.dark *::-webkit-scrollbar-thumb:hover {
+  background-color: #3f3f3f;
+}
+
+/* ══════════════════════════════════════════
+   SIDEBAR NAV — override to hide scrollbar
+   ══════════════════════════════════════════ */
+.sidebar-nav *::-webkit-scrollbar {
+  display: none;
+}
+.sidebar-nav * {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
