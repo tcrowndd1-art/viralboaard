@@ -35,14 +35,17 @@ const HomePage = () => {
   const [trendingVideos, setTrendingVideos] = useState<TrendingVideoItem[]>([]);
   const [usTrendingVideos, setUsTrendingVideos] = useState<TrendingVideoItem[]>([]);
   const [liveVideos, setLiveVideos] = useState<TrendingVideoItem[]>([]);
+  const [homeDataLoaded, setHomeDataLoaded] = useState(false);
 
   useEffect(() => {
-    fetchPopularChannels('KR').then(setPopularChannels).catch(() => {});
-    fetchPopularChannels('US').then(setUsPopularChannels).catch(() => {});
-    fetchPopularChannels('JP').then(setJpPopularChannels).catch(() => {});
-    fetchTrendingVideos('KR', 10).then(setTrendingVideos).catch(() => {});
-    fetchTrendingVideos('US', 5).then(setUsTrendingVideos).catch(() => {});
-    fetchLiveVideos().then(setLiveVideos).catch(() => {});
+    Promise.allSettled([
+      fetchPopularChannels('KR').then(setPopularChannels).catch(() => {}),
+      fetchPopularChannels('US').then(setUsPopularChannels).catch(() => {}),
+      fetchPopularChannels('JP').then(setJpPopularChannels).catch(() => {}),
+      fetchTrendingVideos('KR', 10).then(setTrendingVideos).catch(() => {}),
+      fetchTrendingVideos('US', 5).then(setUsTrendingVideos).catch(() => {}),
+      fetchLiveVideos().then(setLiveVideos).catch(() => {}),
+    ]).finally(() => setHomeDataLoaded(true));
   }, []);
 
   const handleSearch = async (query: string) => {
@@ -144,19 +147,19 @@ const HomePage = () => {
               titleKey="chart_most_super_chatted"
               items={usPopularChannels.map(toChartItem)}
               scoreType="plain"
-              loading={usPopularChannels.length === 0}
+              loading={!homeDataLoaded && usPopularChannels.length === 0}
             />
             <ChartWidget
               titleKey="chart_most_live_viewers"
               items={liveForWidget}
               scoreType="plain"
-              loading={liveVideos.length === 0}
+              loading={!homeDataLoaded && liveVideos.length === 0}
             />
             <ChartWidget
               titleKey="chart_most_popular"
               items={popularChannels.map(toChartItem)}
               scoreType="plain"
-              loading={popularChannels.length === 0}
+              loading={!homeDataLoaded && popularChannels.length === 0}
             />
           </div>
 
@@ -166,7 +169,7 @@ const HomePage = () => {
               titleKey="chart_most_growth"
               items={jpPopularChannels.map(toChartItem)}
               scoreType="plain"
-              loading={jpPopularChannels.length === 0}
+              loading={!homeDataLoaded && jpPopularChannels.length === 0}
             />
             <VideoWidget
               title="Most Viewed (KR)"

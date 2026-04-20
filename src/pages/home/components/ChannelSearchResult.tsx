@@ -18,10 +18,10 @@ function fmt(n: number): string {
 }
 
 const ANALYSIS_LABELS: { key: keyof Omit<ChannelAnalysis, 'copyStrategy'>; label: string }[] = [
-  { key: 'hookPattern', label: '훅 패턴' },
-  { key: 'thumbnailStrategy', label: '썸네일 전략' },
-  { key: 'uploadPattern', label: '업로드 패턴' },
-  { key: 'growthFormula', label: '성장 공식' },
+  { key: 'hookPattern', label: 'í›… íŒ¨í„´' },
+  { key: 'thumbnailStrategy', label: 'ì¸ë„¤ì¼ ì „ëžµ' },
+  { key: 'uploadPattern', label: 'ì—…ë¡œë“œ íŒ¨í„´' },
+  { key: 'growthFormula', label: 'ì„±ìž¥ ê³µì‹' },
 ];
 
 const ChannelSearchResult = ({ channel, videos, onClose }: Props) => {
@@ -31,7 +31,7 @@ const ChannelSearchResult = ({ channel, videos, onClose }: Props) => {
   const [aiError, setAiError] = useState(false);
 
   useEffect(() => {
-    console.log('[AI Analysis] API 호출 시작 - 채널 ID:', channel.id);
+    console.log('[AI Analysis] API í˜¸ì¶œ ì‹œìž‘ - ì±„ë„ ID:', channel.id);
     setAiResult(null);
     setAiError(false);
     setAiLoading(true);
@@ -45,11 +45,11 @@ const ChannelSearchResult = ({ channel, videos, onClose }: Props) => {
       recentUploadDates: videos.map((v) => v.uploadDate),
     })
       .then((result) => {
-        console.log('[AI Analysis] API 호출 성공:', result);
+        console.log('[AI Analysis] API í˜¸ì¶œ ì„±ê³µ:', result);
         setAiResult(result);
       })
       .catch((err) => {
-        console.error('[AI Analysis] API 호출 에러:', err);
+        console.error('[AI Analysis] API í˜¸ì¶œ ì—ëŸ¬:', err);
         setAiError(true);
       })
       .finally(() => {
@@ -80,7 +80,7 @@ const ChannelSearchResult = ({ channel, videos, onClose }: Props) => {
         <button
           onClick={onClose}
           className="flex-shrink-0 p-1 text-gray-400 hover:text-gray-600 dark:hover:text-white/60 transition-colors"
-          aria-label="닫기"
+          aria-label="ë‹«ê¸°"
         >
           <X className="w-4 h-4" />
         </button>
@@ -91,21 +91,21 @@ const ChannelSearchResult = ({ channel, videos, onClose }: Props) => {
         <div className="flex flex-col items-center py-3 gap-1">
           <div className="flex items-center gap-1 text-gray-400 dark:text-white/40">
             <Users className="w-3.5 h-3.5" />
-            <span className="text-xs">구독자</span>
+            <span className="text-xs">êµ¬ë…ìž</span>
           </div >
           <span className="text-sm font-bold text-gray-900 dark:text-white">{fmt(channel.subscribers)}</span>
         </div >
         <div className="flex flex-col items-center py-3 gap-1">
           <div className="flex items-center gap-1 text-gray-400 dark:text-white/40">
             <Eye className="w-3.5 h-3.5" />
-            <span className="text-xs">총 조회수</span>
+            <span className="text-xs">ì´ ì¡°íšŒìˆ˜</span>
           </div >
           <span className="text-sm font-bold text-gray-900 dark:text-white">{fmt(channel.totalViews)}</span>
         </div >
         <div className="flex flex-col items-center py-3 gap-1">
           <div className="flex items-center gap-1 text-gray-400 dark:text-white/40">
             <Video className="w-3.5 h-3.5" />
-            <span className="text-xs">영상 수</span>
+            <span className="text-xs">ì˜ìƒ ìˆ˜</span>
           </div >
           <span className="text-sm font-bold text-gray-900 dark:text-white">{fmt(channel.videoCount)}</span>
         </div >
@@ -115,12 +115,12 @@ const ChannelSearchResult = ({ channel, videos, onClose }: Props) => {
       <div className="mx-4 my-4 p-3 bg-gray-50 dark:bg-white/[0.04] border border-gray-200 dark:border-white/10 rounded-sm">
         <div className="flex items-center gap-1.5 mb-3">
           <Sparkles className="w-3.5 h-3.5 text-red-500" />
-          <span className="text-xs font-semibold text-gray-700 dark:text-white/70">AI 채널 분석</span>
+          <span className="text-xs font-semibold text-gray-700 dark:text-white/70">AI ì±„ë„ ë¶„ì„</span>
         </div >
 
         {aiLoading && (
           <div className="space-y-2.5">
-            <div className="text-xs text-gray-500 dark:text-white/50 mb-2 animate-pulse">AI 분석 중...</div>
+            <div className="text-xs text-gray-500 dark:text-white/50 mb-2 animate-pulse">AI ë¶„ì„ ì¤‘...</div>
             {[90, 75, 85, 70, 80].map((w, i) => (
               <div key={i} className="space-y-1">
                 <div className="h-2.5 w-16 bg-gray-200 dark:bg-white/10 rounded animate-pulse" />
@@ -131,7 +131,7 @@ const ChannelSearchResult = ({ channel, videos, onClose }: Props) => {
         )}
 
         {aiError && (
-          <p className="text-xs text-red-500 font-medium">OpenRouter API 키를 확인해주세요.</p>
+          <p className="text-xs text-red-500 font-medium">OpenRouter API í‚¤ë¥¼ í™•ì¸í•´ì£¼ì„¸ìš”.</p>
         )}
 
         {!aiLoading && !aiError && aiResult && (
@@ -143,7 +143,7 @@ const ChannelSearchResult = ({ channel, videos, onClose }: Props) => {
               </div >
             ))}
             <div >
-              <span className="text-[10px] font-bold text-red-500 uppercase tracking-wide">복제 전략</span>
+              <span className="text-[10px] font-bold text-red-500 uppercase tracking-wide">ë³µì œ ì „ëžµ</span>
               <ul className="mt-0.5 space-y-0.5">
                 {aiResult.copyStrategy.map((line, i) => (
                   <li key={i} className="flex items-start gap-1.5 text-xs text-gray-700 dark:text-white/70">
@@ -157,7 +157,7 @@ const ChannelSearchResult = ({ channel, videos, onClose }: Props) => {
             <button
               onClick={() => {
                 const params = new URLSearchParams({
-                  topic: `${channel.name} 스타일 분석`,
+                  topic: `${channel.name} ìŠ¤íƒ€ì¼ ë¶„ì„`,
                   channel: channel.name,
                   hook: aiResult.hookPattern,
                   growth: aiResult.growthFormula,
@@ -167,7 +167,7 @@ const ChannelSearchResult = ({ channel, videos, onClose }: Props) => {
               className="w-full mt-1 flex items-center justify-center gap-1.5 bg-red-600 hover:bg-red-700 text-white text-xs font-semibold px-3 py-2 rounded transition-colors cursor-pointer"
             >
               <Sparkles className="w-3 h-3" />
-              이 채널 스타일로 대본 생성
+              ëŒ€ë³¸ ìž¬ì°½ìž‘
             </button>
           </div >
         )}
@@ -177,7 +177,7 @@ const ChannelSearchResult = ({ channel, videos, onClose }: Props) => {
       {videos.length > 0 && (
         <div className="px-4 pb-4">
           <h3 className="text-xs font-semibold text-gray-500 dark:text-white/40 uppercase tracking-wide mb-3">
-            최근 영상
+            ìµœê·¼ ì˜ìƒ
           </h3>
           <div className="space-y-3">
             {videos.map((v) => (
@@ -204,7 +204,7 @@ const ChannelSearchResult = ({ channel, videos, onClose }: Props) => {
                   </p>
                   <div className="flex items-center gap-2 mt-1 text-[11px] text-gray-400 dark:text-white/40">
                     <span>{fmt(v.views)} views</span>
-                    <span>·</span>
+                    <span>Â·</span>
                     <span>{v.uploadDate}</span>
                   </div >
                 </div >
@@ -218,3 +218,4 @@ const ChannelSearchResult = ({ channel, videos, onClose }: Props) => {
 };
 
 export default ChannelSearchResult;
+

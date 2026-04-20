@@ -1,6 +1,17 @@
 const API_KEY = import.meta.env.VITE_YOUTUBE_API_KEY as string;
 const BASE = 'https://www.googleapis.com/youtube/v3';
 
+async function get<T>(endpoint: string, params: Record<string, string>): Promise<T> {
+  const url = new URL(endpoint, BASE + '/');
+  url.searchParams.set('key', API_KEY);
+  for (const [k, v] of Object.entries(params)) {
+    url.searchParams.set(k, v);
+  }
+  const res = await fetch(url.toString());
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}
+
 export interface ChannelResult {
   id: string;
   name: string;
@@ -23,32 +34,27 @@ export interface VideoResult {
   duration: string;
 }
 
-async function get<T>(endpoint: string, params: Record<string, string>): Promise<T> {
-  const url = new URL(`${BASE}/${endpoint}`);
-  url.searchParams.set('key', API_KEY);
-  for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
-  const res = await fetch(url.toString());
-  if (!res.ok) throw new Error(`YouTube API error: ${res.status}`);
-  return res.json() as Promise<T>;
-}
-
-function parseDuration(iso: string): string {
-  const m = iso.match(/PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?/);
-  if (!m) return '0:00';
-  const h = parseInt(m[1] ?? '0');
-  const min = parseInt(m[2] ?? '0');
-  const sec = parseInt(m[3] ?? '0');
-  const mm = String(min).padStart(h > 0 ? 2 : 1, '0');
-  const ss = String(sec).padStart(2, '0');
-  return h > 0 ? `${h}:${mm}:${ss}` : `${mm}:${ss}`;
-}
-
-export interface PopularChannelItem {
+export interface RankingChannelItem {
   rank: number;
   name: string;
-  score: string;
   avatar: string;
-  channelId: string;
+  category: string;
+  country: string;
+  subscribers: number;
+  views: number;
+  growthPercent: number;
+}
+
+export interface RankingVideoItem {
+  rank: number;
+  videoId: string;
+  title: string;
+  channelName: string;
+  channelAvatar: string;
+  views: number;
+  uploadDate: string;
+  category: string;
+  country: string;
 }
 
 function fmtSubs(n: number): string {
@@ -118,7 +124,7 @@ export async function fetchTrendingVideos(regionCode = 'KR', maxResults = 10): P
   const items: any[] = data.items ?? [];
   if (items.length === 0) return [];
 
-  // 채널 아바타 일괄 조회
+  // ì±„ë„ ì•„ë°”íƒ€ ì¼ê´„ ì¡°íšŒ
   const channelIds = [...new Set(items.map((v: any) => v.snippet.channelId))].join(',');
   const chData = await get<any>('channels', { part: 'snippet', id: channelIds });
   const avatarMap = new Map<string, string>(
@@ -158,7 +164,7 @@ export async function fetchLiveVideos(): Promise<TrendingVideoItem[]> {
 }
 
 export async function searchChannel(query: string): Promise<ChannelResult | null> {
-  // 1. 채널 검색
+  // 1. ì±„ë„ ê²€ìƒ‰
   const searchData = await get<any>('search', {
     part: 'snippet',
     type: 'channel',
@@ -169,7 +175,7 @@ export async function searchChannel(query: string): Promise<ChannelResult | null
   if (!item) return null;
   const channelId: string = item.id.channelId;
 
-  // 2. 채널 상세 정보
+  // 2. ì±„ë„ ìƒì„¸ ì •ë³´
   const channelData = await get<any>('channels', {
     part: 'snippet,statistics,brandingSettings',
     id: channelId,
@@ -192,7 +198,7 @@ export async function searchChannel(query: string): Promise<ChannelResult | null
 }
 
 export async function fetchRecentVideos(channelId: string): Promise<VideoResult[]> {
-  // 1. 최근 영상 5개 검색
+  // 1. ìµœê·¼ ì˜ìƒ 5ê°œ ê²€ìƒ‰
   const searchData = await get<any>('search', {
     part: 'snippet',
     channelId,
@@ -205,7 +211,7 @@ export async function fetchRecentVideos(channelId: string): Promise<VideoResult[
 
   const videoIds = items.map((v: any) => v.id.videoId).join(',');
 
-  // 2. 조회수 + 재생시간 병렬 조회
+  // 2. ì¡°íšŒìˆ˜ + ìž¬ìƒì‹œê°„ ë³‘ë ¬ ì¡°íšŒ
   const [statsData, detailData] = await Promise.all([
     get<any>('videos', { part: 'statistics', id: videoIds }),
     get<any>('videos', { part: 'contentDetails', id: videoIds }),
@@ -246,32 +252,37 @@ export interface RankingVideoItem {
 }
 
 export async function fetchVideoRankings(regionCode = 'KR', maxResults = 25): Promise<RankingVideoItem[]> {
-  const data = await get<any>('videos', {
-    part: 'snippet,statistics',
-    chart: 'mostPopular',
-    regionCode,
-    maxResults: String(maxResults),
-  });
-  const items: any[] = data.items ?? [];
-  if (items.length === 0) return [];
+  try {
+    const data = await get<any>('videos', {
+      part: 'snippet,statistics',
+      chart: 'mostPopular',
+      regionCode,
+      maxResults: String(maxResults),
+    });
+    const items: any[] = data.items ?? [];
+    if (items.length === 0) return [];
 
-  const channelIds = [...new Set(items.map((v: any) => v.snippet.channelId))].join(',');
-  const chData = await get<any>('channels', { part: 'snippet', id: channelIds });
-  const avatarMap = new Map<string, string>(
-    chData.items?.map((ch: any) => [ch.id, ch.snippet.thumbnails?.default?.url ?? ''])
-  );
+    const channelIds = [...new Set(items.map((v: any) => v.snippet.channelId))].join(',');
+    const chData = await get<any>('channels', { part: 'snippet', id: channelIds });
+    const avatarMap = new Map<string, string>(
+      chData.items?.map((ch: any) => [ch.id, ch.snippet.thumbnails?.default?.url ?? ''])
+    );
 
-  return items.map((v: any, i: number) => ({
-    rank: i + 1,
-    videoId: v.id,
-    title: v.snippet.title,
-    channelName: v.snippet.channelTitle,
-    channelAvatar: avatarMap.get(v.snippet.channelId) ?? '',
-    views: parseInt(v.statistics.viewCount ?? '0'),
-    uploadDate: v.snippet.publishedAt?.slice(0, 10) ?? '',
-    category: VIDEO_CAT_MAP[v.snippet.categoryId] ?? 'Entertainment',
-    country: regionCode,
-  }));
+    return items.map((v: any, i: number) => ({
+      rank: i + 1,
+      videoId: v.id,
+      title: v.snippet.title ?? 'Unknown Title',
+      channelName: v.snippet.channelTitle ?? 'Unknown Channel',
+      channelAvatar: avatarMap.get(v.snippet.channelId) ?? '',
+      views: parseInt(v.statistics.viewCount ?? '0'),
+      uploadDate: v.snippet.publishedAt?.slice(0, 10) ?? '',
+      category: VIDEO_CAT_MAP[v.snippet.categoryId] ?? 'Entertainment',
+      country: regionCode,
+    }));
+  } catch (error) {
+    console.error('Error fetching video rankings:', error);
+    throw error;
+  }
 }
 
 const TOPIC_TO_CATEGORY: Record<string, string> = {
@@ -304,39 +315,44 @@ export interface RankingChannelItem {
 }
 
 export async function fetchChannelRankings(regionCode = 'KR'): Promise<RankingChannelItem[]> {
-  const videosData = await get<any>('videos', {
-    part: 'snippet',
-    chart: 'mostPopular',
-    regionCode,
-    maxResults: '50',
-  });
+  try {
+    const videosData = await get<any>('videos', {
+      part: 'snippet',
+      chart: 'mostPopular',
+      regionCode,
+      maxResults: '50',
+    });
 
-  const seen = new Set<string>();
-  const channelIds: string[] = [];
-  for (const item of videosData.items ?? []) {
-    const cid: string = item.snippet.channelId;
-    if (!seen.has(cid)) { seen.add(cid); channelIds.push(cid); }
-    if (channelIds.length >= 25) break;
+    const seen = new Set<string>();
+    const channelIds: string[] = [];
+    for (const item of videosData.items ?? []) {
+      const cid: string = item.snippet.channelId;
+      if (!seen.has(cid)) { seen.add(cid); channelIds.push(cid); }
+      if (channelIds.length >= 25) break;
+    }
+    if (channelIds.length === 0) return [];
+
+    const channelData = await get<any>('channels', {
+      part: 'snippet,statistics,topicDetails',
+      id: channelIds.join(','),
+    });
+
+    const sorted = [...(channelData.items ?? [])].sort(
+      (a: any, b: any) => parseInt(b.statistics.subscriberCount ?? '0') - parseInt(a.statistics.subscriberCount ?? '0')
+    );
+
+    return sorted.map((ch: any, i: number) => ({
+      rank: i + 1,
+      name: ch.snippet.title ?? 'Unknown Channel',
+      avatar: ch.snippet.thumbnails?.default?.url ?? '',
+      category: extractCategory(ch.topicDetails?.topicCategories),
+      country: ch.snippet.country ?? regionCode,
+      subscribers: parseInt(ch.statistics.subscriberCount ?? '0'),
+      views: parseInt(ch.statistics.viewCount ?? '0'),
+      growthPercent: 0,
+    }));
+  } catch (error) {
+    console.error('Error fetching channel rankings:', error);
+    throw error;
   }
-  if (channelIds.length === 0) return [];
-
-  const channelData = await get<any>('channels', {
-    part: 'snippet,statistics,topicDetails',
-    id: channelIds.join(','),
-  });
-
-  const sorted = [...(channelData.items ?? [])].sort(
-    (a: any, b: any) => parseInt(b.statistics.subscriberCount ?? '0') - parseInt(a.statistics.subscriberCount ?? '0')
-  );
-
-  return sorted.map((ch: any, i: number) => ({
-    rank: i + 1,
-    name: ch.snippet.title,
-    avatar: ch.snippet.thumbnails?.default?.url ?? '',
-    category: extractCategory(ch.topicDetails?.topicCategories),
-    country: ch.snippet.country ?? regionCode,
-    subscribers: parseInt(ch.statistics.subscriberCount ?? '0'),
-    views: parseInt(ch.statistics.viewCount ?? '0'),
-    growthPercent: 0,
-  }));
 }

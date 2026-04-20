@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { Channel } from '@/mocks/channelRankings';
+import { countries } from '@/mocks/channelRankings';
 import TopHeader from '@/pages/home/components/TopHeader';
 import GlobalSidebar from '@/components/feature/GlobalSidebar';
 import FilterBar from './components/FilterBar';
@@ -16,18 +17,19 @@ const PAGE_SIZE = 10;
 type ViewTab = 'all' | 'saved';
 
 const REGION_MAP: Record<string, string> = {
-  ALL: 'KR', US: 'US', IN: 'IN', KR: 'KR', MX: 'MX', AR: 'AR', RU: 'RU', ID: 'ID',
-  JP: 'JP', BR: 'BR', DE: 'DE', FR: 'FR', GB: 'GB',
+  ALL: 'KR',
+  ...countries.reduce((acc, c) => ({ ...acc, [c.code]: c.code }), {}),
 };
 
 const RankingsPage = () => {
   const { t } = useTranslation();
+  const [searchQuery, setSearchQuery] = useState('');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { channels: savedChannels } = useSavedChannels();
 
   const [allChannels, setAllChannels] = useState<Channel[]>([]);
   const [apiLoading, setApiLoading] = useState(true);
-
+  const [apiError, setApiError] = useState<string | null>(null);
   const [viewTab, setViewTab] = useState<ViewTab>('all');
   const [country, setCountry] = useState('ALL');
   const [category, setCategory] = useState('ALL');
@@ -40,15 +42,26 @@ const RankingsPage = () => {
     const regionCode = REGION_MAP[country] ?? 'KR';
     const cacheKey = `vb_ch_rankings_${regionCode}`;
     const cached = cacheGet<Channel[]>(cacheKey);
-    if (cached) { setAllChannels(cached); setApiLoading(false); return; }
+    
+    if (cached) { 
+      setAllChannels(cached); 
+      setApiLoading(false); 
+      setApiError(null); 
+      return; 
+    }
+
     setApiLoading(true);
+    setApiError(null);
     fetchChannelRankings(regionCode)
       .then((data) => {
         const channels = data as Channel[];
         setAllChannels(channels);
         cacheSet(cacheKey, channels);
       })
-      .catch(() => {})
+      .catch((err) => {
+        console.error('RankingsPage Error:', err);
+        setApiError(err instanceof Error ? err.message : 'ë°ì´í„°ë¥¼ ë¶ˆëŸ¬ì˜¤ëŠ” ì¤‘ ì˜¤ë¥˜ê°€ ë°œìƒí–ˆìŠµë‹ˆë‹¤.');
+      })
       .finally(() => setApiLoading(false));
   }, [country]);
 
@@ -72,7 +85,10 @@ const RankingsPage = () => {
     }
 
     if (category !== 'ALL') data = data.filter((c) => c.category === category);
-
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      data = data.filter((c) => c.name.toLowerCase().includes(q));
+    }
     data.sort((a, b) => {
       const mul = sortDir === 'asc' ? 1 : -1;
       return (a[sortKey] > b[sortKey] ? 1 : -1) * mul;
@@ -168,12 +184,12 @@ const RankingsPage = () => {
                 onClick={() => handleTabChange('all')}
                 className="mt-4 text-xs text-red-600 dark:text-red-400 hover:underline cursor-pointer transition-colors"
               >
-                Browse all channels →
+                Browse all channels â†’
               </button>
             </div>
           )}
 
-          {/* Filter bar — only show when there are results */}
+          {/* Filter bar â€” only show when there are results */}
           {(viewTab === 'all' || filtered.length > 0) && (
             <div className="bg-gray-50 dark:bg-dark-card border border-gray-200 dark:border-dark-border rounded-lg px-4 py-3">
               <FilterBar

@@ -1,6 +1,8 @@
 const API_KEY = import.meta.env.VITE_OPENROUTER_API_KEY as string;
-const MODEL = (import.meta.env.VITE_AI_MODEL as string) || 'google/gemma-4-31b-it:free';
+const MODEL = (import.meta.env.VITE_AI_MODEL as string) || 'deepseek/deepseek-chat';
 const MODEL_FALLBACK = (import.meta.env.VITE_AI_MODEL_FALLBACK as string) || '';
+console.log('[DEBUG] API_KEY:', API_KEY ? API_KEY.substring(0,8) + '...' : 'MISSING');
+console.log('[DEBUG] MODEL:', MODEL);
 
 async function chatWithModel(prompt: string, maxTokens: number, model: string): Promise<string> {
   const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
@@ -47,25 +49,25 @@ export interface ChannelContext {
 
 export async function generateScript(topic: string, channelContext?: ChannelContext): Promise<GeneratedScript> {
   const contextBlock = channelContext
-    ? `\n참고 채널 분석 (이 채널의 스타일을 최대한 반영할 것):\n- 채널명: ${channelContext.channelName}\n- 훅 패턴: ${channelContext.hookPattern}\n- 성장 공식: ${channelContext.growthFormula}\n`
+    ? `\nì°¸ê³  ì±„ë„ ë¶„ì„ (ì´ ì±„ë„ì˜ ìŠ¤íƒ€ì¼ì„ ìµœëŒ€í•œ ë°˜ì˜í•  ê²ƒ):\n- ì±„ë„ëª…: ${channelContext.channelName}\n- í›… íŒ¨í„´: ${channelContext.hookPattern}\n- ì„±ìž¥ ê³µì‹: ${channelContext.growthFormula}\n`
     : '';
 
-  const prompt = `당신은 바이럴 숏폼 대본 전문가입니다. 주제: "${topic}"${contextBlock}
+  const prompt = `ë‹¹ì‹ ì€ ë°”ì´ëŸ´ ìˆí¼ ëŒ€ë³¸ ì „ë¬¸ê°€ìž…ë‹ˆë‹¤. ì£¼ì œ: "${topic}"${contextBlock}
 
-아래 JSON 형식으로만 답하세요. 설명이나 마크다운 없이 순수 JSON만:
+ì•„ëž˜ JSON í˜•ì‹ìœ¼ë¡œë§Œ ë‹µí•˜ì„¸ìš”. ì„¤ëª…ì´ë‚˜ ë§ˆí¬ë‹¤ìš´ ì—†ì´ ìˆœìˆ˜ JSONë§Œ:
 {
-  "hook": "0-3초: 스크롤을 멈추게 하는 짧고 강렬한 1-2문장",
-  "shock": "3-15초: 충격적인 사실이나 통계, 2-3문장",
-  "evidence": "15-30초: 구체적인 근거나 예시, 2-3문장",
-  "solution": "30-50초: 숫자가 포함된 구체적인 해결책, 3-4문장",
-  "cta": "50-60초: 댓글 유도 (팔로우 언급 절대 금지), 1-2문장"
+  "hook": "0-3ì´ˆ: ìŠ¤í¬ë¡¤ì„ ë©ˆì¶”ê²Œ í•˜ëŠ” ì§§ê³  ê°•ë ¬í•œ 1-2ë¬¸ìž¥",
+  "shock": "3-15ì´ˆ: ì¶©ê²©ì ì¸ ì‚¬ì‹¤ì´ë‚˜ í†µê³„, 2-3ë¬¸ìž¥",
+  "evidence": "15-30ì´ˆ: êµ¬ì²´ì ì¸ ê·¼ê±°ë‚˜ ì˜ˆì‹œ, 2-3ë¬¸ìž¥",
+  "solution": "30-50ì´ˆ: ìˆ«ìžê°€ í¬í•¨ëœ êµ¬ì²´ì ì¸ í•´ê²°ì±…, 3-4ë¬¸ìž¥",
+  "cta": "50-60ì´ˆ: ëŒ“ê¸€ ìœ ë„ (íŒ”ë¡œìš° ì–¸ê¸‰ ì ˆëŒ€ ê¸ˆì§€), 1-2ë¬¸ìž¥"
 }
 
-규칙:
-- 한국어, 구어체 (~거든요 ~더라고요 ~잖아요)
-- hook: 짧은 문장, 충격적, 정체성 공격
-- cta: "댓글에 정리해뒀어요" 스타일
-- 시간 표시나 섹션명 포함 금지, 본문만`;
+ê·œì¹™:
+- í•œêµ­ì–´, êµ¬ì–´ì²´ (~ê±°ë“ ìš” ~ë”ë¼ê³ ìš” ~ìž–ì•„ìš”)
+- hook: ì§§ì€ ë¬¸ìž¥, ì¶©ê²©ì , ì •ì²´ì„± ê³µê²©
+- cta: "ëŒ“ê¸€ì— ì •ë¦¬í•´ë’€ì–´ìš”" ìŠ¤íƒ€ì¼
+- ì‹œê°„ í‘œì‹œë‚˜ ì„¹ì…˜ëª… í¬í•¨ ê¸ˆì§€, ë³¸ë¬¸ë§Œ`;
 
   const text = await chat(prompt, 1200);
   const jsonMatch = text.match(/\{[\s\S]*\}/);
@@ -103,54 +105,43 @@ export async function analyzeChannelGrowth(channel: {
     ? (channel.totalViews / channel.subscribers).toFixed(1)
     : '0';
   const titlesBlock = channel.recentVideoTitles?.length
-    ? `최근 영상 제목:\n${channel.recentVideoTitles.map((t, i) => `${i + 1}. ${t}`).join('\n')}`
+    ? `ìµœê·¼ ì˜ìƒ ì œëª©:\n${channel.recentVideoTitles.map((t, i) => `${i + 1}. ${t}`).join('\n')}`
     : '';
   const datesBlock = channel.recentUploadDates?.length
-    ? `업로드 날짜: ${channel.recentUploadDates.join(', ')}`
+    ? `ì—…ë¡œë“œ ë‚ ì§œ: ${channel.recentUploadDates.join(', ')}`
     : '';
 
-  const prompt = `아래 유튜브 채널 데이터를 분석해서 정확히 5가지를 답해:
+  const prompt = `ì•„ëž˜ ìœ íŠœë¸Œ ì±„ë„ ë°ì´í„°ë¥¼ ë¶„ì„í•´ì„œ ì •í™•ížˆ JSON í˜•ì‹ìœ¼ë¡œ ë‹µí•´:
 
-채널명: ${channel.name}
-구독자: ${subs}명
-총 조회수: ${views}회
-영상 수: ${channel.videoCount}개
-구독자 대비 조회수 비율: ${viralRatio}배
-채널 설명: ${channel.description.slice(0, 200)}
+ì±„ë„ëª…: ${channel.name}
+êµ¬ë…ìž: ${subs}ëª…
+ì´ ì¡°íšŒìˆ˜: ${views}íšŒ
+ì˜ìƒ ìˆ˜: ${channel.videoCount}ê°œ
+êµ¬ë…ìž ëŒ€ë¹„ ì¡°íšŒìˆ˜ ë¹„ìœ¨: ${viralRatio}ë°°
+ì±„ë„ ì„¤ëª…: ${channel.description.slice(0, 200)}
 ${titlesBlock}
 ${datesBlock}
 
-1. 훅 패턴: 최근 영상 제목에서 공통 훅 유형 (공포/호기심/권위/비밀폭로)
-2. 썸네일 전략: 제목에서 추론되는 시각 전략
-3. 업로드 패턴: 영상 간 간격으로 추정되는 최적 업로드 주기
-4. 성장 공식: 구독자 대비 조회수 비율로 판단한 바이럴 강도
-5. 복제 전략: 이 채널을 따라하려면 뭘 해야 하는지 3줄
+ì‘ë‹µì€ ë°˜ë“œì‹œ ì•„ëž˜ JSON êµ¬ì¡°ì—¬ì•¼ í•˜ë©°, ë‹¤ë¥¸ ì„¤ëª… ì—†ì´ JSONë§Œ ì¶œë ¥í•´:
+{
+  "hookPattern": "ìµœê·¼ ì˜ìƒ ì œëª©ì—ì„œ ê³µí†µ í›… ìœ í˜• (ê³µí¬/í˜¸ê¸°ì‹¬/ê¶Œìœ„/ë¹„ë°€í­ë¡œ)",
+  "thumbnailStrategy": "ì œëª©ì—ì„œ ì¶”ë¡ ë˜ëŠ” ì‹œê° ì „ëžµ",
+  "uploadPattern": "ì˜ìƒ ê°„ ê°„ê²©ìœ¼ë¡œ ì¶”ì •ë˜ëŠ” ìµœì  ì—…ë¡œë“œ ì£¼ê¸°",
+  "growthFormula": "êµ¬ë…ìž ëŒ€ë¹„ ì¡°íšŒìˆ˜ ë¹„ìœ¨ë¡œ íŒë‹¨í•œ ë°”ì´ëŸ´ ê°•ë„",
+  "copyStrategy": ["ë³µì œ ì „ëžµ 1ì¤„", "ë³µì œ ì „ëžµ 2ì¤„", "ë³µì œ ì „ëžµ 3ì¤„"]
+}
+í•œêµ­ì–´ë¡œ ìž‘ì„±í•˜ê³  ê°„ê²°í•˜ê²Œ ë‹µí•´.`;
 
-형식: 각 항목을 "1.", "2.", "3.", "4.", "5."로 시작. 한국어. 번호와 제목 제외하고 내용만 간결하게.`;
+  const text = await chat(prompt, 1000);
+  const jsonMatch = text.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) throw new Error('Invalid AI response: No JSON found');
 
-  const text = await chat(prompt, 800);
-
-  const extract = (n: number): string => {
-    const re = new RegExp(`${n}[.)][^\\n]*\\n?([\\s\\S]*?)(?=\\n${n + 1}[.)]|$)`);
-    const m = text.match(re);
-    if (m) return m[1]?.trim() ?? '';
-    const lines = text.split('\n').filter(Boolean);
-    const idx = lines.findIndex((l) => l.trim().startsWith(`${n}.`) || l.trim().startsWith(`${n})`));
-    return idx >= 0 ? lines[idx].replace(/^\d+[.)]\s*/, '').trim() : '';
-  };
-
-  const item5 = text.match(/5[.)][^\n]*\n?([\s\S]*?)$/)?.[1]?.trim() ?? '';
-  const copyLines = item5
-    .split('\n')
-    .map((l) => l.replace(/^[-•]\s*/, '').trim())
-    .filter(Boolean)
-    .slice(0, 3);
-
+  const p = JSON.parse(jsonMatch[0]);
   return {
-    hookPattern: extract(1),
-    thumbnailStrategy: extract(2),
-    uploadPattern: extract(3),
-    growthFormula: extract(4),
-    copyStrategy: copyLines.length > 0 ? copyLines : [item5],
+    hookPattern: p.hookPattern ?? '',
+    thumbnailStrategy: p.thumbnailStrategy ?? '',
+    uploadPattern: p.uploadPattern ?? '',
+    growthFormula: p.growthFormula ?? '',
+    copyStrategy: Array.isArray(p.copyStrategy) ? p.copyStrategy.slice(0, 3) : [p.copyStrategy || ''],
   };
 }

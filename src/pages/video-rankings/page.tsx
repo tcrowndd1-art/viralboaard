@@ -9,7 +9,6 @@ import TopHeader from '@/pages/home/components/TopHeader';
 import GlobalSidebar from '@/components/feature/GlobalSidebar';
 import HoverPopup from '@/components/feature/HoverPopup';
 import type { VideoPopupData } from '@/components/feature/HoverPopup';
-import type { VideoItem } from '@/mocks/videoRankings';
 
 type SortKey = 'rank' | 'views' | 'uploadDate';
 type SortDir = 'asc' | 'desc';
@@ -19,8 +18,8 @@ const PAGE_SIZE = 10;
 const SAVED_VIDEOS_KEY = 'viralboard_saved_videos';
 
 const REGION_MAP: Record<string, string> = {
-  ALL: 'KR', US: 'US', IN: 'IN', KR: 'KR', MX: 'MX', AR: 'AR', RU: 'RU', ID: 'ID',
-  JP: 'JP', BR: 'BR', DE: 'DE', FR: 'FR', GB: 'GB',
+  ALL: 'KR',
+  ...countries.reduce((acc, c) => ({ ...acc, [c.code]: c.code }), {}),
 };
 
 /* ── Saved videos local storage ── */
@@ -207,10 +206,12 @@ const BookmarkBtn = ({
 /* ─── Main Page ─── */
 const VideoRankingsPage = () => {
   const { t } = useTranslation();
+  const [searchQuery, setSearchQuery] = useState('');
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const [allVideos, setAllVideos] = useState<VideoItem[]>([]);
   const [apiLoading, setApiLoading] = useState(true);
+  const [apiError, setApiError] = useState<string | null>(null);
 
   const [viewTab, setViewTab] = useState<ViewTab>('all');
   const [savedIds, setSavedIds] = useState<Set<string>>(() => loadSavedVideos());
@@ -253,15 +254,19 @@ const VideoRankingsPage = () => {
     const regionCode = REGION_MAP[country] ?? 'KR';
     const cacheKey = `vb_vid_rankings_${regionCode}`;
     const cached = cacheGet<VideoItem[]>(cacheKey);
-    if (cached) { setAllVideos(cached); setApiLoading(false); return; }
+    if (cached) { setAllVideos(cached); setApiLoading(false); setApiError(null); return; }
     setApiLoading(true);
+    setApiError(null);
     fetchVideoRankings(regionCode, 25)
       .then((data) => {
         const videos = data as unknown as VideoItem[];
         setAllVideos(videos);
         cacheSet(cacheKey, videos);
       })
-      .catch(() => {})
+      .catch((err: unknown) => {
+        const msg = err instanceof Error ? err.message : 'Unknown error';
+        setApiError(msg);
+      })
       .finally(() => setApiLoading(false));
   }, [country]);
 
@@ -280,6 +285,10 @@ const VideoRankingsPage = () => {
     let data = [...allVideos];
     if (viewTab === 'saved') data = data.filter(v => savedIds.has(v.videoId));
     if (category !== 'ALL') data = data.filter(v => v.category === category);
+    if (searchQuery) {
+      const q = searchQuery.toLowerCase();
+      data = data.filter(v => v.title.toLowerCase().includes(q));
+    }
     data.sort((a, b) => {
       const mul = sortDir === 'asc' ? 1 : -1;
       if (sortKey === 'uploadDate') return (new Date(a.uploadDate).getTime() - new Date(b.uploadDate).getTime()) * mul;
@@ -438,6 +447,21 @@ const VideoRankingsPage = () => {
                   ))}
                 </tbody>
               </table>
+            </div>
+          )}
+
+          {/* API Error */}
+          {!apiLoading && apiError && (
+            <div className="flex flex-col items-center justify-center py-16 text-center rounded-xl border border-red-200 dark:border-red-500/30 bg-red-50 dark:bg-red-900/10">
+              <i className="ri-error-warning-line text-3xl text-red-400 mb-3"></i>
+              <p className="text-sm font-semibold text-red-600 dark:text-red-400 mb-1">데이터를 불러오지 못했습니다</p>
+              <p className="text-xs text-red-400 dark:text-red-500/70 max-w-xs mb-4">{apiError}</p>
+              <button
+                onClick={() => { setApiError(null); setApiLoading(true); fetchVideoRankings(REGION_MAP[country] ?? 'KR', 25).then(d => { setAllVideos(d as unknown as VideoItem[]); }).catch((e: unknown) => setApiError(e instanceof Error ? e.message : 'Unknown error')).finally(() => setApiLoading(false)); }}
+                className="text-xs text-red-600 dark:text-red-400 border border-red-300 dark:border-red-500/40 px-4 py-2 rounded-lg hover:bg-red-100 dark:hover:bg-red-500/10 transition-colors cursor-pointer"
+              >
+                다시 시도
+              </button>
             </div>
           )}
 
