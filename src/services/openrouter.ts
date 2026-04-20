@@ -1,6 +1,22 @@
 const API_KEY = import.meta.env.VITE_OPENROUTER_API_KEY as string;
-const MODEL = (import.meta.env.VITE_AI_MODEL as string) || 'deepseek/deepseek-chat';
-const MODEL_FALLBACK = (import.meta.env.VITE_AI_MODEL_FALLBACK as string) || 'deepseek/deepseek-r1-0528:free';
+const MODEL = (import.meta.env.VITE_AI_MODEL as string) || 'google/gemma-4-31b-it:free';
+const MODEL_FALLBACK = (import.meta.env.VITE_AI_MODEL_FALLBACK as string) || 'meta-llama/llama-3.3-70b-instruct:free';
+const MODEL_FALLBACK_2 = (import.meta.env.VITE_AI_MODEL_FALLBACK_2 as string) || 'openai/gpt-4o-mini';
+
+const alertSent = new Set<string>();
+
+async function sendTelegramAlert(message: string) {
+  const token = import.meta.env.VITE_TELEGRAM_BOT_TOKEN;
+  const chatId = import.meta.env.VITE_TELEGRAM_CHAT_ID;
+  if (!token || !chatId) return;
+  try {
+    await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: chatId, text: message, parse_mode: 'HTML' }),
+    });
+  } catch {}
+}
 
 async function chatWithModel(prompt: string, maxTokens: number, model: string): Promise<string> {
   const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
@@ -19,9 +35,25 @@ async function chatWithModel(prompt: string, maxTokens: number, model: string): 
     }),
   });
 
-  if (res.status === 429 && MODEL_FALLBACK && model !== MODEL_FALLBACK) {
-    return chatWithModel(prompt, maxTokens, MODEL_FALLBACK);
+  if (res.status === 429) {
+    if (model === MODEL) {
+      if (!alertSent.has(MODEL)) {
+        await sendTelegramAlert('⚠️ Gemma 4 쿼터 초과. Llama 3.3으로 전환합니다.');
+        alertSent.add(MODEL);
+      }
+      return chatWithModel(prompt, maxTokens, MODEL_FALLBACK);
+    } else if (model === MODEL_FALLBACK) {
+      if (!alertSent.has(MODEL_FALLBACK)) {
+        await sendTelegramAlert('🚨 Llama 3.3도 쿼터 초과. GPT-5 Nano(유료)로 전환합니다.');
+        alertSent.add(MODEL_FALLBACK);
+      }
+      return chatWithModel(prompt, maxTokens, MODEL_FALLBACK_2);
+    } else if (model === MODEL_FALLBACK_2) {
+      await sendTelegramAlert('❌ 전체 AI 엔진 실패. 수동 확인 필요.');
+      throw new Error('All AI models exhausted or failed.');
+    }
   }
+
   if (!res.ok) throw new Error(`OpenRouter error: ${res.status}`);
   const data = await res.json();
   return data.choices?.[0]?.message?.content ?? '';
