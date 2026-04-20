@@ -17,6 +17,7 @@ const PAGE_SIZE = 10;
 type ViewTab = 'all' | 'saved';
 
 const REGION_MAP: Record<string, string> = {
+  ALL: 'KR',
   ...countries.reduce((acc, c) => ({ ...acc, [c.code]: c.code }), {}),
 };
 

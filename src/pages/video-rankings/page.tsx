@@ -18,6 +18,7 @@ const PAGE_SIZE = 10;
 const SAVED_VIDEOS_KEY = 'viralboard_saved_videos';
 
 const REGION_MAP: Record<string, string> = {
+  ALL: 'KR',
   ...countries.reduce((acc, c) => ({ ...acc, [c.code]: c.code }), {} as Record<string, string>),
 };
 
