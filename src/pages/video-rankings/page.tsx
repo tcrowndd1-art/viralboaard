@@ -2,7 +2,7 @@ import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { videoCategories } from '@/mocks/videoRankings';
 import { countries } from '@/mocks/channelRankings';
-import type { VideoItem } from '@/mocks/videoRankings';
+import { RankingVideoItem } from '@/services/youtube';
 import { fetchVideoRankings } from '@/services/youtube';
 import { cacheGet, cacheSet } from '@/services/cache';
 import TopHeader from '@/pages/home/components/TopHeader';
@@ -18,7 +18,6 @@ const PAGE_SIZE = 10;
 const SAVED_VIDEOS_KEY = 'viralboard_saved_videos';
 
 const REGION_MAP: Record<string, string> = {
-  ALL: 'KR',
   ...countries.reduce((acc, c) => ({ ...acc, [c.code]: c.code }), {} as Record<string, string>),
 };
 
@@ -203,7 +202,7 @@ const VideoRankingsPage = () => {
   const { t } = useTranslation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  const [allVideos, setAllVideos] = useState<VideoItem[]>([]);
+  const [allVideos, setAllVideos] = useState<RankingVideoItem[]>([]);
   const [apiLoading, setApiLoading] = useState(true);
   const [apiError, setApiError] = useState<string | null>(null);
 
@@ -249,7 +248,7 @@ const VideoRankingsPage = () => {
     setApiError(null);
     fetchVideoRankings(regionCode, 25)
       .then((data) => {
-        const videos = data as unknown as VideoItem[];
+        const videos = data as RankingVideoItem[];
         setAllVideos(videos);
         cacheSet(`vb_vid_rankings_${regionCode}`, videos);
       })
@@ -260,9 +259,9 @@ const VideoRankingsPage = () => {
   }, []);
 
   useEffect(() => {
-    const regionCode = REGION_MAP[country] ?? 'KR';
+  const regionCode = REGION_MAP[country] ?? 'KR';
     const cacheKey = `vb_vid_rankings_${regionCode}`;
-    const cached = cacheGet<VideoItem[]>(cacheKey);
+    const cached = cacheGet<RankingVideoItem[]>(cacheKey);
     if (cached) { setAllVideos(cached); setApiLoading(false); setApiError(null); return; }
     doFetch(regionCode);
   }, [country, doFetch]);

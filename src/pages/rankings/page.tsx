@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { Channel } from '@/mocks/channelRankings';
+import { RankingChannelItem } from '@/services/youtube';
 import { countries } from '@/mocks/channelRankings';
 import TopHeader from '@/pages/home/components/TopHeader';
 import GlobalSidebar from '@/components/feature/GlobalSidebar';
@@ -17,7 +17,6 @@ const PAGE_SIZE = 10;
 type ViewTab = 'all' | 'saved';
 
 const REGION_MAP: Record<string, string> = {
-  ALL: 'KR',
   ...countries.reduce((acc, c) => ({ ...acc, [c.code]: c.code }), {}),
 };
 
@@ -27,7 +26,7 @@ const RankingsPage = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { channels: savedChannels } = useSavedChannels();
 
-  const [allChannels, setAllChannels] = useState<Channel[]>([]);
+  const [allChannels, setAllChannels] = useState<RankingChannelItem[]>([]);
   const [apiLoading, setApiLoading] = useState(true);
   const [apiError, setApiError] = useState<string | null>(null);
   const [viewTab, setViewTab] = useState<ViewTab>('all');
@@ -39,9 +38,9 @@ const RankingsPage = () => {
   const [page, setPage] = useState(1);
 
   useEffect(() => {
-    const regionCode = REGION_MAP[country] ?? 'KR';
+  const regionCode = REGION_MAP[country] ?? 'KR';
     const cacheKey = `vb_ch_rankings_${regionCode}`;
-    const cached = cacheGet<Channel[]>(cacheKey);
+    const cached = cacheGet<RankingChannelItem[]>(cacheKey);
     
     if (cached) { 
       setAllChannels(cached); 
@@ -54,13 +53,13 @@ const RankingsPage = () => {
     setApiError(null);
     fetchChannelRankings(regionCode)
       .then((data) => {
-        const channels = data as Channel[];
+        const channels = data as RankingChannelItem[];
         setAllChannels(channels);
         cacheSet(cacheKey, channels);
       })
       .catch((err) => {
         console.error('RankingsPage Error:', err);
-        setApiError(err instanceof Error ? err.message : 'ë°ì´í„°ë¥¼ ë¶ˆëŸ¬ì˜¤ëŠ” ì¤‘ ì˜¤ë¥˜ê°€ ë°œìƒí–ˆìŠµë‹ˆë‹¤.');
+        setApiError(err instanceof Error ? err.message : '데이터를 불러오지 못했습니다.');
       })
       .finally(() => setApiLoading(false));
   }, [country]);
