@@ -1,7 +1,10 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { videoRankingsData, videoCategories } from '@/mocks/videoRankings';
+import { videoCategories } from '@/mocks/videoRankings';
 import { countries } from '@/mocks/channelRankings';
+import type { VideoItem } from '@/mocks/videoRankings';
+import { fetchVideoRankings } from '@/services/youtube';
+import { cacheGet, cacheSet } from '@/services/cache';
 import TopHeader from '@/pages/home/components/TopHeader';
 import GlobalSidebar from '@/components/feature/GlobalSidebar';
 import HoverPopup from '@/components/feature/HoverPopup';
@@ -14,6 +17,11 @@ type ViewTab = 'all' | 'saved';
 
 const PAGE_SIZE = 10;
 const SAVED_VIDEOS_KEY = 'viralboard_saved_videos';
+
+const REGION_MAP: Record<string, string> = {
+  ALL: 'KR', US: 'US', IN: 'IN', KR: 'KR', MX: 'MX', AR: 'AR', RU: 'RU', ID: 'ID',
+  JP: 'JP', BR: 'BR', DE: 'DE', FR: 'FR', GB: 'GB',
+};
 
 /* ── Saved videos local storage ── */
 const loadSavedVideos = (): Set<string> => {
@@ -201,6 +209,9 @@ const VideoRankingsPage = () => {
   const { t } = useTranslation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
+  const [allVideos, setAllVideos] = useState<VideoItem[]>([]);
+  const [apiLoading, setApiLoading] = useState(true);
+
   const [viewTab, setViewTab] = useState<ViewTab>('all');
   const [savedIds, setSavedIds] = useState<Set<string>>(() => loadSavedVideos());
 
@@ -238,6 +249,22 @@ const VideoRankingsPage = () => {
     });
   }, []);
 
+  useEffect(() => {
+    const regionCode = REGION_MAP[country] ?? 'KR';
+    const cacheKey = `vb_vid_rankings_${regionCode}`;
+    const cached = cacheGet<VideoItem[]>(cacheKey);
+    if (cached) { setAllVideos(cached); setApiLoading(false); return; }
+    setApiLoading(true);
+    fetchVideoRankings(regionCode, 25)
+      .then((data) => {
+        const videos = data as unknown as VideoItem[];
+        setAllVideos(videos);
+        cacheSet(cacheKey, videos);
+      })
+      .catch(() => {})
+      .finally(() => setApiLoading(false));
+  }, [country]);
+
   const handleSort = (key: SortKey) => {
     if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
     else { setSortKey(key); setSortDir(key === 'rank' ? 'asc' : 'desc'); }
@@ -250,9 +277,8 @@ const VideoRankingsPage = () => {
   };
 
   const filtered = useMemo(() => {
-    let data = [...videoRankingsData];
+    let data = [...allVideos];
     if (viewTab === 'saved') data = data.filter(v => savedIds.has(v.videoId));
-    if (country !== 'ALL') data = data.filter(v => v.country === country);
     if (category !== 'ALL') data = data.filter(v => v.category === category);
     data.sort((a, b) => {
       const mul = sortDir === 'asc' ? 1 : -1;
@@ -260,7 +286,7 @@ const VideoRankingsPage = () => {
       return (a[sortKey] > b[sortKey] ? 1 : -1) * mul;
     });
     return data;
-  }, [country, category, sortKey, sortDir, viewTab, savedIds]);
+  }, [allVideos, category, sortKey, sortDir, viewTab, savedIds]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
@@ -394,8 +420,29 @@ const VideoRankingsPage = () => {
             </div>
           )}
 
+          {/* Loading skeleton */}
+          {apiLoading && (
+            <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-dark-border">
+              <table className="w-full min-w-[760px]">
+                <tbody className="divide-y divide-gray-100 dark:divide-dark-border bg-white dark:bg-dark-base">
+                  {Array.from({ length: 10 }).map((_, i) => (
+                    <tr key={i}>
+                      <td className="px-4 py-3 w-12"><div className="w-6 h-6 bg-gray-100 dark:bg-white/10 rounded-full animate-pulse mx-auto" /></td>
+                      <td className="px-4 py-3 w-28"><div className="w-20 h-[45px] bg-gray-100 dark:bg-white/10 rounded animate-pulse" /></td>
+                      <td className="px-4 py-3"><div className="h-3 w-48 bg-gray-100 dark:bg-white/10 rounded animate-pulse" /></td>
+                      <td className="px-4 py-3 hidden md:table-cell"><div className="h-3 w-28 bg-gray-100 dark:bg-white/10 rounded animate-pulse" /></td>
+                      <td className="px-4 py-3 text-right"><div className="h-3 w-14 bg-gray-100 dark:bg-white/10 rounded animate-pulse ml-auto" /></td>
+                      <td className="px-4 py-3 text-right"><div className="h-3 w-20 bg-gray-100 dark:bg-white/10 rounded animate-pulse ml-auto" /></td>
+                      <td className="px-3 py-3 w-10" />
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
           {/* Table */}
-          {filtered.length > 0 && (
+          {!apiLoading && filtered.length > 0 && (
             <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-dark-border">
               <table className="w-full min-w-[760px]">
                 <thead className="bg-gray-50 dark:bg-dark-card border-b border-gray-200 dark:border-dark-border">
@@ -498,7 +545,7 @@ const VideoRankingsPage = () => {
           )}
 
           {/* Pagination */}
-          {filtered.length > 0 && (
+          {!apiLoading && filtered.length > 0 && (
             <div className="bg-gray-50 dark:bg-dark-card border border-gray-200 dark:border-dark-border rounded-lg px-4">
               <div className="flex flex-col sm:flex-row items-center justify-between gap-3 py-3">
                 <p className="text-xs text-gray-400 dark:text-white/30">

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import ScriptEditor from './components/ScriptEditor';
 import ScenePreviewGrid from './components/ScenePreviewGrid';
 import BottomActionBar from './components/BottomActionBar';
@@ -10,14 +10,21 @@ import { useTheme } from '@/hooks/useTheme';
 type ActiveMode = 'storyboard' | 'timeline' | 'settings';
 
 const AiStudioPage = () => {
+  const [searchParams] = useSearchParams();
   const [isGeneratingAll, setIsGeneratingAll] = useState(false);
   const [projectName, setProjectName] = useState('Untitled Project');
   const [editingName, setEditingName] = useState(false);
   const [activePanel, setActivePanel] = useState<'script' | 'preview'>('script');
   const [activeMode, setActiveMode] = useState<ActiveMode>('storyboard');
   const [scriptContent, setScriptContent] = useState('');
-  const [topic, setTopic] = useState('');
+  const [topic, setTopic] = useState(() => searchParams.get('topic') ?? '');
   const { isDark, toggleTheme } = useTheme();
+
+  const channelContext = searchParams.get('channel') ? {
+    channelName: searchParams.get('channel') ?? '',
+    hookPattern: searchParams.get('hook') ?? '',
+    growthFormula: searchParams.get('growth') ?? '',
+  } : undefined;
 
   const handleGenerateAll = () => {
     if (isGeneratingAll) return;
@@ -203,6 +210,7 @@ const AiStudioPage = () => {
                 topic={topic}
                 onTopicChange={setTopic}
                 onScriptChange={setScriptContent}
+                channelContext={channelContext}
               />
               </div>
             </div>

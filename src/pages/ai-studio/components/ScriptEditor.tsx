@@ -1,5 +1,5 @@
-import { useState, useCallback } from 'react';
-import { generateScript } from '@/services/openrouter';
+import { useState, useCallback, useEffect, useRef } from 'react';
+import { generateScript, type ChannelContext } from '@/services/openrouter';
 
 interface ScriptSection {
   id: string;
@@ -171,14 +171,23 @@ interface ScriptEditorProps {
   onTopicChange: (topic: string) => void;
   onSectionChange?: (id: string, text: string) => void;
   onScriptChange?: (fullScript: string) => void;
+  channelContext?: ChannelContext;
 }
 
-const ScriptEditor = ({ topic, onTopicChange, onSectionChange, onScriptChange }: ScriptEditorProps) => {
+const ScriptEditor = ({ topic, onTopicChange, onSectionChange, onScriptChange, channelContext }: ScriptEditorProps) => {
   const [generating, setGenerating] = useState(false);
   const [genError, setGenError] = useState(false);
   const [sectionTexts, setSectionTexts] = useState<Record<string, string>>(
     () => Object.fromEntries(SECTIONS.map((s) => [s.id, s.defaultText]))
   );
+  const autoTriggered = useRef(false);
+
+  useEffect(() => {
+    if (channelContext && topic.trim() && !autoTriggered.current) {
+      autoTriggered.current = true;
+      handleGenerate(channelContext);
+    }
+  }, []);
 
   const buildFullScript = (texts: Record<string, string>) =>
     SECTIONS.map((s) => `[${s.label.toUpperCase()} — ${s.timeRange}]\n${texts[s.id] ?? ''}`).join('\n\n');
@@ -195,12 +204,12 @@ const ScriptEditor = ({ topic, onTopicChange, onSectionChange, onScriptChange }:
     [onSectionChange, onScriptChange]
   );
 
-  const handleGenerate = async () => {
+  const handleGenerate = async (ctx?: ChannelContext) => {
     if (!topic.trim() || generating) return;
     setGenerating(true);
     setGenError(false);
     try {
-      const result = await generateScript(topic);
+      const result = await generateScript(topic, ctx ?? channelContext);
       const newTexts: Record<string, string> = {
         hook: result.hook,
         shock: result.shock,
@@ -247,7 +256,7 @@ const ScriptEditor = ({ topic, onTopicChange, onSectionChange, onScriptChange }:
             className="flex-1 text-sm bg-gray-50 dark:bg-white/5 border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2 text-gray-900 dark:text-white placeholder-gray-300 dark:placeholder-white/20 focus:outline-none focus:ring-1 focus:ring-red-500 transition-colors"
           />
           <button
-            onClick={handleGenerate}
+            onClick={() => handleGenerate()}
             disabled={generating || !topic.trim()}
             className="flex items-center gap-1.5 bg-red-500 hover:bg-red-400 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs font-semibold px-3 py-2 rounded-lg transition-colors cursor-pointer whitespace-nowrap"
           >

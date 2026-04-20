@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import TopHeader from './components/TopHeader';
 import GlobalSidebar from '@/components/feature/GlobalSidebar';
@@ -15,11 +15,6 @@ import {
 } from '@/services/youtube';
 import type { ChannelResult, VideoResult, PopularChannelItem, TrendingVideoItem } from '@/services/youtube';
 import { cacheGet, cacheSet, addSearchHistory } from '@/services/cache';
-import {
-  mostSuperChatted,
-  mostLiveViewers,
-  mostGrowth,
-} from '@/mocks/playboardData';
 
 const CACHE_KEY = (q: string) => `vb_channel_${q.toLowerCase().trim()}`;
 
@@ -33,14 +28,20 @@ const HomePage = () => {
   const [videos, setVideos] = useState<VideoResult[]>([]);
   const [searchError, setSearchError] = useState<string | null>(null);
 
-  // Real API data
+  // API data
   const [popularChannels, setPopularChannels] = useState<PopularChannelItem[]>([]);
+  const [usPopularChannels, setUsPopularChannels] = useState<PopularChannelItem[]>([]);
+  const [jpPopularChannels, setJpPopularChannels] = useState<PopularChannelItem[]>([]);
   const [trendingVideos, setTrendingVideos] = useState<TrendingVideoItem[]>([]);
+  const [usTrendingVideos, setUsTrendingVideos] = useState<TrendingVideoItem[]>([]);
   const [liveVideos, setLiveVideos] = useState<TrendingVideoItem[]>([]);
 
   useEffect(() => {
     fetchPopularChannels('KR').then(setPopularChannels).catch(() => {});
-    fetchTrendingVideos('KR').then(setTrendingVideos).catch(() => {});
+    fetchPopularChannels('US').then(setUsPopularChannels).catch(() => {});
+    fetchPopularChannels('JP').then(setJpPopularChannels).catch(() => {});
+    fetchTrendingVideos('KR', 10).then(setTrendingVideos).catch(() => {});
+    fetchTrendingVideos('US', 5).then(setUsTrendingVideos).catch(() => {});
     fetchLiveVideos().then(setLiveVideos).catch(() => {});
   }, []);
 
@@ -50,7 +51,6 @@ const HomePage = () => {
     setChannel(null);
     setVideos([]);
 
-    // 24시간 캐시 확인
     const cacheKey = CACHE_KEY(query);
     const cached = cacheGet<{ channel: ChannelResult; videos: VideoResult[] }>(cacheKey);
     if (cached) {
@@ -76,8 +76,36 @@ const HomePage = () => {
     }
   };
 
-  // VideoWidget format
+  const toChartItem = (ch: PopularChannelItem) => ({
+    rank: ch.rank,
+    name: ch.name,
+    score: ch.score,
+    avatar: ch.avatar,
+    channelId: ch.channelId,
+  });
+
+  const liveForWidget = useMemo(() =>
+    liveVideos.slice(0, 5).map((v, i) => ({
+      rank: i + 1,
+      name: v.channelName,
+      score: 'LIVE',
+      avatar: v.channelAvatar,
+      channelId: v.videoId,
+    })),
+    [liveVideos]
+  );
+
   const trendingForWidget = trendingVideos.map((v) => ({
+    rank: v.rank,
+    title: v.title,
+    score: v.score,
+    thumbnail: v.thumbnail,
+    channelName: v.channelName,
+    channelAvatar: v.channelAvatar,
+    videoId: v.videoId,
+  }));
+
+  const usTrendingForWidget = usTrendingVideos.map((v) => ({
     rank: v.rank,
     title: v.title,
     score: v.score,
@@ -112,11 +140,21 @@ const HomePage = () => {
         <div className="px-4 py-4 space-y-4">
           {/* Row 1 */}
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-            <ChartWidget titleKey="chart_most_super_chatted" items={mostSuperChatted} scoreType="math" />
-            <ChartWidget titleKey="chart_most_live_viewers" items={mostLiveViewers} scoreType="plain" />
+            <ChartWidget
+              titleKey="chart_most_super_chatted"
+              items={usPopularChannels.map(toChartItem)}
+              scoreType="plain"
+              loading={usPopularChannels.length === 0}
+            />
+            <ChartWidget
+              titleKey="chart_most_live_viewers"
+              items={liveForWidget}
+              scoreType="plain"
+              loading={liveVideos.length === 0}
+            />
             <ChartWidget
               titleKey="chart_most_popular"
-              items={popularChannels.length > 0 ? popularChannels : []}
+              items={popularChannels.map(toChartItem)}
               scoreType="plain"
               loading={popularChannels.length === 0}
             />
@@ -124,14 +162,19 @@ const HomePage = () => {
 
           {/* Row 2 */}
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-            <ChartWidget titleKey="chart_most_growth" items={mostGrowth} scoreType="math" />
+            <ChartWidget
+              titleKey="chart_most_growth"
+              items={jpPopularChannels.map(toChartItem)}
+              scoreType="plain"
+              loading={jpPopularChannels.length === 0}
+            />
             <VideoWidget
-              title="Most Viewed"
+              title="Most Viewed (KR)"
               items={trendingForWidget.length > 0 ? trendingForWidget : []}
             />
             <VideoWidget
-              title="Most Viewed Promotion"
-              items={trendingForWidget.length > 0 ? trendingForWidget.map((v, i) => ({ ...v, rank: i + 1 })) : []}
+              title="Most Viewed (US)"
+              items={usTrendingForWidget.length > 0 ? usTrendingForWidget : []}
             />
           </div>
 

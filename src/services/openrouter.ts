@@ -1,7 +1,8 @@
 const API_KEY = import.meta.env.VITE_OPENROUTER_API_KEY as string;
 const MODEL = (import.meta.env.VITE_AI_MODEL as string) || 'google/gemma-4-31b-it:free';
+const MODEL_FALLBACK = (import.meta.env.VITE_AI_MODEL_FALLBACK as string) || '';
 
-async function chat(prompt: string, maxTokens = 400): Promise<string> {
+async function chatWithModel(prompt: string, maxTokens: number, model: string): Promise<string> {
   const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
     method: 'POST',
     headers: {
@@ -11,15 +12,23 @@ async function chat(prompt: string, maxTokens = 400): Promise<string> {
       'X-Title': 'ViralBoard',
     },
     body: JSON.stringify({
-      model: MODEL,
+      model,
       messages: [{ role: 'user', content: prompt }],
       max_tokens: maxTokens,
       temperature: 0.85,
     }),
   });
+
+  if (res.status === 429 && MODEL_FALLBACK && model !== MODEL_FALLBACK) {
+    return chatWithModel(prompt, maxTokens, MODEL_FALLBACK);
+  }
   if (!res.ok) throw new Error(`OpenRouter error: ${res.status}`);
   const data = await res.json();
   return data.choices?.[0]?.message?.content ?? '';
+}
+
+async function chat(prompt: string, maxTokens = 400): Promise<string> {
+  return chatWithModel(prompt, maxTokens, MODEL);
 }
 
 export interface GeneratedScript {
@@ -30,8 +39,18 @@ export interface GeneratedScript {
   cta: string;
 }
 
-export async function generateScript(topic: string): Promise<GeneratedScript> {
-  const prompt = `당신은 바이럴 숏폼 대본 전문가입니다. 주제: "${topic}"
+export interface ChannelContext {
+  channelName: string;
+  hookPattern: string;
+  growthFormula: string;
+}
+
+export async function generateScript(topic: string, channelContext?: ChannelContext): Promise<GeneratedScript> {
+  const contextBlock = channelContext
+    ? `\n참고 채널 분석 (이 채널의 스타일을 최대한 반영할 것):\n- 채널명: ${channelContext.channelName}\n- 훅 패턴: ${channelContext.hookPattern}\n- 성장 공식: ${channelContext.growthFormula}\n`
+    : '';
+
+  const prompt = `당신은 바이럴 숏폼 대본 전문가입니다. 주제: "${topic}"${contextBlock}
 
 아래 JSON 형식으로만 답하세요. 설명이나 마크다운 없이 순수 JSON만:
 {
@@ -115,7 +134,6 @@ ${datesBlock}
     const re = new RegExp(`${n}[.)][^\\n]*\\n?([\\s\\S]*?)(?=\\n${n + 1}[.)]|$)`);
     const m = text.match(re);
     if (m) return m[1]?.trim() ?? '';
-    // fallback: split by numbered lines
     const lines = text.split('\n').filter(Boolean);
     const idx = lines.findIndex((l) => l.trim().startsWith(`${n}.`) || l.trim().startsWith(`${n})`));
     return idx >= 0 ? lines[idx].replace(/^\d+[.)]\s*/, '').trim() : '';

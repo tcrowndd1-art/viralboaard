@@ -1,6 +1,6 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
-import { channelRankingsData } from '@/mocks/channelRankings';
+import type { Channel } from '@/mocks/channelRankings';
 import TopHeader from '@/pages/home/components/TopHeader';
 import GlobalSidebar from '@/components/feature/GlobalSidebar';
 import FilterBar from './components/FilterBar';
@@ -8,15 +8,25 @@ import RankingsTable from './components/RankingsTable';
 import type { SortKey, SortDir } from './components/RankingsTable';
 import Pagination from './components/Pagination';
 import { useSavedChannels } from '@/hooks/useSavedChannels';
+import { fetchChannelRankings } from '@/services/youtube';
+import { cacheGet, cacheSet } from '@/services/cache';
 
 const PAGE_SIZE = 10;
 
 type ViewTab = 'all' | 'saved';
 
+const REGION_MAP: Record<string, string> = {
+  ALL: 'KR', US: 'US', IN: 'IN', KR: 'KR', MX: 'MX', AR: 'AR', RU: 'RU', ID: 'ID',
+  JP: 'JP', BR: 'BR', DE: 'DE', FR: 'FR', GB: 'GB',
+};
+
 const RankingsPage = () => {
   const { t } = useTranslation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const { channels: savedChannels } = useSavedChannels();
+
+  const [allChannels, setAllChannels] = useState<Channel[]>([]);
+  const [apiLoading, setApiLoading] = useState(true);
 
   const [viewTab, setViewTab] = useState<ViewTab>('all');
   const [country, setCountry] = useState('ALL');
@@ -25,6 +35,22 @@ const RankingsPage = () => {
   const [sortKey, setSortKey] = useState<SortKey>('rank');
   const [sortDir, setSortDir] = useState<SortDir>('asc');
   const [page, setPage] = useState(1);
+
+  useEffect(() => {
+    const regionCode = REGION_MAP[country] ?? 'KR';
+    const cacheKey = `vb_ch_rankings_${regionCode}`;
+    const cached = cacheGet<Channel[]>(cacheKey);
+    if (cached) { setAllChannels(cached); setApiLoading(false); return; }
+    setApiLoading(true);
+    fetchChannelRankings(regionCode)
+      .then((data) => {
+        const channels = data as Channel[];
+        setAllChannels(channels);
+        cacheSet(cacheKey, channels);
+      })
+      .catch(() => {})
+      .finally(() => setApiLoading(false));
+  }, [country]);
 
   const handleSort = (key: SortKey) => {
     if (sortKey === key) {
@@ -39,14 +65,12 @@ const RankingsPage = () => {
   const savedIds = useMemo(() => new Set(savedChannels.map((c) => c.id)), [savedChannels]);
 
   const filtered = useMemo(() => {
-    let data = [...channelRankingsData];
+    let data = [...allChannels];
 
-    // Saved tab: only show bookmarked channels
     if (viewTab === 'saved') {
       data = data.filter((c) => savedIds.has(String(c.rank)));
     }
 
-    if (country !== 'ALL') data = data.filter((c) => c.country === country);
     if (category !== 'ALL') data = data.filter((c) => c.category === category);
 
     data.sort((a, b) => {
@@ -54,7 +78,7 @@ const RankingsPage = () => {
       return (a[sortKey] > b[sortKey] ? 1 : -1) * mul;
     });
     return data;
-  }, [country, category, sortKey, sortDir, viewTab, savedIds]);
+  }, [allChannels, category, sortKey, sortDir, viewTab, savedIds]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
@@ -163,8 +187,30 @@ const RankingsPage = () => {
             </div>
           )}
 
+          {/* Loading skeleton */}
+          {apiLoading && (
+            <div className="overflow-x-auto rounded-lg border border-gray-200 dark:border-dark-border">
+              <table className="w-full min-w-[740px]">
+                <tbody className="divide-y divide-gray-100 dark:divide-dark-border bg-white dark:bg-dark-base">
+                  {Array.from({ length: 10 }).map((_, i) => (
+                    <tr key={i} className="px-4 py-3">
+                      <td className="px-4 py-3 w-12"><div className="w-6 h-6 bg-gray-100 dark:bg-white/10 rounded-full animate-pulse mx-auto" /></td>
+                      <td className="px-4 py-3"><div className="flex items-center gap-3"><div className="w-9 h-9 rounded-full bg-gray-100 dark:bg-white/10 animate-pulse flex-shrink-0" /><div className="h-3 w-32 bg-gray-100 dark:bg-white/10 rounded animate-pulse" /></div></td>
+                      <td className="px-4 py-3 hidden md:table-cell"><div className="h-3 w-20 bg-gray-100 dark:bg-white/10 rounded animate-pulse" /></td>
+                      <td className="px-4 py-3 hidden lg:table-cell"><div className="h-3 w-12 bg-gray-100 dark:bg-white/10 rounded animate-pulse" /></td>
+                      <td className="px-4 py-3 text-right"><div className="h-3 w-14 bg-gray-100 dark:bg-white/10 rounded animate-pulse ml-auto" /></td>
+                      <td className="px-4 py-3 text-right"><div className="h-3 w-14 bg-gray-100 dark:bg-white/10 rounded animate-pulse ml-auto" /></td>
+                      <td className="px-4 py-3 text-right"><div className="h-3 w-10 bg-gray-100 dark:bg-white/10 rounded animate-pulse ml-auto" /></td>
+                      <td className="px-3 py-3 w-10" />
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
           {/* Table */}
-          {filtered.length > 0 && (
+          {!apiLoading && filtered.length > 0 && (
             <RankingsTable
               channels={paginated}
               sortKey={sortKey}
@@ -174,7 +220,7 @@ const RankingsPage = () => {
           )}
 
           {/* Pagination */}
-          {filtered.length > 0 && (
+          {!apiLoading && filtered.length > 0 && (
             <div className="bg-gray-50 dark:bg-dark-card border border-gray-200 dark:border-dark-border rounded-lg px-4">
               <Pagination
                 currentPage={page}

@@ -108,12 +108,12 @@ function fmtViews(n: number): string {
   return `+${n}`;
 }
 
-export async function fetchTrendingVideos(regionCode = 'KR'): Promise<TrendingVideoItem[]> {
+export async function fetchTrendingVideos(regionCode = 'KR', maxResults = 10): Promise<TrendingVideoItem[]> {
   const data = await get<any>('videos', {
     part: 'snippet,statistics',
     chart: 'mostPopular',
     regionCode,
-    maxResults: '5',
+    maxResults: String(maxResults),
   });
   const items: any[] = data.items ?? [];
   if (items.length === 0) return [];
@@ -223,5 +223,120 @@ export async function fetchRecentVideos(channelId: string): Promise<VideoResult[
     uploadDate: v.snippet.publishedAt?.slice(0, 10) ?? '',
     thumbnail: `https://img.youtube.com/vi/${v.id.videoId}/mqdefault.jpg`,
     duration: durationMap.get(v.id.videoId) ?? '0:00',
+  }));
+}
+
+const VIDEO_CAT_MAP: Record<string, string> = {
+  '1': 'Entertainment', '2': 'Entertainment', '10': 'Music', '15': 'Entertainment',
+  '17': 'Sports', '19': 'Entertainment', '20': 'Gaming', '22': 'Entertainment',
+  '23': 'Comedy', '24': 'Entertainment', '25': 'News', '26': 'Education',
+  '27': 'Education', '28': 'Education', '29': 'Education',
+};
+
+export interface RankingVideoItem {
+  rank: number;
+  videoId: string;
+  title: string;
+  channelName: string;
+  channelAvatar: string;
+  views: number;
+  uploadDate: string;
+  category: string;
+  country: string;
+}
+
+export async function fetchVideoRankings(regionCode = 'KR', maxResults = 25): Promise<RankingVideoItem[]> {
+  const data = await get<any>('videos', {
+    part: 'snippet,statistics',
+    chart: 'mostPopular',
+    regionCode,
+    maxResults: String(maxResults),
+  });
+  const items: any[] = data.items ?? [];
+  if (items.length === 0) return [];
+
+  const channelIds = [...new Set(items.map((v: any) => v.snippet.channelId))].join(',');
+  const chData = await get<any>('channels', { part: 'snippet', id: channelIds });
+  const avatarMap = new Map<string, string>(
+    chData.items?.map((ch: any) => [ch.id, ch.snippet.thumbnails?.default?.url ?? ''])
+  );
+
+  return items.map((v: any, i: number) => ({
+    rank: i + 1,
+    videoId: v.id,
+    title: v.snippet.title,
+    channelName: v.snippet.channelTitle,
+    channelAvatar: avatarMap.get(v.snippet.channelId) ?? '',
+    views: parseInt(v.statistics.viewCount ?? '0'),
+    uploadDate: v.snippet.publishedAt?.slice(0, 10) ?? '',
+    category: VIDEO_CAT_MAP[v.snippet.categoryId] ?? 'Entertainment',
+    country: regionCode,
+  }));
+}
+
+const TOPIC_TO_CATEGORY: Record<string, string> = {
+  'Music': 'Music', 'Entertainment': 'Entertainment', 'Sports': 'Sports',
+  'Gaming': 'Gaming', 'Games': 'Gaming', 'Technology': 'Technology',
+  'Knowledge': 'Education', 'Education': 'Education', 'Film': 'Entertainment',
+  'News': 'News', 'Comedy': 'Comedy', 'Kids': 'Kids', 'Anime': 'Entertainment',
+};
+
+function extractCategory(topicCategories?: string[]): string {
+  if (!topicCategories?.length) return 'Entertainment';
+  for (const url of topicCategories) {
+    const term = decodeURIComponent(url.split('/').pop() ?? '').replace(/_/g, ' ');
+    for (const [key, val] of Object.entries(TOPIC_TO_CATEGORY)) {
+      if (term.toLowerCase().includes(key.toLowerCase())) return val;
+    }
+  }
+  return 'Entertainment';
+}
+
+export interface RankingChannelItem {
+  rank: number;
+  name: string;
+  avatar: string;
+  category: string;
+  country: string;
+  subscribers: number;
+  views: number;
+  growthPercent: number;
+}
+
+export async function fetchChannelRankings(regionCode = 'KR'): Promise<RankingChannelItem[]> {
+  const videosData = await get<any>('videos', {
+    part: 'snippet',
+    chart: 'mostPopular',
+    regionCode,
+    maxResults: '50',
+  });
+
+  const seen = new Set<string>();
+  const channelIds: string[] = [];
+  for (const item of videosData.items ?? []) {
+    const cid: string = item.snippet.channelId;
+    if (!seen.has(cid)) { seen.add(cid); channelIds.push(cid); }
+    if (channelIds.length >= 25) break;
+  }
+  if (channelIds.length === 0) return [];
+
+  const channelData = await get<any>('channels', {
+    part: 'snippet,statistics,topicDetails',
+    id: channelIds.join(','),
+  });
+
+  const sorted = [...(channelData.items ?? [])].sort(
+    (a: any, b: any) => parseInt(b.statistics.subscriberCount ?? '0') - parseInt(a.statistics.subscriberCount ?? '0')
+  );
+
+  return sorted.map((ch: any, i: number) => ({
+    rank: i + 1,
+    name: ch.snippet.title,
+    avatar: ch.snippet.thumbnails?.default?.url ?? '',
+    category: extractCategory(ch.topicDetails?.topicCategories),
+    country: ch.snippet.country ?? regionCode,
+    subscribers: parseInt(ch.statistics.subscriberCount ?? '0'),
+    views: parseInt(ch.statistics.viewCount ?? '0'),
+    growthPercent: 0,
   }));
 }

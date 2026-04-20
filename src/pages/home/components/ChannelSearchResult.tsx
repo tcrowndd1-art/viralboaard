@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Users, Eye, Video, X, Sparkles } from 'lucide-react';
 import type { ChannelResult, VideoResult } from '@/services/youtube';
 import { analyzeChannelGrowth, type ChannelAnalysis } from '@/services/openrouter';
@@ -24,6 +25,7 @@ const ANALYSIS_LABELS: { key: keyof Omit<ChannelAnalysis, 'copyStrategy'>; label
 ];
 
 const ChannelSearchResult = ({ channel, videos, onClose }: Props) => {
+  const navigate = useNavigate();
   const [aiResult, setAiResult] = useState<ChannelAnalysis | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState(false);
@@ -151,6 +153,22 @@ const ChannelSearchResult = ({ channel, videos, onClose }: Props) => {
                 ))}
               </ul >
             </div >
+
+            <button
+              onClick={() => {
+                const params = new URLSearchParams({
+                  topic: `${channel.name} 스타일 분석`,
+                  channel: channel.name,
+                  hook: aiResult.hookPattern,
+                  growth: aiResult.growthFormula,
+                });
+                navigate(`/ai-studio?${params.toString()}`);
+              }}
+              className="w-full mt-1 flex items-center justify-center gap-1.5 bg-red-600 hover:bg-red-700 text-white text-xs font-semibold px-3 py-2 rounded transition-colors cursor-pointer"
+            >
+              <Sparkles className="w-3 h-3" />
+              이 채널 스타일로 대본 생성
+            </button>
           </div >
         )}
       </div >
