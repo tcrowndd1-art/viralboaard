@@ -45,7 +45,7 @@ const TopHeader = ({ onMobileMenuToggle }: { onMobileMenuToggle?: () => void } =
   const [isFocused, setIsFocused] = useState(false);
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const [langOpen, setLangOpen] = useState(false);
-  const [currentLang, setCurrentLang] = useState(i18n.language || 'en');
+  const [currentLang, setCurrentLang] = useState(() => (i18n.language || 'en').split('-')[0]);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   const inputRef = useRef<HTMLInputElement>(null);
@@ -55,6 +55,12 @@ const TopHeader = ({ onMobileMenuToggle }: { onMobileMenuToggle?: () => void } =
   useEffect(() => {
     const auth = localStorage.getItem(AUTH_KEY);
     setIsLoggedIn(!!auth);
+  }, []);
+
+  useEffect(() => {
+    const handler = (lng: string) => setCurrentLang(lng.split('-')[0]);
+    i18n.on('languageChanged', handler);
+    return () => i18n.off('languageChanged', handler);
   }, []);
 
   useEffect(() => {

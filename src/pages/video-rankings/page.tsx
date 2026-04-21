@@ -553,7 +553,7 @@ const VideoRankingsPage = () => {
                         <td className="px-4 py-3 hidden md:table-cell">
                           <div className="flex items-center gap-2">
                             <div className="w-6 h-6 rounded-full overflow-hidden bg-gray-100 dark:bg-white/5 flex-shrink-0">
-                              <img src={video.channelAvatar} alt={video.channelName} className="w-full h-full object-cover object-top" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                              <img src={video.channelAvatar || undefined} alt={video.channelName} className="w-full h-full object-cover object-top" onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
                             </div>
                             <span className="text-sm text-gray-500 dark:text-white/50 truncate max-w-[140px]">{video.channelName}</span>
                           </div>

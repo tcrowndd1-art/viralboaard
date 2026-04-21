@@ -1,3 +1,5 @@
+import { markQuotaExhausted } from './quotaGuard';
+
 const API_KEY = import.meta.env.VITE_YOUTUBE_API_KEY as string;
 const BASE = 'https://www.googleapis.com/youtube/v3';
 
@@ -6,6 +8,10 @@ async function get<T>(endpoint: string, params: Record<string, string>): Promise
   url.searchParams.set('key', API_KEY);
   for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
   const res = await fetch(url.toString());
+  if (res.status === 403 || res.status === 429) {
+    markQuotaExhausted(60 * 60 * 1000);
+    throw new Error(`YouTube API error: ${res.status}`);
+  }
   if (!res.ok) throw new Error(`YouTube API error: ${res.status}`);
   return res.json() as Promise<T>;
 }

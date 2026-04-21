@@ -62,10 +62,10 @@ const ChannelSearchResult = ({ channel, videos, onClose }: Props) => {
       {/* Channel header */}
       <div className="flex items-start gap-4 p-4 border-b border-gray-100 dark:border-white/10">
         <img
-          src={channel.avatar}
+          src={channel.avatar || undefined}
           alt={channel.name}
           className="w-16 h-16 rounded-full object-cover flex-shrink-0 bg-gray-100 dark:bg-white/10"
-          onError={(e) => { (e.target as HTMLImageElement).src = ''; }}
+          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
         />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">

@@ -1,0 +1,312 @@
+{
+  "pass": [
+    {
+      "name": "A1.1 Dashboard navigate-in-render",
+      "iteration": 1,
+      "consoleErrors": 0,
+      "hasRenderBug": false,
+      "errors": []
+    },
+    {
+      "name": "A1.2 Dashboard navigate-in-render",
+      "iteration": 2,
+      "consoleErrors": 0,
+      "hasRenderBug": false,
+      "errors": []
+    },
+    {
+      "name": "A1.3 Dashboard navigate-in-render",
+      "iteration": 3,
+      "consoleErrors": 0,
+      "hasRenderBug": false,
+      "errors": []
+    },
+    {
+      "name": "A1.4 Dashboard navigate-in-render",
+      "iteration": 4,
+      "consoleErrors": 0,
+      "hasRenderBug": false,
+      "errors": []
+    },
+    {
+      "name": "A1.5 Dashboard navigate-in-render",
+      "iteration": 5,
+      "consoleErrors": 0,
+      "hasRenderBug": false,
+      "errors": []
+    },
+    {
+      "name": "A2.1 Country switch data-differs",
+      "iteration": 1,
+      "rowsKR": 0,
+      "rowsUS": 0,
+      "namesKR": [],
+      "namesUS": [],
+      "dataDiffers": false
+    },
+    {
+      "name": "A2.2 Country switch data-differs",
+      "iteration": 2,
+      "rowsKR": 0,
+      "rowsUS": 0,
+      "namesKR": [],
+      "namesUS": [],
+      "dataDiffers": false
+    },
+    {
+      "name": "A2.3 Country switch data-differs",
+      "iteration": 3,
+      "rowsKR": 0,
+      "rowsUS": 0,
+      "namesKR": [],
+      "namesUS": [],
+      "dataDiffers": false
+    },
+    {
+      "name": "A2.4 Country switch data-differs",
+      "iteration": 4,
+      "rowsKR": 0,
+      "rowsUS": 0,
+      "namesKR": [],
+      "namesUS": [],
+      "dataDiffers": false
+    },
+    {
+      "name": "A2.5 Country switch data-differs",
+      "iteration": 5,
+      "rowsKR": 0,
+      "rowsUS": 0,
+      "namesKR": [],
+      "namesUS": [],
+      "dataDiffers": false
+    },
+    {
+      "name": "A2.6 Country switch data-differs",
+      "iteration": 6,
+      "rowsKR": 0,
+      "rowsUS": 0,
+      "namesKR": [],
+      "namesUS": [],
+      "dataDiffers": false
+    },
+    {
+      "name": "A2.7 Country switch data-differs",
+      "iteration": 7,
+      "rowsKR": 0,
+      "rowsUS": 0,
+      "namesKR": [],
+      "namesUS": [],
+      "dataDiffers": false
+    },
+    {
+      "name": "A2.8 Country switch data-differs",
+      "iteration": 8,
+      "rowsKR": 0,
+      "rowsUS": 0,
+      "namesKR": [],
+      "namesUS": [],
+      "dataDiffers": false
+    },
+    {
+      "name": "A2.9 Country switch data-differs",
+      "iteration": 9,
+      "rowsKR": 0,
+      "rowsUS": 0,
+      "namesKR": [],
+      "namesUS": [],
+      "dataDiffers": false
+    },
+    {
+      "name": "A2.10 Country switch data-differs",
+      "iteration": 10,
+      "rowsKR": 0,
+      "rowsUS": 0,
+      "namesKR": [],
+      "namesUS": [],
+      "dataDiffers": false
+    },
+    {
+      "name": "A3.1 No silent fallback on Weekly",
+      "iteration": 1,
+      "rowsDaily": 0,
+      "rowsWeekly": 0,
+      "titleDaily": "",
+      "titleWeekly": "",
+      "weeklyActuallyFetched": false,
+      "silentFallbackActive": false,
+      "errVisible": false,
+      "emptyVisible": true,
+      "verdict": "PASS"
+    },
+    {
+      "name": "A3.2 No silent fallback on Weekly",
+      "iteration": 2,
+      "rowsDaily": 0,
+      "rowsWeekly": 0,
+      "titleDaily": "",
+      "titleWeekly": "",
+      "weeklyActuallyFetched": false,
+      "silentFallbackActive": false,
+      "errVisible": false,
+      "emptyVisible": true,
+      "verdict": "PASS"
+    },
+    {
+      "name": "A3.3 No silent fallback on Weekly",
+      "iteration": 3,
+      "rowsDaily": 0,
+      "rowsWeekly": 0,
+      "titleDaily": "",
+      "titleWeekly": "",
+      "weeklyActuallyFetched": false,
+      "silentFallbackActive": false,
+      "errVisible": false,
+      "emptyVisible": true,
+      "verdict": "PASS"
+    },
+    {
+      "name": "A3.4 No silent fallback on Weekly",
+      "iteration": 4,
+      "rowsDaily": 0,
+      "rowsWeekly": 0,
+      "titleDaily": "",
+      "titleWeekly": "",
+      "weeklyActuallyFetched": false,
+      "silentFallbackActive": false,
+      "errVisible": false,
+      "emptyVisible": true,
+      "verdict": "PASS"
+    },
+    {
+      "name": "A3.5 No silent fallback on Weekly",
+      "iteration": 5,
+      "rowsDaily": 0,
+      "rowsWeekly": 0,
+      "titleDaily": "",
+      "titleWeekly": "",
+      "weeklyActuallyFetched": false,
+      "silentFallbackActive": false,
+      "errVisible": false,
+      "emptyVisible": true,
+      "verdict": "PASS"
+    },
+    {
+      "name": "A3.6 No silent fallback on Weekly",
+      "iteration": 6,
+      "rowsDaily": 0,
+      "rowsWeekly": 0,
+      "titleDaily": "",
+      "titleWeekly": "",
+      "weeklyActuallyFetched": false,
+      "silentFallbackActive": false,
+      "errVisible": false,
+      "emptyVisible": true,
+      "verdict": "PASS"
+    },
+    {
+      "name": "A3.7 No silent fallback on Weekly",
+      "iteration": 7,
+      "rowsDaily": 0,
+      "rowsWeekly": 0,
+      "titleDaily": "",
+      "titleWeekly": "",
+      "weeklyActuallyFetched": false,
+      "silentFallbackActive": false,
+      "errVisible": false,
+      "emptyVisible": true,
+      "verdict": "PASS"
+    },
+    {
+      "name": "A3.8 No silent fallback on Weekly",
+      "iteration": 8,
+      "rowsDaily": 0,
+      "rowsWeekly": 0,
+      "titleDaily": "",
+      "titleWeekly": "",
+      "weeklyActuallyFetched": false,
+      "silentFallbackActive": false,
+      "errVisible": false,
+      "emptyVisible": true,
+      "verdict": "PASS"
+    },
+    {
+      "name": "A3.9 No silent fallback on Weekly",
+      "iteration": 9,
+      "rowsDaily": 0,
+      "rowsWeekly": 0,
+      "titleDaily": "",
+      "titleWeekly": "",
+      "weeklyActuallyFetched": false,
+      "silentFallbackActive": false,
+      "errVisible": false,
+      "emptyVisible": true,
+      "verdict": "PASS"
+    },
+    {
+      "name": "A3.10 No silent fallback on Weekly",
+      "iteration": 10,
+      "rowsDaily": 0,
+      "rowsWeekly": 0,
+      "titleDaily": "",
+      "titleWeekly": "",
+      "weeklyActuallyFetched": false,
+      "silentFallbackActive": false,
+      "errVisible": false,
+      "emptyVisible": true,
+      "verdict": "PASS"
+    },
+    {
+      "name": "A4.1 Old data cleared on switch",
+      "iteration": 1,
+      "namesKR": [
+        "1",
+        "2"
+      ],
+      "namesUS": [
+        "1",
+        "2"
+      ],
+      "errVisible": false,
+      "stillHasKRData": false,
+      "verdict": "PASS"
+    },
+    {
+      "name": "A4.2 Old data cleared on switch",
+      "iteration": 2,
+      "namesKR": [],
+      "namesUS": [],
+      "errVisible": true,
+      "stillHasKRData": false,
+      "verdict": "PASS"
+    },
+    {
+      "name": "A4.3 Old data cleared on switch",
+      "iteration": 3,
+      "namesKR": [],
+      "namesUS": [],
+      "errVisible": true,
+      "stillHasKRData": false,
+      "verdict": "PASS"
+    },
+    {
+      "name": "A4.4 Old data cleared on switch",
+      "iteration": 4,
+      "namesKR": [],
+      "namesUS": [],
+      "errVisible": true,
+      "stillHasKRData": false,
+      "verdict": "PASS"
+    },
+    {
+      "name": "A4.5 Old data cleared on switch",
+      "iteration": 5,
+      "namesKR": [],
+      "namesUS": [],
+      "errVisible": true,
+      "stillHasKRData": false,
+      "verdict": "PASS"
+    }
+  ],
+  "fail": [],
+  "timestamp": "2026-04-21T11:04:33.241Z"
+}
