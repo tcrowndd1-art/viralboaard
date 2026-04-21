@@ -127,6 +127,52 @@ export interface ChannelAnalysis {
   copyStrategy: string[];
 }
 
+export async function parseRawScript(rawScript: string): Promise<GeneratedScript> {
+  const prompt = `아래 대본을 읽고 HOOK/SHOCK/EVIDENCE/SOLUTION/CTA 5개 섹션으로 분류해서 JSON으로만 답해:
+
+대본:
+${rawScript.slice(0, 3000)}
+
+아래 JSON 형식으로만:
+{
+  "hook": "0-3초 훅 문장",
+  "shock": "3-15초 충격 사실",
+  "evidence": "15-30초 근거",
+  "solution": "30-50초 해결책",
+  "cta": "50-60초 행동 유도"
+}
+한국어로, 원문 내용 최대한 보존.`;
+
+  const text = await chat(prompt, 1200);
+  const jsonMatch = text.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) throw new Error('Invalid response');
+  const p = JSON.parse(jsonMatch[0]);
+  return { hook: p.hook ?? '', shock: p.shock ?? '', evidence: p.evidence ?? '', solution: p.solution ?? '', cta: p.cta ?? '' };
+}
+
+export async function analyzeYouTubeVideos(videos: { title: string; description: string }[]): Promise<GeneratedScript> {
+  const videoBlock = videos.map((v, i) => `영상 ${i + 1}: "${v.title}"\n설명: ${v.description.slice(0, 300)}`).join('\n\n');
+  const prompt = `아래 유튜브 영상들을 분석해서 바이럴 숏폼 대본을 만들어줘.
+
+${videoBlock}
+
+이 영상들의 공통 훅 패턴, 충격 포인트, 증거, 해결책을 참고해서 새 대본을 JSON으로만:
+{
+  "hook": "0-3초 훅",
+  "shock": "3-15초 충격",
+  "evidence": "15-30초 근거",
+  "solution": "30-50초 해결책",
+  "cta": "50-60초 CTA"
+}
+한국어 구어체로.`;
+
+  const text = await chat(prompt, 1200);
+  const jsonMatch = text.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) throw new Error('Invalid response');
+  const p = JSON.parse(jsonMatch[0]);
+  return { hook: p.hook ?? '', shock: p.shock ?? '', evidence: p.evidence ?? '', solution: p.solution ?? '', cta: p.cta ?? '' };
+}
+
 export async function analyzeChannelGrowth(channel: {
   name: string;
   subscribers: number;

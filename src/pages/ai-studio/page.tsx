@@ -17,6 +17,7 @@ const AiStudioPage = () => {
   const [activePanel, setActivePanel] = useState<'script' | 'preview'>('script');
   const [activeMode, setActiveMode] = useState<ActiveMode>('storyboard');
   const [scriptContent, setScriptContent] = useState('');
+  const [sectionTexts, setSectionTexts] = useState<Record<string, string>>({});
   const [topic, setTopic] = useState(() => searchParams.get('topic') ?? '');
   const { isDark, toggleTheme } = useTheme();
 
@@ -210,6 +211,7 @@ const AiStudioPage = () => {
                 topic={topic}
                 onTopicChange={setTopic}
                 onScriptChange={setScriptContent}
+                onSectionsChange={setSectionTexts}
                 channelContext={channelContext}
               />
               </div>
@@ -234,7 +236,7 @@ const AiStudioPage = () => {
         {activeMode === 'timeline' && (
           <div className="flex-1 flex flex-col bg-gray-50 dark:bg-dark-surface overflow-hidden" style={{ minHeight: 0 }}>
             <div className="flex-1 overflow-y-auto px-4 md:px-6 py-4 md:py-6">
-              <TimelinePanel />
+              <TimelinePanel sectionTexts={sectionTexts} projectName={projectName} />
             </div>
           </div>
         )}
