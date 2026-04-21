@@ -244,14 +244,14 @@ const VideoRankingsPage = () => {
     });
   }, []);
 
-  const doFetch = useCallback((regionCode: string, publishedAfter = '', periodLabel = 'Daily') => {
+  const doFetch = useCallback((regionCode: string) => {
     setApiLoading(true);
     setApiError(null);
-    fetchVideoRankings(regionCode, 50, publishedAfter)
+    fetchVideoRankings(regionCode, 50)
       .then((data) => {
         const videos = data as RankingVideoItem[];
         setAllVideos(videos);
-        cacheSet(`vb_vid_rankings_${regionCode}_${periodLabel}`, videos);
+        cacheSet(`vb_vid_rankings_${regionCode}`, videos);
       })
       .catch((err: unknown) => {
         setApiError(err instanceof Error ? err.message : 'Unknown error');
@@ -261,24 +261,11 @@ const VideoRankingsPage = () => {
 
   useEffect(() => {
     const regionCode = REGION_MAP[country] ?? 'KR';
-    
-    let publishedAfter = '';
-    if (period === 'Weekly') {
-      const date = new Date();
-      date.setDate(date.getDate() - 7);
-      publishedAfter = date.toISOString();
-    } else if (period === 'Monthly') {
-      const date = new Date();
-      date.setDate(date.getDate() - 30);
-      publishedAfter = date.toISOString();
-    }
-
-    const cacheKey = `vb_vid_rankings_${regionCode}_${period}`;
+    const cacheKey = `vb_vid_rankings_${regionCode}`;
     const cached = cacheGet<RankingVideoItem[]>(cacheKey);
     if (cached) { setAllVideos(cached); setApiLoading(false); setApiError(null); return; }
-    
-    doFetch(regionCode, publishedAfter, period);
-  }, [country, period, doFetch]);
+    doFetch(regionCode);
+  }, [country, doFetch]);
 
   const handleSort = (key: SortKey) => {
     if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
@@ -295,13 +282,27 @@ const VideoRankingsPage = () => {
     let data = [...allVideos];
     if (viewTab === 'saved') data = data.filter(v => savedIds.has(v.videoId));
     if (category !== 'ALL') data = data.filter(v => v.category === category);
+
+    // Client-side period filtering; fall back to all data if filter yields nothing
+    if (period === 'Weekly') {
+      const cutoff = new Date();
+      cutoff.setDate(cutoff.getDate() - 7);
+      const periodFiltered = data.filter(v => v.uploadDate && new Date(v.uploadDate) >= cutoff);
+      if (periodFiltered.length > 0) data = periodFiltered;
+    } else if (period === 'Monthly') {
+      const cutoff = new Date();
+      cutoff.setDate(cutoff.getDate() - 30);
+      const periodFiltered = data.filter(v => v.uploadDate && new Date(v.uploadDate) >= cutoff);
+      if (periodFiltered.length > 0) data = periodFiltered;
+    }
+
     data.sort((a, b) => {
       const mul = sortDir === 'asc' ? 1 : -1;
       if (sortKey === 'uploadDate') return (new Date(a.uploadDate).getTime() - new Date(b.uploadDate).getTime()) * mul;
       return (a[sortKey] > b[sortKey] ? 1 : -1) * mul;
     });
     return data;
-  }, [allVideos, category, sortKey, sortDir, viewTab, savedIds]);
+  }, [allVideos, category, period, sortKey, sortDir, viewTab, savedIds]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
@@ -458,8 +459,7 @@ const VideoRankingsPage = () => {
               <button
                 onClick={() => {
                   const rc = REGION_MAP[country] ?? 'KR';
-                  const pa = period === 'Weekly' ? (() => { const d = new Date(); d.setDate(d.getDate() - 7); return d.toISOString(); })() : period === 'Monthly' ? (() => { const d = new Date(); d.setDate(d.getDate() - 30); return d.toISOString(); })() : '';
-                  doFetch(rc, pa, period);
+                  doFetch(rc);
                 }}
                 className="text-xs text-red-600 dark:text-red-400 border border-red-300 dark:border-red-500/40 px-4 py-2 rounded-lg hover:bg-red-100 dark:hover:bg-red-500/10 transition-colors cursor-pointer"
               >
