@@ -489,6 +489,7 @@ const VideoRankingsPage = () => {
                     return (
                       <tr
                         key={video.videoId}
+                        onClick={() => window.open(`https://www.youtube.com/watch?v=${video.videoId}`, '_blank')}
                         onMouseEnter={(e) => handleRowEnter(video.videoId, e)}
                         onMouseLeave={handleRowLeave}
                         className={`transition-colors cursor-pointer group ${

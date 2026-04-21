@@ -43,7 +43,7 @@ const VideoWidget = ({ title, items }: VideoWidgetProps) => {
       {/* Body */}
       <div className="divide-y divide-gray-50 dark:divide-white/5">
         {items.map((item) => (
-          <div key={item.rank} className="flex gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-white/[0.03] cursor-pointer transition-colors">
+          <div key={item.rank} className="flex gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-white/[0.03] cursor-pointer transition-colors" onClick={() => window.open(`https://www.youtube.com/watch?v=${item.videoId}`, '_blank')}>
             {/* Thumbnail */}
             <div className="relative flex-shrink-0 w-24 h-14 bg-gray-100 dark:bg-white/10 rounded overflow-hidden">
               <img

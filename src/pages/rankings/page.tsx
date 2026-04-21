@@ -40,7 +40,15 @@ const RankingsPage = () => {
 
   useEffect(() => {
     const regionCode = REGION_MAP[country] ?? 'KR';
-    const cacheKey = `vb_ch_rankings_${regionCode}`;
+    let publishedAfter = '';
+    if (period === 'Weekly') {
+      const d = new Date(); d.setDate(d.getDate() - 7);
+      publishedAfter = d.toISOString();
+    } else if (period === 'Monthly') {
+      const d = new Date(); d.setDate(d.getDate() - 30);
+      publishedAfter = d.toISOString();
+    }
+    const cacheKey = `vb_ch_rankings_${regionCode}_${period}`;
     const cached = cacheGet<RankingChannelItem[]>(cacheKey);
 
     if (cached) {
@@ -53,7 +61,7 @@ const RankingsPage = () => {
     setApiLoading(true);
     setApiError(null);
 
-    fetchChannelRankings(regionCode)
+    fetchChannelRankings(regionCode, publishedAfter)
       .then((data) => {
         const channels = data as RankingChannelItem[];
         setAllChannels(channels);
@@ -64,7 +72,7 @@ const RankingsPage = () => {
         setApiError(err instanceof Error ? err.message : '데이터를 불러오지 못했습니다.');
       })
       .finally(() => setApiLoading(false));
-  }, [country]);
+  }, [country, period]);
 
   const handleSort = (key: SortKey) => {
     if (sortKey === key) {

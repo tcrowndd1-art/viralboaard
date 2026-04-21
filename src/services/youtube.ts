@@ -61,6 +61,7 @@ export interface TrendingVideoItem {
   channelName: string;
   channelAvatar: string;
   videoId: string;
+  channelId: string;
 }
 
 export interface RankingVideoItem {
@@ -77,6 +78,7 @@ export interface RankingVideoItem {
 
 export interface RankingChannelItem {
   rank: number;
+  channelId: string;
   name: string;
   avatar: string;
   category: string;
@@ -161,6 +163,7 @@ export async function fetchTrendingVideos(regionCode = 'KR', maxResults = 10): P
     channelName: v.snippet.channelTitle,
     channelAvatar: avatarMap.get(v.snippet.channelId) ?? '',
     videoId: v.id,
+    channelId: v.snippet.channelId,
   }));
 }
 
@@ -182,6 +185,7 @@ export async function fetchLiveVideos(): Promise<TrendingVideoItem[]> {
     channelName: v.snippet.channelTitle,
     channelAvatar: v.snippet.thumbnails?.default?.url ?? '',
     videoId: v.id.videoId,
+    channelId: v.snippet.channelId ?? '',
   }));
 }
 
@@ -434,6 +438,7 @@ export async function fetchChannelRankings(regionCode = 'KR', publishedAfter = '
 
   return sorted.map((ch: any, i: number) => ({
     rank: i + 1,
+    channelId: ch.id,
     name: ch.snippet.title ?? 'Unknown Channel',
     avatar: ch.snippet.thumbnails?.default?.url ?? '',
     category: extractCategory(ch.topicDetails?.topicCategories),

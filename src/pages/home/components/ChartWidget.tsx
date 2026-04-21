@@ -63,7 +63,7 @@ const ChartWidget = ({ titleKey, items, scoreType = 'math', loading = false }: C
           </div>
         ))}
         {!loading && items.map((item) => (
-          <div key={item.rank} className="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 dark:hover:bg-white/[0.03] cursor-pointer transition-colors">
+          <div key={item.rank} onClick={() => item.channelId && window.open(`https://www.youtube.com/channel/${item.channelId}`, '_blank')} className="flex items-center gap-3 px-4 py-2.5 hover:bg-gray-50 dark:hover:bg-white/[0.03] cursor-pointer transition-colors">
             <span className="text-sm text-gray-400 dark:text-white/30 w-4 text-center flex-shrink-0">{item.rank}</span>
             <div className="w-8 h-8 rounded-full overflow-hidden bg-gray-100 dark:bg-white/10 flex-shrink-0">
               <img

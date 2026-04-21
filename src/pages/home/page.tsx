@@ -93,7 +93,7 @@ const HomePage = () => {
       name: v.channelName,
       score: 'LIVE',
       avatar: v.channelAvatar,
-      channelId: v.videoId,
+      channelId: v.channelId,
     })),
     [liveVideos]
   );

@@ -1,5 +1,4 @@
 import { useState, useRef, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { RankingChannelItem } from '@/services/youtube';
 import HoverPopup from '@/components/feature/HoverPopup';
@@ -152,7 +151,6 @@ const BookmarkBtn = ({ channel }: BookmarkBtnProps) => {
 };
 
 const RankingsTable = ({ channels, sortKey, sortDir, onSort }: RankingsTableProps) => {
-  const navigate = useNavigate();
   const { t } = useTranslation();
   const thProps = { currentKey: sortKey, currentDir: sortDir, onSort };
 
@@ -196,7 +194,7 @@ const RankingsTable = ({ channels, sortKey, sortDir, onSort }: RankingsTableProp
             {channels.map((ch, idx) => (
               <tr
                 key={ch.rank}
-                onClick={() => navigate(`/channel/${ch.rank}`)}
+                onClick={() => window.open(`https://www.youtube.com/channel/${ch.channelId}`, '_blank')}
                 onMouseEnter={(e) => handleMouseEnter(ch.rank, e)}
                 onMouseLeave={handleMouseLeave}
                 className={`transition-colors cursor-pointer group ${

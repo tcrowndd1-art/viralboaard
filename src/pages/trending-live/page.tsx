@@ -1,6 +1,7 @@
-import { useState, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
-import { liveStreams, sortOptions } from '@/mocks/trendingLive';
+import { fetchLiveVideos } from '@/services/youtube';
+import { TrendingVideoItem } from '@/services/youtube';
 import CountrySelector from './components/CountrySelector';
 import CategoryTabs from './components/CategoryTabs';
 import LiveCard from './components/LiveCard';
