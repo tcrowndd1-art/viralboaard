@@ -40,9 +40,7 @@ const RankingsPage = () => {
 
   useEffect(() => {
     const regionCode = REGION_MAP[country] ?? 'KR';
-    const period = periodState; //- Fixed variable name conflict
-    
-    // Calculate publishedAfter based on period
+
     let publishedAfter = '';
     if (period === 'Weekly') {
       const date = new Date();
@@ -56,18 +54,17 @@ const RankingsPage = () => {
 
     const cacheKey = `vb_ch_rankings_${regionCode}_${period}`;
     const cached = cacheGet<RankingChannelItem[]>(cacheKey);
-    
-    if (cached) { 
-      setAllChannels(cached); 
-      setApiLoading(false); 
-      setApiError(null); 
-      return; 
+
+    if (cached) {
+      setAllChannels(cached);
+      setApiLoading(false);
+      setApiError(null);
+      return;
     }
 
     setApiLoading(true);
     setApiError(null);
-    
-    // Note: fetchChannelRankings should be updated to accept publishedAfter
+
     fetchChannelRankings(regionCode, publishedAfter)
       .then((data) => {
         const channels = data as RankingChannelItem[];

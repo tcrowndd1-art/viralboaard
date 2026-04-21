@@ -63,12 +63,17 @@ const SceneEditor = ({ scene, onUpdate }: SceneEditorProps) => {
   const [duration, setDuration] = useState(scene.duration);
   const imageRef = useRef<HTMLDivElement>(null);
 
-  // Sync when scene changes
+  // Cancel TTS and sync when scene changes
   useEffect(() => {
+    window.speechSynthesis?.cancel();
+    setIsVoicePlaying(false);
     setOverlay((prev) => ({ ...prev, text: scene.textOverlay || prev.text }));
     setNarration(scene.narration);
     setDuration(scene.duration);
   }, [scene.id]);
+
+  // Cancel TTS on unmount
+  useEffect(() => () => { window.speechSynthesis?.cancel(); }, []);
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     if (editingText) return;
@@ -356,7 +361,20 @@ const SceneEditor = ({ scene, onUpdate }: SceneEditorProps) => {
               </div>
               <div className="flex items-center gap-3">
                 <button
-                  onClick={() => setIsVoicePlaying(!isVoicePlaying)}
+                  onClick={() => {
+                    if (isVoicePlaying) {
+                      window.speechSynthesis?.cancel();
+                      setIsVoicePlaying(false);
+                    } else {
+                      if (!window.speechSynthesis) return;
+                      const utt = new SpeechSynthesisUtterance(narration);
+                      utt.lang = 'ko-KR';
+                      utt.onend = () => setIsVoicePlaying(false);
+                      utt.onerror = () => setIsVoicePlaying(false);
+                      window.speechSynthesis.speak(utt);
+                      setIsVoicePlaying(true);
+                    }
+                  }}
                   className={`w-8 h-8 flex items-center justify-center rounded-full flex-shrink-0 cursor-pointer transition-colors ${
                     isVoicePlaying
                       ? 'bg-red-500 text-white'

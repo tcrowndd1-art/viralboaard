@@ -244,14 +244,14 @@ const VideoRankingsPage = () => {
     });
   }, []);
 
-  const doFetch = useCallback((regionCode: string) => {
+  const doFetch = useCallback((regionCode: string, publishedAfter = '', periodLabel = 'Daily') => {
     setApiLoading(true);
     setApiError(null);
-    fetchVideoRankings(regionCode, 25)
+    fetchVideoRankings(regionCode, 25, publishedAfter)
       .then((data) => {
         const videos = data as RankingVideoItem[];
         setAllVideos(videos);
-        cacheSet(`vb_vid_rankings_${regionCode}`, videos);
+        cacheSet(`vb_vid_rankings_${regionCode}_${periodLabel}`, videos);
       })
       .catch((err: unknown) => {
         setApiError(err instanceof Error ? err.message : 'Unknown error');
@@ -277,7 +277,7 @@ const VideoRankingsPage = () => {
     const cached = cacheGet<RankingVideoItem[]>(cacheKey);
     if (cached) { setAllVideos(cached); setApiLoading(false); setApiError(null); return; }
     
-    doFetch(regionCode, publishedAfter);
+    doFetch(regionCode, publishedAfter, period);
   }, [country, period, doFetch]);
 
   const handleSort = (key: SortKey) => {
@@ -456,7 +456,11 @@ const VideoRankingsPage = () => {
               <p className="text-sm font-semibold text-red-600 dark:text-red-400 mb-1">데이터를 불러오지 못했습니다</p>
               <p className="text-xs text-red-400 dark:text-red-500/70 max-w-xs mb-4">{apiError}</p>
               <button
-                onClick={() => doFetch(REGION_MAP[country] ?? 'KR')}
+                onClick={() => {
+                  const rc = REGION_MAP[country] ?? 'KR';
+                  const pa = period === 'Weekly' ? (() => { const d = new Date(); d.setDate(d.getDate() - 7); return d.toISOString(); })() : period === 'Monthly' ? (() => { const d = new Date(); d.setDate(d.getDate() - 30); return d.toISOString(); })() : '';
+                  doFetch(rc, pa, period);
+                }}
                 className="text-xs text-red-600 dark:text-red-400 border border-red-300 dark:border-red-500/40 px-4 py-2 rounded-lg hover:bg-red-100 dark:hover:bg-red-500/10 transition-colors cursor-pointer"
               >
                 다시 시도

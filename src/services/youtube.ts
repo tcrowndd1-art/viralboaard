@@ -183,6 +183,54 @@ export async function fetchLiveVideos(): Promise<TrendingVideoItem[]> {
   }));
 }
 
+export async function searchChannels(query: string, maxResults = 5): Promise<ChannelResult[]> {
+  const searchData = await get<any>('search', {
+    part: 'snippet', type: 'channel', q: query, maxResults: String(maxResults),
+  });
+  const items = searchData.items ?? [];
+  if (!items.length) return [];
+  const channelIds = items.map((i: any) => i.id.channelId).join(',');
+  const channelData = await get<any>('channels', { part: 'snippet,statistics,brandingSettings', id: channelIds });
+  return (channelData.items ?? []).map((ch: any) => ({
+    id: ch.id,
+    name: ch.snippet.title,
+    handle: ch.snippet.customUrl ?? `@${ch.snippet.title}`,
+    avatar: ch.snippet.thumbnails?.high?.url ?? ch.snippet.thumbnails?.default?.url ?? '',
+    banner: ch.brandingSettings?.image?.bannerExternalUrl ?? '',
+    subscribers: parseInt(ch.statistics.subscriberCount ?? '0'),
+    totalViews: parseInt(ch.statistics.viewCount ?? '0'),
+    videoCount: parseInt(ch.statistics.videoCount ?? '0'),
+    country: ch.snippet.country ?? '',
+    description: ch.snippet.description ?? '',
+  }));
+}
+
+export async function searchVideos(query: string, maxResults = 10): Promise<VideoResult[]> {
+  const searchData = await get<any>('search', {
+    part: 'snippet', type: 'video', q: query,
+    maxResults: String(maxResults), order: 'viewCount',
+  });
+  const items: any[] = searchData.items ?? [];
+  if (!items.length) return [];
+  const videoIds = items.map((v: any) => v.id.videoId).join(',');
+  const [statsData, detailData] = await Promise.all([
+    get<any>('videos', { part: 'statistics', id: videoIds }),
+    get<any>('videos', { part: 'contentDetails', id: videoIds }),
+  ]);
+  const statsMap = new Map<string, any>(statsData.items?.map((v: any) => [v.id, v.statistics]));
+  const durationMap = new Map<string, string>(
+    detailData.items?.map((v: any) => [v.id, parseDuration(v.contentDetails.duration)])
+  );
+  return items.map((v: any) => ({
+    videoId: v.id.videoId,
+    title: v.snippet.title,
+    views: parseInt(statsMap.get(v.id.videoId)?.viewCount ?? '0'),
+    uploadDate: v.snippet.publishedAt?.slice(0, 10) ?? '',
+    thumbnail: `https://img.youtube.com/vi/${v.id.videoId}/mqdefault.jpg`,
+    duration: durationMap.get(v.id.videoId) ?? '0:00',
+  }));
+}
+
 export async function searchChannel(query: string): Promise<ChannelResult | null> {
   const searchData = await get<any>('search', {
     part: 'snippet',
@@ -255,18 +303,54 @@ const VIDEO_CAT_MAP: Record<string, string> = {
   '27': 'Education', '28': 'Education', '29': 'Education',
 };
 
-export async function fetchVideoRankings(regionCode = 'KR', maxResults = 25): Promise<RankingVideoItem[]> {
+export async function fetchVideoRankings(regionCode = 'KR', maxResults = 25, publishedAfter = ''): Promise<RankingVideoItem[]> {
   if (regionCode === 'ALL') regionCode = 'KR';
 
-  const data = await get<any>('videos', {
-    part: 'snippet,statistics',
-    chart: 'mostPopular',
-    regionCode,
-    maxResults: String(maxResults),
-  });
-  const items: any[] = data.items ?? [];
-  if (items.length === 0) return [];
+  let items: any[] = [];
 
+  if (publishedAfter) {
+    const regions = [regionCode, 'US', 'JP'].filter((v, i, a) => a.indexOf(v) === i);
+    const perRegion = Math.ceil(maxResults / regions.length);
+    const allSearch = await Promise.all(
+      regions.map((rc) =>
+        get<any>('search', {
+          part: 'snippet', type: 'video', order: 'viewCount',
+          regionCode: rc, maxResults: String(perRegion), publishedAfter,
+        }).then((d) => d.items ?? []).catch(() => [])
+      )
+    );
+    const seen = new Set<string>();
+    const merged: any[] = [];
+    for (const batch of allSearch) {
+      for (const v of batch) {
+        const id = v.id.videoId;
+        if (!seen.has(id)) { seen.add(id); merged.push(v); }
+      }
+    }
+    if (!merged.length) return [];
+    const videoIds = merged.slice(0, maxResults).map((v: any) => v.id.videoId).join(',');
+    const [statsData] = await Promise.all([
+      get<any>('videos', { part: 'statistics,snippet', id: videoIds }),
+    ]);
+    const statsMap = new Map<string, any>(statsData.items?.map((v: any) => [v.id, v]));
+    items = merged.slice(0, maxResults).map((v: any) => {
+      const full = statsMap.get(v.id.videoId);
+      return {
+        id: v.id.videoId,
+        snippet: full?.snippet ?? v.snippet,
+        statistics: full?.statistics ?? {},
+      };
+    });
+    items.sort((a: any, b: any) => parseInt(b.statistics.viewCount ?? '0') - parseInt(a.statistics.viewCount ?? '0'));
+  } else {
+    const data = await get<any>('videos', {
+      part: 'snippet,statistics', chart: 'mostPopular',
+      regionCode, maxResults: String(maxResults),
+    });
+    items = (data.items ?? []).map((v: any) => ({ id: v.id, snippet: v.snippet, statistics: v.statistics }));
+  }
+
+  if (!items.length) return [];
   const channelIds = [...new Set(items.map((v: any) => v.snippet.channelId))].join(',');
   const chData = await get<any>('channels', { part: 'snippet', id: channelIds });
   const avatarMap = new Map<string, string>(
@@ -304,20 +388,32 @@ function extractCategory(topicCategories?: string[]): string {
   return 'Entertainment';
 }
 
-export async function fetchChannelRankings(regionCode = 'KR'): Promise<RankingChannelItem[]> {
+export async function fetchChannelRankings(regionCode = 'KR', publishedAfter = ''): Promise<RankingChannelItem[]> {
   if (regionCode === 'ALL') regionCode = 'KR';
 
-  const videosData = await get<any>('videos', {
-    part: 'snippet',
-    chart: 'mostPopular',
-    regionCode,
-    maxResults: '50',
-  });
+  let rawItems: any[] = [];
+  if (publishedAfter) {
+    const regions = [regionCode, 'US', 'JP'].filter((v, i, a) => a.indexOf(v) === i);
+    const allSearch = await Promise.all(
+      regions.map((rc) =>
+        get<any>('search', {
+          part: 'snippet', type: 'video', order: 'viewCount',
+          regionCode: rc, maxResults: '20', publishedAfter,
+        }).then((d) => d.items ?? []).catch(() => [])
+      )
+    );
+    for (const batch of allSearch) rawItems.push(...batch);
+  } else {
+    const videosData = await get<any>('videos', {
+      part: 'snippet', chart: 'mostPopular', regionCode, maxResults: '50',
+    });
+    rawItems = videosData.items ?? [];
+  }
 
   const seen = new Set<string>();
   const channelIds: string[] = [];
-  for (const item of videosData.items ?? []) {
-    const cid: string = item.snippet.channelId;
+  for (const item of rawItems) {
+    const cid: string = publishedAfter ? item.snippet.channelId : item.snippet.channelId;
     if (!seen.has(cid)) { seen.add(cid); channelIds.push(cid); }
     if (channelIds.length >= 25) break;
   }
