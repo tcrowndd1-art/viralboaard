@@ -1,7 +1,7 @@
-import { TrendingVideoItem } from '@/services/youtube';
+import { LiveStream } from '@/mocks/trendingLive';
 
 interface LiveCardProps {
-  stream: TrendingVideoIteideoItem;
+  stream: LiveStream;
   rank?: number;
 }
 

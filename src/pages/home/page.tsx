@@ -15,6 +15,7 @@ import {
 } from '@/services/youtube';
 import type { ChannelResult, VideoResult, PopularChannelItem, TrendingVideoItem } from '@/services/youtube';
 import { cacheGet, cacheSet, addSearchHistory } from '@/services/cache';
+import { mostLiveViewers } from '@/mocks/playboardData';
 
 const CACHE_KEY = (q: string) => `vb_channel_${q.toLowerCase().trim()}`;
 
@@ -87,16 +88,18 @@ const HomePage = () => {
     channelId: ch.channelId,
   });
 
-  const liveForWidget = useMemo(() =>
-    liveVideos.slice(0, 5).map((v, i) => ({
-      rank: i + 1,
-      name: v.channelName,
-      score: 'LIVE',
-      avatar: v.channelAvatar,
-      channelId: v.channelId,
-    })),
-    [liveVideos]
-  );
+  const liveForWidget = useMemo(() => {
+    if (liveVideos.length > 0) {
+      return liveVideos.slice(0, 5).map((v, i) => ({
+        rank: i + 1,
+        name: v.channelName,
+        score: 'LIVE',
+        avatar: v.channelAvatar,
+        channelId: v.channelId,
+      }));
+    }
+    return mostLiveViewers;
+  }, [liveVideos]);
 
   const trendingForWidget = trendingVideos.map((v) => ({
     rank: v.rank,

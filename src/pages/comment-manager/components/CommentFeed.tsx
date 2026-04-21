@@ -5,6 +5,7 @@ const PLATFORM_META: Record<Platform, { icon: string; color: string; label: stri
   youtube: { icon: 'ri-youtube-line', color: 'text-red-500 dark:text-red-400', label: 'YouTube' },
   tiktok: { icon: 'ri-tiktok-line', color: 'text-pink-500 dark:text-pink-400', label: 'TikTok' },
   instagram: { icon: 'ri-instagram-line', color: 'text-orange-500 dark:text-orange-400', label: 'Instagram' },
+  facebook: { icon: 'ri-facebook-line', color: 'text-blue-500 dark:text-blue-400', label: 'Facebook' },
 };
 
 const SENTIMENT_META: Record<Sentiment, { emoji: string; color: string; bg: string; label: string }> = {

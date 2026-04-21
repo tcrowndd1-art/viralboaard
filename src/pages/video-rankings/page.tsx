@@ -67,7 +67,7 @@ const seededRand = (seed: number, offset = 0) => {
   return x - Math.floor(x);
 };
 
-const buildVideoPopup = (video: VideoItem): VideoPopupData => {
+const buildVideoPopup = (video: RankingVideoItem): VideoPopupData => {
   const cpm = CPM_BY_CATEGORY[video.category] ?? 3.5;
   const revenueBase = (video.views / 1000) * cpm;
   const r = seededRand(video.rank);
@@ -244,16 +244,18 @@ const VideoRankingsPage = () => {
     });
   }, []);
 
-  const doFetch = useCallback((regionCode: string) => {
+  const doFetch = useCallback((regionCode: string, publishedAfter: string, periodKey: string) => {
     setApiLoading(true);
     setApiError(null);
-    fetchVideoRankings(regionCode, 50)
+    setAllVideos([]);
+    fetchVideoRankings(regionCode, 50, publishedAfter)
       .then((data) => {
         const videos = data as RankingVideoItem[];
         setAllVideos(videos);
-        cacheSet(`vb_vid_rankings_${regionCode}`, videos);
+        cacheSet(`vb_vid_rankings_v2_${regionCode}_${periodKey}`, videos);
       })
       .catch((err: unknown) => {
+        setAllVideos([]);
         setApiError(err instanceof Error ? err.message : 'Unknown error');
       })
       .finally(() => setApiLoading(false));
@@ -261,11 +263,20 @@ const VideoRankingsPage = () => {
 
   useEffect(() => {
     const regionCode = REGION_MAP[country] ?? 'KR';
-    const cacheKey = `vb_vid_rankings_${regionCode}`;
+    const periodKey = period.toLowerCase();
+    let publishedAfter = '';
+    if (period === 'Weekly') {
+      const d = new Date(); d.setDate(d.getDate() - 7);
+      publishedAfter = d.toISOString();
+    } else if (period === 'Monthly') {
+      const d = new Date(); d.setDate(d.getDate() - 30);
+      publishedAfter = d.toISOString();
+    }
+    const cacheKey = `vb_vid_rankings_v2_${regionCode}_${periodKey}`;
     const cached = cacheGet<RankingVideoItem[]>(cacheKey);
     if (cached) { setAllVideos(cached); setApiLoading(false); setApiError(null); return; }
-    doFetch(regionCode);
-  }, [country, doFetch]);
+    doFetch(regionCode, publishedAfter, periodKey);
+  }, [country, period, doFetch]);
 
   const handleSort = (key: SortKey) => {
     if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
@@ -282,19 +293,6 @@ const VideoRankingsPage = () => {
     let data = [...allVideos];
     if (viewTab === 'saved') data = data.filter(v => savedIds.has(v.videoId));
     if (category !== 'ALL') data = data.filter(v => v.category === category);
-
-    // Client-side period filtering; fall back to all data if filter yields nothing
-    if (period === 'Weekly') {
-      const cutoff = new Date();
-      cutoff.setDate(cutoff.getDate() - 7);
-      const periodFiltered = data.filter(v => v.uploadDate && new Date(v.uploadDate) >= cutoff);
-      if (periodFiltered.length > 0) data = periodFiltered;
-    } else if (period === 'Monthly') {
-      const cutoff = new Date();
-      cutoff.setDate(cutoff.getDate() - 30);
-      const periodFiltered = data.filter(v => v.uploadDate && new Date(v.uploadDate) >= cutoff);
-      if (periodFiltered.length > 0) data = periodFiltered;
-    }
 
     data.sort((a, b) => {
       const mul = sortDir === 'asc' ? 1 : -1;
@@ -459,11 +457,29 @@ const VideoRankingsPage = () => {
               <button
                 onClick={() => {
                   const rc = REGION_MAP[country] ?? 'KR';
-                  doFetch(rc);
+                  doFetch(rc, '', period.toLowerCase());
                 }}
                 className="text-xs text-red-600 dark:text-red-400 border border-red-300 dark:border-red-500/40 px-4 py-2 rounded-lg hover:bg-red-100 dark:hover:bg-red-500/10 transition-colors cursor-pointer"
               >
                 다시 시도
+              </button>
+            </div>
+          )}
+
+          {!apiLoading && !apiError && filtered.length === 0 && viewTab !== 'saved' && (
+            <div className="flex flex-col items-center justify-center py-20 text-center rounded-xl border border-gray-200 dark:border-dark-border bg-white dark:bg-dark-card">
+              <div className="w-14 h-14 flex items-center justify-center rounded-2xl bg-gray-100 dark:bg-dark-base mb-4">
+                <i className="ri-search-line text-2xl text-gray-300 dark:text-white/20"></i>
+              </div>
+              <p className="text-sm font-semibold text-gray-600 dark:text-off-white mb-1">데이터가 없습니다</p>
+              <p className="text-xs text-gray-400 dark:text-white/30 max-w-xs mb-4">
+                선택한 국가 / 카테고리 / 기간 조합으로 조회된 영상이 없습니다.
+              </p>
+              <button
+                onClick={() => { setCategory('ALL'); setCountry('ALL'); setPeriod('Daily'); setPage(1); }}
+                className="text-xs text-red-600 dark:text-red-400 border border-red-300 dark:border-red-500/40 px-4 py-2 rounded-lg hover:bg-red-100 dark:hover:bg-red-500/10 transition-colors cursor-pointer"
+              >
+                필터 초기화
               </button>
             </div>
           )}

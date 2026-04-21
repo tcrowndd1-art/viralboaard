@@ -7,12 +7,17 @@ i18n
   .use(LanguageDetector)
   .use(initReactI18next)
   .init({
-    lng: 'en',
     fallbackLng: 'en',
+    supportedLngs: ['ko', 'en', 'pt'],
+    nonExplicitSupportedLngs: true,
     debug: false,
     resources: messages,
     interpolation: {
       escapeValue: false,
+    },
+    detection: {
+      order: ['localStorage', 'navigator', 'htmlTag'],
+      caches: ['localStorage'],
     },
   });
 

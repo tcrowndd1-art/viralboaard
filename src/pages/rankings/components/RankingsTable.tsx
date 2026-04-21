@@ -121,12 +121,16 @@ const BookmarkBtn = ({ channel }: BookmarkBtnProps) => {
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     toggleChannel({
-      id: String(channel.rank),
+      id: channel.channelId,
       name: channel.name,
+      handle: '',
       avatar: channel.avatar,
-      subscribers: formatNumber(channel.subscribers),
-      growth: `${channel.growthPercent > 0 ? '+' : ''}${channel.growthPercent.toFixed(1)}%`,
+      category: channel.category,
+      subscribers: channel.subscribers,
+      weeklyGrowth: channel.growthPercent,
       isLive: false,
+      lastVideo: '',
+      lastVideoViews: 0,
     });
     setFlash(true);
     setTimeout(() => setFlash(false), 600);
@@ -223,7 +227,7 @@ const RankingsTable = ({ channels, sortKey, sortDir, onSort }: RankingsTableProp
                   <div className="flex items-center gap-3">
                     <div className="w-9 h-9 rounded-full overflow-hidden bg-gray-100 dark:bg-dark-card flex-shrink-0">
                       <img
-                        src={ch.avatar}
+                        src={ch.avatar || undefined}
                         alt={ch.name}
                         className="w-full h-full object-cover object-top"
                         onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}

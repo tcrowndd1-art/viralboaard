@@ -48,7 +48,7 @@ const RankingsPage = () => {
       const d = new Date(); d.setDate(d.getDate() - 30);
       publishedAfter = d.toISOString();
     }
-    const cacheKey = `vb_ch_rankings_${regionCode}_${period}`;
+    const cacheKey = `vb_ch_rankings_v2_${regionCode}_${period}`;
     const cached = cacheGet<RankingChannelItem[]>(cacheKey);
 
     if (cached) {
@@ -60,6 +60,7 @@ const RankingsPage = () => {
 
     setApiLoading(true);
     setApiError(null);
+    setAllChannels([]);
 
     fetchChannelRankings(regionCode, publishedAfter)
       .then((data) => {
@@ -69,6 +70,7 @@ const RankingsPage = () => {
       })
       .catch((err) => {
         console.error('RankingsPage Error:', err);
+        setAllChannels([]);
         setApiError(err instanceof Error ? err.message : '데이터를 불러오지 못했습니다.');
       })
       .finally(() => setApiLoading(false));
@@ -231,6 +233,51 @@ const RankingsPage = () => {
                   ))}
                 </tbody>
               </table>
+            </div>
+          )}
+
+          {/* Error state */}
+          {!apiLoading && apiError && (
+            <div className="flex flex-col items-center justify-center py-16 text-center rounded-xl border border-red-200 dark:border-red-500/30 bg-red-50 dark:bg-red-900/10">
+              <i className="ri-error-warning-line text-3xl text-red-400 mb-3"></i>
+              <p className="text-sm font-semibold text-red-600 dark:text-red-400 mb-1">데이터를 불러오지 못했습니다</p>
+              <p className="text-xs text-red-400 dark:text-red-500/70 max-w-xs mb-4">{apiError}</p>
+              <button
+                onClick={() => {
+                  const regionCode = REGION_MAP[country] ?? 'KR';
+                  let publishedAfter = '';
+                  if (period === 'Weekly') { const d = new Date(); d.setDate(d.getDate() - 7); publishedAfter = d.toISOString(); }
+                  else if (period === 'Monthly') { const d = new Date(); d.setDate(d.getDate() - 30); publishedAfter = d.toISOString(); }
+                  setApiError(null);
+                  setApiLoading(true);
+                  fetchChannelRankings(regionCode, publishedAfter)
+                    .then((data) => { setAllChannels(data as RankingChannelItem[]); })
+                    .catch((err) => setApiError(err instanceof Error ? err.message : '오류가 발생했습니다.'))
+                    .finally(() => setApiLoading(false));
+                }}
+                className="text-xs text-red-600 dark:text-red-400 border border-red-300 dark:border-red-500/40 px-4 py-2 rounded-lg hover:bg-red-100 dark:hover:bg-red-500/10 transition-colors cursor-pointer"
+              >
+                다시 시도
+              </button>
+            </div>
+          )}
+
+          {/* Empty state for filters */}
+          {!apiLoading && !apiError && filtered.length === 0 && viewTab !== 'saved' && allChannels.length > 0 && (
+            <div className="flex flex-col items-center justify-center py-20 text-center rounded-xl border border-gray-200 dark:border-dark-border bg-white dark:bg-dark-card">
+              <div className="w-14 h-14 flex items-center justify-center rounded-2xl bg-gray-100 dark:bg-dark-base mb-4">
+                <i className="ri-search-line text-2xl text-gray-300 dark:text-white/20"></i>
+              </div>
+              <p className="text-sm font-semibold text-gray-600 dark:text-off-white mb-1">해당 카테고리 채널이 없습니다</p>
+              <p className="text-xs text-gray-400 dark:text-white/30 max-w-xs mb-4">
+                현재 기간/지역 트렌드에서 선택한 카테고리의 채널이 없습니다.
+              </p>
+              <button
+                onClick={() => { setCategory('ALL'); setPage(1); }}
+                className="text-xs text-red-600 dark:text-red-400 border border-red-300 dark:border-red-500/40 px-4 py-2 rounded-lg hover:bg-red-100 dark:hover:bg-red-500/10 transition-colors cursor-pointer"
+              >
+                카테고리 초기화
+              </button>
             </div>
           )}
 

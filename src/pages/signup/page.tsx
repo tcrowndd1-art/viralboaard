@@ -1,19 +1,23 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-
-const AUTH_KEY = 'viralboard_auth';
+import { useAuth } from '@/hooks/useAuth';
 
 const SignupPage = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const { signInWithGoogle, signUpWithEmail, error, clearError, loading: authLoading } = useAuth();
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [localError, setLocalError] = useState('');
+  const [success, setSuccess] = useState(false);
+
+  const displayError = localError || error || '';
 
   const getPasswordStrength = (pw: string) => {
     if (!pw) return { level: 0, label: '', color: '' };
@@ -30,75 +34,82 @@ const SignupPage = () => {
 
   const strength = getPasswordStrength(password);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    setLocalError('');
+    clearError();
 
-    if (!email || !password || !confirmPassword) {
-      setError(t('signup_error_fill'));
-      return;
-    }
-    if (!/\S+@\S+\.\S+/.test(email)) {
-      setError(t('signup_error_email'));
-      return;
-    }
-    if (password.length < 8) {
-      setError(t('signup_error_length'));
-      return;
-    }
-    if (password !== confirmPassword) {
-      setError(t('signup_error_match'));
-      return;
-    }
+    if (!email || !password || !confirmPassword) { setLocalError(t('signup_error_fill')); return; }
+    if (!/\S+@\S+\.\S+/.test(email)) { setLocalError(t('signup_error_email')); return; }
+    if (password.length < 6) { setLocalError(t('signup_error_length')); return; }
+    if (password !== confirmPassword) { setLocalError(t('signup_error_match')); return; }
 
     setLoading(true);
-    setTimeout(() => {
+    try {
+      await signUpWithEmail(email, password);
+      setSuccess(true);
+    } catch {
+      // error set by useAuth
+    } finally {
       setLoading(false);
-      localStorage.setItem(AUTH_KEY, JSON.stringify({ email, loggedAt: Date.now() }));
-      navigate('/dashboard');
-    }, 1000);
+    }
   };
 
-  const handleGoogleSignup = () => {
+  const handleGoogleSignup = async () => {
+    clearError();
     setLoading(true);
-    setTimeout(() => {
+    try {
+      await signInWithGoogle();
+    } catch {
+      // error set by useAuth
+    } finally {
       setLoading(false);
-      localStorage.setItem(AUTH_KEY, JSON.stringify({ email: 'google@user.com', loggedAt: Date.now() }));
-      navigate('/dashboard');
-    }, 800);
+    }
   };
+
+  const busy = loading || authLoading;
+
+  if (success) {
+    return (
+      <div className="min-h-screen bg-[#0f0f0f] flex items-center justify-center px-4">
+        <div className="w-full max-w-md text-center">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-green-500/10 flex items-center justify-center">
+            <i className="ri-mail-check-line text-green-400 text-2xl"></i>
+          </div>
+          <h2 className="text-xl font-bold text-white mb-2">이메일을 확인해주세요</h2>
+          <p className="text-sm text-white/50 mb-6">{email}로 인증 링크를 보냈습니다. 링크를 클릭하면 로그인됩니다.</p>
+          <Link to="/login" className="text-red-400 hover:text-red-300 text-sm font-medium">
+            로그인 페이지로 돌아가기
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-[#0f0f0f] flex flex-col">
-      {/* Header */}
       <header className="flex items-center justify-between px-6 py-4 border-b border-white/10">
         <Link to="/" className="font-black text-lg tracking-widest text-white uppercase cursor-pointer">
           ViralBoard
         </Link>
         <div className="flex items-center gap-2 text-sm text-white/50">
           <span>{t('signup_have_account')}</span>
-          <Link
-            to="/login"
-            className="text-white font-medium hover:text-red-400 transition-colors cursor-pointer"
-          >
+          <Link to="/login" className="text-white font-medium hover:text-red-400 transition-colors cursor-pointer">
             {t('signup_signin_link')}
           </Link>
         </div>
       </header>
 
-      {/* Main */}
       <div className="flex-1 flex items-center justify-center px-4 py-12">
         <div className="w-full max-w-md">
-          {/* Title */}
           <div className="mb-8 text-center">
             <h1 className="text-2xl font-bold text-white mb-2">{t('signup_title')}</h1>
             <p className="text-sm text-white/40">{t('signup_subtitle')}</p>
           </div>
 
-          {/* Google Signup */}
           <button
             onClick={handleGoogleSignup}
-            disabled={loading}
+            disabled={busy}
             className="w-full flex items-center justify-center gap-3 bg-white hover:bg-gray-100 text-gray-800 text-sm font-medium py-2.5 rounded-lg transition-colors cursor-pointer whitespace-nowrap mb-5 disabled:opacity-60"
           >
             <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -110,22 +121,19 @@ const SignupPage = () => {
             {t('signup_google')}
           </button>
 
-          {/* Divider */}
           <div className="flex items-center gap-3 mb-5">
             <div className="flex-1 h-px bg-white/10"></div>
             <span className="text-xs text-white/30">{t('signup_or')}</span>
             <div className="flex-1 h-px bg-white/10"></div>
           </div>
 
-          {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
-            {error && (
+            {displayError && (
               <div className="bg-red-600/10 border border-red-600/30 rounded-lg px-4 py-3">
-                <p className="text-sm text-red-400">{error}</p>
+                <p className="text-sm text-red-400">{displayError}</p>
               </div>
             )}
 
-            {/* Email */}
             <div>
               <label className="block text-xs font-medium text-white/60 mb-1.5">{t('signup_email')}</label>
               <input
@@ -137,7 +145,6 @@ const SignupPage = () => {
               />
             </div>
 
-            {/* Password */}
             <div>
               <label className="block text-xs font-medium text-white/60 mb-1.5">{t('signup_password')}</label>
               <div className="relative">
@@ -145,7 +152,7 @@ const SignupPage = () => {
                   type={showPassword ? 'text' : 'password'}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="At least 8 characters"
+                  placeholder="6자 이상"
                   className="w-full bg-[#1e1e1e] border border-white/10 rounded-lg px-4 py-2.5 text-sm text-white placeholder-white/20 outline-none focus:border-white/30 transition-colors pr-10"
                 />
                 <button
@@ -156,27 +163,18 @@ const SignupPage = () => {
                   <i className={showPassword ? 'ri-eye-off-line' : 'ri-eye-line'}></i>
                 </button>
               </div>
-
               {password && (
                 <div className="mt-2">
                   <div className="flex gap-1 mb-1">
                     {[1, 2, 3, 4].map((i) => (
-                      <div
-                        key={i}
-                        className={`h-1 flex-1 rounded-full transition-colors ${
-                          i <= strength.level ? strength.color : 'bg-white/10'
-                        }`}
-                      />
+                      <div key={i} className={`h-1 flex-1 rounded-full transition-colors ${i <= strength.level ? strength.color : 'bg-white/10'}`} />
                     ))}
                   </div>
-                  <p className="text-xs text-white/30">
-                    {t('signup_strength')} <span className="text-white/60">{strength.label}</span>
-                  </p>
+                  <p className="text-xs text-white/30">{t('signup_strength')} <span className="text-white/60">{strength.label}</span></p>
                 </div>
               )}
             </div>
 
-            {/* Confirm Password */}
             <div>
               <label className="block text-xs font-medium text-white/60 mb-1.5">{t('signup_confirm')}</label>
               <div className="relative">
@@ -184,13 +182,9 @@ const SignupPage = () => {
                   type={showConfirm ? 'text' : 'password'}
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="Re-enter your password"
+                  placeholder="비밀번호 재입력"
                   className={`w-full bg-[#1e1e1e] border rounded-lg px-4 py-2.5 text-sm text-white placeholder-white/20 outline-none transition-colors pr-10 ${
-                    confirmPassword && confirmPassword !== password
-                      ? 'border-red-500/50 focus:border-red-500'
-                      : confirmPassword && confirmPassword === password
-                      ? 'border-green-500/50 focus:border-green-500'
-                      : 'border-white/10 focus:border-white/30'
+                    confirmPassword && confirmPassword !== password ? 'border-red-500/50' : confirmPassword && confirmPassword === password ? 'border-green-500/50' : 'border-white/10 focus:border-white/30'
                   }`}
                 />
                 <button
@@ -201,18 +195,13 @@ const SignupPage = () => {
                   <i className={showConfirm ? 'ri-eye-off-line' : 'ri-eye-line'}></i>
                 </button>
                 {confirmPassword && (
-                  <div className="absolute right-9 top-1/2 -translate-y-1/2 w-4 h-4 flex items-center justify-center">
-                    {confirmPassword === password ? (
-                      <i className="ri-check-line text-green-500 text-sm"></i>
-                    ) : (
-                      <i className="ri-close-line text-red-500 text-sm"></i>
-                    )}
+                  <div className="absolute right-9 top-1/2 -translate-y-1/2">
+                    {confirmPassword === password ? <i className="ri-check-line text-green-500 text-sm"></i> : <i className="ri-close-line text-red-500 text-sm"></i>}
                   </div>
                 )}
               </div>
             </div>
 
-            {/* Terms */}
             <p className="text-xs text-white/30 leading-relaxed">
               {t('signup_terms_text')}{' '}
               <a href="#" className="text-white/50 hover:text-white underline cursor-pointer">{t('signup_terms')}</a>{' '}
@@ -220,17 +209,15 @@ const SignupPage = () => {
               <a href="#" className="text-white/50 hover:text-white underline cursor-pointer">{t('signup_privacy')}</a>.
             </p>
 
-            {/* Submit */}
             <button
               type="submit"
-              disabled={loading}
+              disabled={busy}
               className="w-full bg-red-600 hover:bg-red-700 disabled:opacity-60 text-white text-sm font-semibold py-2.5 rounded-lg transition-colors cursor-pointer whitespace-nowrap"
             >
-              {loading ? t('signup_submitting') : t('signup_submit')}
+              {busy ? t('signup_submitting') : t('signup_submit')}
             </button>
           </form>
 
-          {/* Sign in link */}
           <p className="text-center text-sm text-white/30 mt-6">
             {t('signup_have_account')}{' '}
             <Link to="/login" className="text-white hover:text-red-400 font-medium transition-colors cursor-pointer">
@@ -240,7 +227,6 @@ const SignupPage = () => {
         </div>
       </div>
 
-      {/* Footer */}
       <footer className="px-6 py-4 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-2">
         <p className="text-xs text-white/20">{t('footer_copyright')}</p>
         <div className="flex items-center gap-4">

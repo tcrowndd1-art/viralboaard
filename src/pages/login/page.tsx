@@ -1,79 +1,79 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-
-const AUTH_KEY = 'viralboard_auth';
+import { useAuth } from '@/hooks/useAuth';
 
 const LoginPage = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const { signInWithGoogle, signInWithEmail, error, clearError, loading: authLoading } = useAuth();
+
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [localError, setLocalError] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const displayError = localError || error || '';
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    setLocalError('');
+    clearError();
 
-    if (!email || !password) {
-      setError(t('login_error_fill'));
-      return;
-    }
-    if (!/\S+@\S+\.\S+/.test(email)) {
-      setError(t('login_error_email'));
-      return;
-    }
+    if (!email || !password) { setLocalError(t('login_error_fill')); return; }
+    if (!/\S+@\S+\.\S+/.test(email)) { setLocalError(t('login_error_email')); return; }
 
     setLoading(true);
-    setTimeout(() => {
-      setLoading(false);
-      localStorage.setItem(AUTH_KEY, JSON.stringify({ email, loggedAt: Date.now() }));
+    try {
+      await signInWithEmail(email, password);
       navigate('/dashboard');
-    }, 1000);
+    } catch {
+      // error set by useAuth
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleGoogleLogin = () => {
+  const handleGoogleLogin = async () => {
+    clearError();
     setLoading(true);
-    setTimeout(() => {
+    try {
+      await signInWithGoogle();
+      // redirect happens via OAuth redirect
+    } catch {
+      // error set by useAuth
+    } finally {
       setLoading(false);
-      localStorage.setItem(AUTH_KEY, JSON.stringify({ email: 'google@user.com', loggedAt: Date.now() }));
-      navigate('/dashboard');
-    }, 800);
+    }
   };
+
+  const busy = loading || authLoading;
 
   return (
     <div className="min-h-screen bg-[#0f0f0f] flex flex-col">
-      {/* Header */}
       <header className="flex items-center justify-between px-6 py-4 border-b border-white/10">
         <Link to="/" className="font-black text-lg tracking-widest text-white uppercase cursor-pointer">
           ViralBoard
         </Link>
         <div className="flex items-center gap-2 text-sm text-white/50">
           <span>{t('login_no_account')}</span>
-          <Link
-            to="/signup"
-            className="text-white font-medium hover:text-red-400 transition-colors cursor-pointer"
-          >
+          <Link to="/signup" className="text-white font-medium hover:text-red-400 transition-colors cursor-pointer">
             {t('login_signup_link')}
           </Link>
         </div>
       </header>
 
-      {/* Main */}
       <div className="flex-1 flex items-center justify-center px-4 py-12">
         <div className="w-full max-w-md">
-          {/* Title */}
           <div className="mb-8 text-center">
             <h1 className="text-2xl font-bold text-white mb-2">{t('login_title')}</h1>
             <p className="text-sm text-white/40">{t('login_subtitle')}</p>
           </div>
 
-          {/* Google Login */}
           <button
             onClick={handleGoogleLogin}
-            disabled={loading}
+            disabled={busy}
             className="w-full flex items-center justify-center gap-3 bg-white hover:bg-gray-100 text-gray-800 text-sm font-medium py-2.5 rounded-lg transition-colors cursor-pointer whitespace-nowrap mb-5 disabled:opacity-60"
           >
             <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -85,22 +85,19 @@ const LoginPage = () => {
             {t('login_google')}
           </button>
 
-          {/* Divider */}
           <div className="flex items-center gap-3 mb-5">
             <div className="flex-1 h-px bg-white/10"></div>
             <span className="text-xs text-white/30">{t('login_or')}</span>
             <div className="flex-1 h-px bg-white/10"></div>
           </div>
 
-          {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-4">
-            {error && (
+            {displayError && (
               <div className="bg-red-600/10 border border-red-600/30 rounded-lg px-4 py-3">
-                <p className="text-sm text-red-400">{error}</p>
+                <p className="text-sm text-red-400">{displayError}</p>
               </div>
             )}
 
-            {/* Email */}
             <div>
               <label className="block text-xs font-medium text-white/60 mb-1.5">{t('login_email')}</label>
               <input
@@ -112,7 +109,6 @@ const LoginPage = () => {
               />
             </div>
 
-            {/* Password */}
             <div>
               <div className="flex items-center justify-between mb-1.5">
                 <label className="text-xs font-medium text-white/60">{t('login_password')}</label>
@@ -138,17 +134,15 @@ const LoginPage = () => {
               </div>
             </div>
 
-            {/* Submit */}
             <button
               type="submit"
-              disabled={loading}
+              disabled={busy}
               className="w-full bg-red-600 hover:bg-red-700 disabled:opacity-60 text-white text-sm font-semibold py-2.5 rounded-lg transition-colors cursor-pointer whitespace-nowrap mt-2"
             >
-              {loading ? t('login_submitting') : t('login_submit')}
+              {busy ? t('login_submitting') : t('login_submit')}
             </button>
           </form>
 
-          {/* Sign up link */}
           <p className="text-center text-sm text-white/30 mt-6">
             {t('login_new_to')}{' '}
             <Link to="/signup" className="text-white hover:text-red-400 font-medium transition-colors cursor-pointer">
@@ -158,7 +152,6 @@ const LoginPage = () => {
         </div>
       </div>
 
-      {/* Footer */}
       <footer className="px-6 py-4 border-t border-white/10 flex flex-col sm:flex-row items-center justify-between gap-2">
         <p className="text-xs text-white/20">{t('footer_copyright')}</p>
         <div className="flex items-center gap-4">
