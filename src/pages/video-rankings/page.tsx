@@ -260,12 +260,25 @@ const VideoRankingsPage = () => {
   }, []);
 
   useEffect(() => {
-  const regionCode = REGION_MAP[country] ?? 'KR';
-    const cacheKey = `vb_vid_rankings_${regionCode}`;
+    const regionCode = REGION_MAP[country] ?? 'KR';
+    
+    let publishedAfter = '';
+    if (period === 'Weekly') {
+      const date = new Date();
+      date.setDate(date.getDate() - 7);
+      publishedAfter = date.toISOString();
+    } else if (period === 'Monthly') {
+      const date = new Date();
+      date.setDate(date.getDate() - 30);
+      publishedAfter = date.toISOString();
+    }
+
+    const cacheKey = `vb_vid_rankings_${regionCode}_${period}`;
     const cached = cacheGet<RankingVideoItem[]>(cacheKey);
     if (cached) { setAllVideos(cached); setApiLoading(false); setApiError(null); return; }
-    doFetch(regionCode);
-  }, [country, doFetch]);
+    
+    doFetch(regionCode, publishedAfter);
+  }, [country, period, doFetch]);
 
   const handleSort = (key: SortKey) => {
     if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
