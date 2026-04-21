@@ -6,33 +6,8 @@ const MODEL_CHAIN = [
   (import.meta.env.VITE_AI_MODEL_FALLBACK_2 as string) || 'openai/gpt-4o-mini',
 ].filter(Boolean);
 
-const FALLBACK_ALERTS = [
-  '⚠️ Gemma 4 쿼터 초과. Llama 3.3으로 전환합니다.',
-  '🚨 Llama 3.3도 쿼터 초과. GPT-4o mini(유료)로 전환합니다.',
-  '❌ 전체 AI 엔진 실패. 수동 확인 필요.',
-];
-
-const alertSent = new Set<number>();
-
-async function sendTelegramAlert(message: string) {
-  const token = import.meta.env.VITE_TELEGRAM_BOT_TOKEN;
-  const chatId = import.meta.env.VITE_TELEGRAM_CHAT_ID;
-  if (!token || !chatId) return;
-  try {
-    await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ chat_id: chatId, text: message, parse_mode: 'HTML' }),
-    });
-  } catch {}
-}
-
 async function chatWithChain(prompt: string, maxTokens: number, index: number): Promise<string> {
   if (index >= MODEL_CHAIN.length) {
-    if (!alertSent.has(MODEL_CHAIN.length)) {
-      alertSent.add(MODEL_CHAIN.length);
-      await sendTelegramAlert(FALLBACK_ALERTS[MODEL_CHAIN.length - 1] ?? '❌ 전체 AI 엔진 소진.');
-    }
     throw new Error('All AI models exhausted or failed.');
   }
 
@@ -54,10 +29,6 @@ async function chatWithChain(prompt: string, maxTokens: number, index: number): 
   });
 
   if (res.status === 429) {
-    if (!alertSent.has(index)) {
-      alertSent.add(index);
-      await sendTelegramAlert(FALLBACK_ALERTS[index] ?? `⚠️ 모델 ${index + 1} 쿼터 초과. 다음으로 전환합니다.`);
-    }
     return chatWithChain(prompt, maxTokens, index + 1);
   }
 
