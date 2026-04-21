@@ -55,6 +55,8 @@ const SceneEditor = ({ scene, onUpdate }: SceneEditorProps) => {
   const [narration, setNarration] = useState(scene.narration);
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [isVoicePlaying, setIsVoicePlaying] = useState(false);
+  const [voices, setVoices] = useState<SpeechSynthesisVoice[]>([]);
+  const [selectedVoice, setSelectedVoice] = useState<SpeechSynthesisVoice | null>(null);
   const [isDraggingText, setIsDraggingText] = useState(false);
   const [editingText, setEditingText] = useState(false);
   const [fontOpen, setFontOpen] = useState(false);
@@ -62,6 +64,21 @@ const SceneEditor = ({ scene, onUpdate }: SceneEditorProps) => {
   const [savedOverlay, setSavedOverlay] = useState(false);
   const [duration, setDuration] = useState(scene.duration);
   const imageRef = useRef<HTMLDivElement>(null);
+
+  // Load available SpeechSynthesis voices (async on some browsers)
+  useEffect(() => {
+    const loadVoices = () => {
+      const all = window.speechSynthesis?.getVoices() ?? [];
+      if (all.length === 0) return;
+      setVoices(all);
+      // Default: prefer Korean voice, fallback to first available
+      const korean = all.find((v) => v.lang.startsWith('ko'));
+      setSelectedVoice((prev) => prev ?? korean ?? all[0] ?? null);
+    };
+    loadVoices();
+    window.speechSynthesis?.addEventListener('voiceschanged', loadVoices);
+    return () => window.speechSynthesis?.removeEventListener('voiceschanged', loadVoices);
+  }, []);
 
   // Cancel TTS and sync when scene changes
   useEffect(() => {
@@ -368,7 +385,8 @@ const SceneEditor = ({ scene, onUpdate }: SceneEditorProps) => {
                     } else {
                       if (!window.speechSynthesis) return;
                       const utt = new SpeechSynthesisUtterance(narration);
-                      utt.lang = 'ko-KR';
+                      if (selectedVoice) utt.voice = selectedVoice;
+                      utt.lang = selectedVoice?.lang ?? 'ko-KR';
                       utt.onend = () => setIsVoicePlaying(false);
                       utt.onerror = () => setIsVoicePlaying(false);
                       window.speechSynthesis.speak(utt);
@@ -394,11 +412,22 @@ const SceneEditor = ({ scene, onUpdate }: SceneEditorProps) => {
               <p className="text-xs font-semibold text-gray-500 dark:text-white/40 uppercase tracking-wider">Voice Settings</p>
               <div className="flex items-center justify-between">
                 <span className="text-xs text-gray-500 dark:text-white/50">Voice</span>
-                <select className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-700 dark:text-white/70 text-xs rounded-lg px-2 py-1 outline-none cursor-pointer">
-                  <option>Nova (Female)</option>
-                  <option>Onyx (Male)</option>
-                  <option>Shimmer (Female)</option>
-                  <option>Echo (Male)</option>
+                <select
+                  value={selectedVoice?.name ?? ''}
+                  onChange={(e) => {
+                    const v = voices.find((v) => v.name === e.target.value) ?? null;
+                    setSelectedVoice(v);
+                    window.speechSynthesis?.cancel();
+                    setIsVoicePlaying(false);
+                  }}
+                  className="bg-white dark:bg-white/5 border border-gray-200 dark:border-white/10 text-gray-700 dark:text-white/70 text-xs rounded-lg px-2 py-1 outline-none cursor-pointer max-w-[140px]"
+                >
+                  {voices.length === 0 && <option value="">Loading...</option>}
+                  {voices.map((v) => (
+                    <option key={v.name} value={v.name}>
+                      {v.name} ({v.lang})
+                    </option>
+                  ))}
                 </select>
               </div>
               <div className="flex items-center justify-between">

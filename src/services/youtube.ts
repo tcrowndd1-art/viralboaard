@@ -37,7 +37,9 @@ export interface ChannelResult {
 export interface VideoResult {
   videoId: string;
   title: string;
+  channelName: string;
   views: number;
+  likes: number;
   uploadDate: string;
   thumbnail: string;
   duration: string;
@@ -224,7 +226,9 @@ export async function searchVideos(query: string, maxResults = 10): Promise<Vide
   return items.map((v: any) => ({
     videoId: v.id.videoId,
     title: v.snippet.title,
+    channelName: v.snippet.channelTitle ?? '',
     views: parseInt(statsMap.get(v.id.videoId)?.viewCount ?? '0'),
+    likes: parseInt(statsMap.get(v.id.videoId)?.likeCount ?? '0'),
     uploadDate: v.snippet.publishedAt?.slice(0, 10) ?? '',
     thumbnail: `https://img.youtube.com/vi/${v.id.videoId}/mqdefault.jpg`,
     duration: durationMap.get(v.id.videoId) ?? '0:00',

@@ -1,8 +1,21 @@
 import { Link } from 'react-router-dom';
-import type { ChannelResult } from '@/mocks/searchResults';
 
 interface ChannelCardProps {
-  channel: ChannelResult;
+  channel: {
+    id: string;
+    type?: string;
+    name: string;
+    handle: string;
+    avatar: string;
+    banner?: string;
+    category?: string;
+    country?: string;
+    subscribers: number;
+    totalViews: number;
+    videoCount: number;
+    growthPercent?: number;
+    description?: string;
+  };
 }
 
 const formatNumber = (n: number): string => {
@@ -23,7 +36,8 @@ const categoryColors: Record<string, string> = {
 };
 
 const ChannelCard = ({ channel }: ChannelCardProps) => {
-  const colorClass = categoryColors[channel.category] ?? 'bg-gray-100 text-gray-500 dark:bg-off-white/8 dark:text-off-white/40';
+  const colorClass = categoryColors[channel.category ?? ''] ?? 'bg-gray-100 text-gray-500 dark:bg-off-white/8 dark:text-off-white/40';
+  const growth = channel.growthPercent ?? 0;
 
   return (
     <Link
@@ -36,26 +50,24 @@ const ChannelCard = ({ channel }: ChannelCardProps) => {
           <i className="ri-user-line w-3 h-3 flex items-center justify-center"></i>
           Channel
         </span>
-        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${colorClass}`}>
-          {channel.category}
-        </span>
+        {channel.category && (
+          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${colorClass}`}>
+            {channel.category}
+          </span>
+        )}
       </div>
 
       {/* Avatar + Name */}
       <div className="flex items-center gap-3 mb-4">
         <div className="w-14 h-14 rounded-full overflow-hidden flex-shrink-0 border-2 border-gray-200 dark:border-dark-border group-hover:border-red-400 dark:group-hover:border-red-500 transition-colors">
-          <img
-            src={channel.avatar}
-            alt={channel.name}
-            className="w-full h-full object-cover object-top"
-          />
+          <img src={channel.avatar} alt={channel.name} className="w-full h-full object-cover object-top" />
         </div>
         <div className="min-w-0">
           <h3 className="text-gray-900 dark:text-off-white font-semibold text-base truncate group-hover:text-red-600 dark:group-hover:text-red-400 transition-colors">
             {channel.name}
           </h3>
           <p className="text-gray-400 dark:text-off-white/40 text-sm truncate">{channel.handle}</p>
-          <p className="text-gray-400 dark:text-off-white/30 text-xs mt-0.5">{channel.country}</p>
+          {channel.country && <p className="text-gray-400 dark:text-off-white/30 text-xs mt-0.5">{channel.country}</p>}
         </div>
       </div>
 
@@ -70,8 +82,8 @@ const ChannelCard = ({ channel }: ChannelCardProps) => {
           <p className="text-gray-400 dark:text-off-white/30 text-xs mt-0.5">Total Views</p>
         </div>
         <div className="bg-gray-50 dark:bg-dark-surface rounded-md p-2 text-center">
-          <p className={`text-sm font-semibold ${channel.growthPercent >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-500 dark:text-red-400'}`}>
-            {channel.growthPercent >= 0 ? '+' : ''}{channel.growthPercent}%
+          <p className={`text-sm font-semibold ${growth >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-500 dark:text-red-400'}`}>
+            {growth >= 0 ? '+' : ''}{growth}%
           </p>
           <p className="text-gray-400 dark:text-off-white/30 text-xs mt-0.5">Growth</p>
         </div>

@@ -1,7 +1,7 @@
 import { useState, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { Channel } from '@/mocks/channelRankings';
+import { RankingChannelItem } from '@/services/youtube';
 import HoverPopup from '@/components/feature/HoverPopup';
 import type { ChannelPopupData } from '@/components/feature/HoverPopup';
 import { useSavedChannels } from '@/hooks/useSavedChannels';
@@ -10,7 +10,7 @@ type SortKey = 'rank' | 'subscribers' | 'views' | 'growthPercent';
 type SortDir = 'asc' | 'desc';
 
 interface RankingsTableProps {
-  channels: Channel[];
+  channels: RankingChannelItem[];
   sortKey: SortKey;
   sortDir: SortDir;
   onSort: (key: SortKey) => void;
@@ -54,7 +54,7 @@ const seededRand = (seed: number, offset = 0) => {
 };
 
 /* Generate a 12-point sparkline based on channel growth trend */
-const buildSparkline = (ch: Channel): number[] => {
+const buildSparkline = (ch: RankingChannelItem): number[] => {
   const base = 100;
   const trend = ch.growthPercent / 100;
   return Array.from({ length: 12 }, (_, i) => {
@@ -63,7 +63,7 @@ const buildSparkline = (ch: Channel): number[] => {
   });
 };
 
-const buildChannelPopup = (ch: Channel): ChannelPopupData => {
+const buildChannelPopup = (ch: RankingChannelItem): ChannelPopupData => {
   const cpm = CPM_BY_CATEGORY[ch.category] ?? 3.5;
   const monthlyViews = ch.views / 12;
   const revenueBase = (monthlyViews / 1000) * cpm;
@@ -111,7 +111,7 @@ const Th = ({ label, sortable, colKey, currentKey, currentDir, onSort, align = '
 
 /* ── Bookmark button ── */
 interface BookmarkBtnProps {
-  channel: Channel;
+  channel: RankingChannelItem;
 }
 
 const BookmarkBtn = ({ channel }: BookmarkBtnProps) => {

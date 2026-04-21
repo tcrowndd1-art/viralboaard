@@ -1,7 +1,18 @@
-import type { VideoResult } from '@/mocks/searchResults';
-
 interface VideoCardProps {
-  video: VideoResult;
+  video: {
+    videoId?: string;
+    id?: string;
+    type?: string;
+    title: string;
+    channelName?: string;
+    channelAvatar?: string;
+    thumbnail: string;
+    views: number;
+    likes?: number;
+    duration: string;
+    uploadDate: string;
+    category?: string;
+  };
 }
 
 const formatNumber = (n: number): string => {
@@ -25,7 +36,7 @@ const categoryColors: Record<string, string> = {
 };
 
 const VideoCard = ({ video }: VideoCardProps) => {
-  const colorClass = categoryColors[video.category] ?? 'bg-gray-100 text-gray-500 dark:bg-off-white/8 dark:text-off-white/40';
+  const colorClass = categoryColors[video.category ?? ''] ?? 'bg-gray-100 text-gray-500 dark:bg-off-white/8 dark:text-off-white/40';
 
   return (
     <div className="group flex flex-col bg-white dark:bg-dark-card border border-gray-200 dark:border-dark-border rounded-lg overflow-hidden hover:border-gray-300 dark:hover:border-off-white/15 transition-all cursor-pointer">
@@ -56,9 +67,11 @@ const VideoCard = ({ video }: VideoCardProps) => {
             <i className="ri-video-line w-3 h-3 flex items-center justify-center"></i>
             Video
           </span>
-          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${colorClass}`}>
-            {video.category}
-          </span>
+          {video.category && (
+            <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${colorClass}`}>
+              {video.category}
+            </span>
+          )}
         </div>
 
         {/* Title */}
@@ -67,16 +80,16 @@ const VideoCard = ({ video }: VideoCardProps) => {
         </h3>
 
         {/* Channel info */}
-        <div className="flex items-center gap-2 mb-3">
-          <div className="w-6 h-6 rounded-full overflow-hidden flex-shrink-0 bg-gray-100 dark:bg-dark-surface">
-            <img
-              src={video.channelAvatar}
-              alt={video.channelName}
-              className="w-full h-full object-cover object-top"
-            />
+        {video.channelName && (
+          <div className="flex items-center gap-2 mb-3">
+            {video.channelAvatar && (
+              <div className="w-6 h-6 rounded-full overflow-hidden flex-shrink-0 bg-gray-100 dark:bg-dark-surface">
+                <img src={video.channelAvatar} alt={video.channelName} className="w-full h-full object-cover object-top" />
+              </div>
+            )}
+            <span className="text-gray-500 dark:text-off-white/40 text-xs truncate">{video.channelName}</span>
           </div>
-          <span className="text-gray-500 dark:text-off-white/40 text-xs truncate">{video.channelName}</span>
-        </div>
+        )}
 
         {/* Stats */}
         <div className="flex items-center gap-3 mt-auto text-xs text-gray-400 dark:text-off-white/30">
@@ -84,10 +97,12 @@ const VideoCard = ({ video }: VideoCardProps) => {
             <i className="ri-eye-line w-3 h-3 flex items-center justify-center"></i>
             {formatNumber(video.views)}
           </span>
-          <span className="flex items-center gap-1">
-            <i className="ri-thumb-up-line w-3 h-3 flex items-center justify-center"></i>
-            {formatNumber(video.likes)}
-          </span>
+          {(video.likes ?? 0) > 0 && (
+            <span className="flex items-center gap-1">
+              <i className="ri-thumb-up-line w-3 h-3 flex items-center justify-center"></i>
+              {formatNumber(video.likes!)}
+            </span>
+          )}
           <span className="ml-auto">{formatDate(video.uploadDate)}</span>
         </div>
       </div>

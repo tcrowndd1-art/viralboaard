@@ -247,7 +247,7 @@ const VideoRankingsPage = () => {
   const doFetch = useCallback((regionCode: string, publishedAfter = '', periodLabel = 'Daily') => {
     setApiLoading(true);
     setApiError(null);
-    fetchVideoRankings(regionCode, 25, publishedAfter)
+    fetchVideoRankings(regionCode, 50, publishedAfter)
       .then((data) => {
         const videos = data as RankingVideoItem[];
         setAllVideos(videos);
