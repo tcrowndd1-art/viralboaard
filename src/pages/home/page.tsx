@@ -6,11 +6,12 @@ import SearchBanner from './components/SearchBanner';
 import HomeFooter from './components/HomeFooter';
 import ChannelSearchResult from './components/ChannelSearchResult';
 import {
-  searchChannel, fetchRecentVideos, fetchPopularChannels, fetchTrendingVideos, fetchViralVideos,
+  searchChannel, fetchRecentVideos,
 } from '@/services/youtube';
 import type { ChannelResult, VideoResult, PopularChannelItem, TrendingVideoItem, ViralVideoItem } from '@/services/youtube';
 import { cacheGet, cacheSet, addSearchHistory } from '@/services/cache';
 import { viralMockData } from '@/mocks/viralData';
+import { supabase } from '@/lib/supabase';
 
 const COUNTRY_FLAG: Record<string, string> = {
   KR: '🇰🇷', US: '🇺🇸', JP: '🇯🇵', GB: '🇬🇧', IN: '🇮🇳',
@@ -476,32 +477,90 @@ const HomePage = () => {
   const [homeDataLoaded, setHomeDataLoaded] = useState(false);
 
   useEffect(() => {
-    Promise.allSettled([
-      fetchPopularChannels('KR').then(setPopularChannels).catch(() => {}),
-      fetchTrendingVideos('KR', 16).then(setTrendingVideos).catch(() => {}),
-      // KR + BR + US 병렬 수집 후 합산
-      Promise.allSettled([
-        fetchViralVideos('KR', 50),
-        fetchViralVideos('BR', 30),
-        fetchViralVideos('US', 30),
-      ]).then(results => {
-        const combined = results
-          .filter((r): r is PromiseFulfilledResult<ViralVideoItem[]> => r.status === 'fulfilled')
-          .flatMap(r => r.value);
-        if (combined.length > 0) {
-          // 중복 videoId 제거 후 viralScore 내림차순 재정렬
-          const seen = new Set<string>();
-          const deduped = combined.filter(v => {
-            if (seen.has(v.videoId)) return false;
-            seen.add(v.videoId);
-            return true;
-          });
-          deduped.sort((a, b) => b.viralScore - a.viralScore);
-          deduped.forEach((v, i) => { v.rank = i + 1; });
-          setLiveVideos(deduped);
+    let cancelled = false;
+
+    async function loadHomeData() {
+      try {
+        const { data, error } = await supabase
+          .from('viralboard_data')
+          .select('*')
+          .order('views', { ascending: false })
+          .limit(100);
+
+        if (error) throw error;
+        if (!data || data.length === 0 || cancelled) return;
+
+        // 바이럴 영상 (liveVideos)
+        const viral: ViralVideoItem[] = data.map((v, i) => ({
+          rank: i + 1,
+          videoId: v.video_id,
+          title: v.title,
+          channelName: v.channel,
+          channelAvatar: '',
+          channelId: v.channel_id,
+          subscribers: 0,
+          views: v.views,
+          viralScore: v.views / 1000,
+          uploadDate: v.fetched_at,
+          thumbnail: v.thumbnail_url,
+          category: v.category,
+          country: v.country,
+        }));
+        if (!cancelled) setLiveVideos(viral);
+
+        // 트렌딩 영상 (trendingVideos) — 최신 수집 16개
+        const recent16 = [...data]
+          .sort((a, b) => new Date(b.fetched_at).getTime() - new Date(a.fetched_at).getTime())
+          .slice(0, 16);
+        const trending: TrendingVideoItem[] = recent16.map((v, i) => ({
+          rank: i + 1,
+          title: v.title,
+          score: v.views >= 1_000_000
+            ? `${(v.views / 1_000_000).toFixed(1)}M`
+            : `${(v.views / 1_000).toFixed(0)}K`,
+          thumbnail: v.thumbnail_url,
+          channelName: v.channel,
+          channelAvatar: '',
+          videoId: v.video_id,
+          channelId: v.channel_id,
+        }));
+        if (!cancelled) setTrendingVideos(trending);
+
+        // 인기 채널 (popularChannels) — channel_id별 조회수 집계
+        const channelMap = new Map<string, { name: string; channelId: string; totalViews: number }>();
+        for (const v of data) {
+          const existing = channelMap.get(v.channel_id);
+          if (!existing) {
+            channelMap.set(v.channel_id, { name: v.channel, channelId: v.channel_id, totalViews: v.views });
+          } else {
+            existing.totalViews += v.views;
+          }
         }
-      }).catch(() => {}),
-    ]).finally(() => setHomeDataLoaded(true));
+        const popular: PopularChannelItem[] = [...channelMap.values()]
+          .sort((a, b) => b.totalViews - a.totalViews)
+          .slice(0, 20)
+          .map((ch, i) => ({
+            rank: i + 1,
+            name: ch.name,
+            score: ch.totalViews >= 1_000_000
+              ? `${(ch.totalViews / 1_000_000).toFixed(1)}M`
+              : `${(ch.totalViews / 1_000).toFixed(0)}K`,
+            avatar: '',
+            channelId: ch.channelId,
+            subscribers: 0,
+            totalViews: ch.totalViews,
+          }));
+        if (!cancelled) setPopularChannels(popular);
+
+      } catch (e) {
+        console.error('[home] loadHomeData FAIL:', e);
+      } finally {
+        if (!cancelled) setHomeDataLoaded(true);
+      }
+    }
+
+    loadHomeData();
+    return () => { cancelled = true; };
   }, []);
 
   const handleToggleSave = useCallback((videoId: string) => {
