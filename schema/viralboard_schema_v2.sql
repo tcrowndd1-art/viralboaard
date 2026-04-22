@@ -53,7 +53,7 @@ CREATE POLICY "public_read_data" ON viralboard_data FOR SELECT USING (true);
 CREATE POLICY "no_delete_history" ON viralboard_history FOR DELETE USING (false);
 
 CREATE OR REPLACE VIEW viralboard_rising AS
-SELECT
+SELECT 
   d.video_id, d.title, d.channel, d.category, d.country, d.is_shorts,
   d.views AS current_views, h.views AS previous_views,
   (d.views - h.views) AS view_delta,
@@ -64,7 +64,7 @@ SELECT
   d.thumbnail_url, d.fetched_at
 FROM viralboard_data d
 JOIN LATERAL (
-  SELECT views, fetched_at FROM viralboard_history
+  SELECT views, fetched_at FROM viralboard_history 
   WHERE video_id = d.video_id AND country = d.country
   AND fetched_at < d.fetched_at
   ORDER BY fetched_at DESC LIMIT 1

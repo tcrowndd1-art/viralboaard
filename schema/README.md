@@ -3,7 +3,8 @@
 ## David 수동 1회 실행
 
 1. Supabase 대시보드 → SQL Editor
-2. viralboard_schema_v2.sql 전체 복사 → Run
+2.
+viralboard_schema_v2.sql 전체 복사 → Run
 3. Tables 탭에서 viralboard_data, viralboard_history 확인
 4. Database → Views에서 viralboard_rising 확인
 
