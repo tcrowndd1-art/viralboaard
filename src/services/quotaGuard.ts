@@ -1,32 +1,61 @@
-/** D-1/D-2: Quota state tracker + exponential backoff fetch wrapper */
+/** Per-key quota tracker — supports up to N rotating API keys */
 
-const QUOTA_KEY = 'vb_quota_exhausted_until';
+const QUOTA_PREFIX = 'vb_quota_until_';
 
-export function isQuotaExhausted(): boolean {
+export function isKeyExhausted(keyIndex: number): boolean {
   try {
-    const until = localStorage.getItem(QUOTA_KEY);
+    const until = localStorage.getItem(`${QUOTA_PREFIX}${keyIndex}`);
     if (!until) return false;
-    if (Date.now() > Number(until)) { localStorage.removeItem(QUOTA_KEY); return false; }
+    if (Date.now() > Number(until)) {
+      localStorage.removeItem(`${QUOTA_PREFIX}${keyIndex}`);
+      return false;
+    }
     return true;
   } catch { return false; }
 }
 
-export function markQuotaExhausted(durationMs = 60 * 60 * 1000): void {
+export function markKeyExhausted(keyIndex: number, durationMs = 24 * 60 * 60 * 1000): void {
   try {
-    localStorage.setItem(QUOTA_KEY, String(Date.now() + durationMs));
-    window.dispatchEvent(new CustomEvent('vb-quota-exhausted'));
+    localStorage.setItem(`${QUOTA_PREFIX}${keyIndex}`, String(Date.now() + durationMs));
+    window.dispatchEvent(new CustomEvent('vb-quota-exhausted', { detail: { keyIndex } }));
   } catch {}
 }
 
-export function clearQuotaFlag(): void {
-  try { localStorage.removeItem(QUOTA_KEY); } catch {}
+export function clearKeyQuota(keyIndex: number): void {
+  try { localStorage.removeItem(`${QUOTA_PREFIX}${keyIndex}`); } catch {}
 }
 
-export function getQuotaResetTime(): Date | null {
+export function clearAllQuotas(totalKeys: number): void {
+  for (let i = 0; i < totalKeys; i++) clearKeyQuota(i);
+}
+
+export function getFirstAvailableKeyIndex(totalKeys: number, startFrom = 0): number | null {
+  for (let i = 0; i < totalKeys; i++) {
+    const idx = (startFrom + i) % totalKeys;
+    if (!isKeyExhausted(idx)) return idx;
+  }
+  return null;
+}
+
+export function getKeyResetTime(keyIndex: number): Date | null {
   try {
-    const until = localStorage.getItem(QUOTA_KEY);
+    const until = localStorage.getItem(`${QUOTA_PREFIX}${keyIndex}`);
     return until ? new Date(Number(until)) : null;
   } catch { return null; }
+}
+
+/** Backward-compat shims (treat key 0 as "the" key) */
+export function isQuotaExhausted(): boolean {
+  return isKeyExhausted(0);
+}
+export function markQuotaExhausted(durationMs = 24 * 60 * 60 * 1000): void {
+  markKeyExhausted(0, durationMs);
+}
+export function clearQuotaFlag(): void {
+  clearKeyQuota(0);
+}
+export function getQuotaResetTime(): Date | null {
+  return getKeyResetTime(0);
 }
 
 /** D-5: Fetch with exponential backoff on 429/403 */

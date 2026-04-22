@@ -40,15 +40,25 @@ const RankingsPage = () => {
 
   useEffect(() => {
     const regionCode = REGION_MAP[country] ?? 'KR';
+    // countryFilter: filter channel results by actual channel country field
+    const countryFilter = country === 'ALL' ? '' : country;
     let publishedAfter = '';
+    let publishedBefore = '';
+    // YouTube data has ~7-day processing delay — offset the window to avoid empty/incomplete data.
+    // Weekly:  look at 8–14 days ago  (stable 7-day window)
+    // Monthly: look at 8–37 days ago  (stable 30-day window)
     if (period === 'Weekly') {
-      const d = new Date(); d.setDate(d.getDate() - 7);
-      publishedAfter = d.toISOString();
+      const from = new Date(); from.setDate(from.getDate() - 14);
+      const to   = new Date(); to.setDate(to.getDate() - 7);
+      publishedAfter  = from.toISOString();
+      publishedBefore = to.toISOString();
     } else if (period === 'Monthly') {
-      const d = new Date(); d.setDate(d.getDate() - 30);
-      publishedAfter = d.toISOString();
+      const from = new Date(); from.setDate(from.getDate() - 37);
+      const to   = new Date(); to.setDate(to.getDate() - 7);
+      publishedAfter  = from.toISOString();
+      publishedBefore = to.toISOString();
     }
-    const cacheKey = `vb_ch_rankings_v2_${regionCode}_${period}`;
+    const cacheKey = `vb_ch_rankings_v3_${country}_${period}`;
     const cached = cacheGet<RankingChannelItem[]>(cacheKey);
 
     if (cached) {
@@ -62,7 +72,7 @@ const RankingsPage = () => {
     setApiError(null);
     setAllChannels([]);
 
-    fetchChannelRankings(regionCode, publishedAfter)
+    fetchChannelRankings(regionCode, publishedAfter, publishedBefore, countryFilter)
       .then((data) => {
         const channels = data as RankingChannelItem[];
         setAllChannels(channels);
@@ -246,11 +256,20 @@ const RankingsPage = () => {
                 onClick={() => {
                   const regionCode = REGION_MAP[country] ?? 'KR';
                   let publishedAfter = '';
-                  if (period === 'Weekly') { const d = new Date(); d.setDate(d.getDate() - 7); publishedAfter = d.toISOString(); }
-                  else if (period === 'Monthly') { const d = new Date(); d.setDate(d.getDate() - 30); publishedAfter = d.toISOString(); }
+                  let publishedBefore = '';
+                  if (period === 'Weekly') {
+                    const from = new Date(); from.setDate(from.getDate() - 14);
+                    const to = new Date(); to.setDate(to.getDate() - 7);
+                    publishedAfter = from.toISOString(); publishedBefore = to.toISOString();
+                  } else if (period === 'Monthly') {
+                    const from = new Date(); from.setDate(from.getDate() - 37);
+                    const to = new Date(); to.setDate(to.getDate() - 7);
+                    publishedAfter = from.toISOString(); publishedBefore = to.toISOString();
+                  }
+                  const retryCountryFilter = country === 'ALL' ? '' : country;
                   setApiError(null);
                   setApiLoading(true);
-                  fetchChannelRankings(regionCode, publishedAfter)
+                  fetchChannelRankings(regionCode, publishedAfter, publishedBefore, retryCountryFilter)
                     .then((data) => { setAllChannels(data as RankingChannelItem[]); })
                     .catch((err) => setApiError(err instanceof Error ? err.message : '오류가 발생했습니다.'))
                     .finally(() => setApiLoading(false));

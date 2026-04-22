@@ -8,7 +8,11 @@
     "build": "vite build",
     "preview": "vite preview",
     "lint": "eslint src --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
-    "type-check": "tsc --noEmit --project tsconfig.app.json"
+    "type-check": "tsc --noEmit --project tsconfig.app.json",
+    "collect:1": "node scripts/collect.js --session=1 --region=KR",
+    "collect:2": "node scripts/collect.js --session=2 --region=US",
+    "collect:3": "node scripts/collect.js --session=3 --region=KR",
+    "aggregate": "node scripts/aggregate.js"
   },
   "dependencies": {
     "@stripe/react-stripe-js": "4.0.2",

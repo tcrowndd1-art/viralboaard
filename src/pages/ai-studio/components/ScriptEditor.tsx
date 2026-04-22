@@ -84,7 +84,15 @@ interface ScriptCardProps {
 
 const ScriptCard = ({ section, value, onChange }: ScriptCardProps) => {
   const [copied, setCopied] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const wordCount = value.trim() ? value.trim().split(/\s+/).length : 0;
+
+  useEffect(() => {
+    const el = textareaRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${el.scrollHeight}px`;
+  }, [value]);
 
   const handleCopy = useCallback(async () => {
     try {
@@ -124,11 +132,12 @@ const ScriptCard = ({ section, value, onChange }: ScriptCardProps) => {
         </div>
       </div>
       <textarea
+        ref={textareaRef}
         value={value}
         onChange={(e) => onChange(section.id, e.target.value)}
         placeholder={section.placeholder}
-        rows={4}
-        className="w-full bg-transparent text-sm text-gray-700 dark:text-white/80 placeholder-gray-300 dark:placeholder-white/20 px-4 py-3 resize-none outline-none leading-relaxed font-light"
+        rows={3}
+        className="w-full bg-transparent text-sm text-gray-700 dark:text-white/80 placeholder-gray-300 dark:placeholder-white/20 px-4 py-3 resize-none outline-none leading-relaxed font-light overflow-hidden"
       />
     </div>
   );

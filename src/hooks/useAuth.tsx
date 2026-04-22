@@ -23,6 +23,8 @@ function parseError(err: unknown): string {
     'Email not confirmed': '이메일 인증이 필요합니다. 메일함을 확인해주세요.',
     'User already registered': '이미 등록된 이메일입니다.',
     'Password should be at least 6 characters': '비밀번호는 6자 이상이어야 합니다.',
+    'provider is not enabled': 'Google 로그인이 아직 설정되지 않았습니다. 이메일로 로그인해주세요.',
+    'Unsupported provider': 'Google 로그인이 아직 설정되지 않았습니다. 이메일로 로그인해주세요.',
   };
   for (const [key, val] of Object.entries(map)) {
     if (msg.includes(key)) return val;
@@ -53,6 +55,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signInWithGoogle = async () => {
     setError(null);
+    // Pre-flight: check if Google OAuth is enabled before redirecting browser
+    try {
+      const settingsRes = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/auth/v1/settings`, {
+        headers: { apikey: import.meta.env.VITE_SUPABASE_ANON_KEY ?? '' },
+      });
+      if (settingsRes.ok) {
+        const settings = await settingsRes.json();
+        if (!settings?.external?.google) {
+          const msg = 'Google 로그인이 아직 설정되지 않았습니다. 이메일로 로그인해주세요.';
+          setError(msg);
+          throw new Error('provider is not enabled');
+        }
+      }
+    } catch (preflight) {
+      if ((preflight as Error).message === 'provider is not enabled') throw preflight;
+      // settings fetch failed — proceed anyway, Supabase will handle it
+    }
     const { error: err } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {

@@ -215,6 +215,54 @@ const translations = {
   dash_video_editor: 'Editor de Vídeo',
   dash_chrome_extension: 'Extensão Chrome',
   dash_revenue_calculator: 'Calculadora de Receita',
+
+  // Home page sections
+  home_popular_channels: 'Canais Populares',
+  home_by_subs: 'Por Inscritos',
+  home_by_views: 'Por Visualizações',
+  home_view_all: 'Ver Todos →',
+  home_viral_score_order: 'Por Pontuação Viral',
+  home_shorts_entermusic: '🎵 Entretenimento·Música',
+  home_shorts_edtech: '📚 Educação·Tecnologia',
+  home_trending_live: 'Tendências ao Vivo',
+  home_total_views_top: 'TOP Visualizações Total',
+  home_shorts_1m: 'Shorts 1mês',
+  home_longform_3m: 'Longo 3meses',
+  home_rising_channels: 'Canais em Alta',
+  home_views_vs_subs: 'Visualizações vs Inscritos ↑',
+  home_top_views: 'Top Visualizações',
+  home_est_revenue: 'Receita estimada',
+  home_viral_100: '×100+ Viral',
+  home_viral_30: '×30+ Em alta',
+  home_viral_10: '×10+ Crescendo',
+
+  // Categories
+  cat_all: 'Todos',
+  cat_entertainment: 'Entretenimento',
+  cat_gaming: 'Jogos',
+  cat_music: 'Música',
+  cat_education: 'Educação',
+  cat_health: 'Saúde',
+  cat_sports: 'Esportes',
+  cat_science: 'Ciência',
+  cat_psychology: 'Psicologia',
+  cat_selfdev: 'Autodesenvolvimento',
+  cat_stories: 'Histórias',
+  cat_other: 'Outros',
+
+  // Time strings
+  time_today: 'Hoje',
+  time_days_ago: 'd atrás',
+  time_weeks_ago: 'sem atrás',
+
+  // Search banner
+  search_channel_placeholder: 'Buscar por nome do canal...',
+  search_btn: 'Buscar',
+  search_loading: 'Buscando...',
+  search_recent_label: 'Recente',
+
+  // Live creators
+  live_analyzing: 'Analisando criadores...',
 };
 
 export default translations;

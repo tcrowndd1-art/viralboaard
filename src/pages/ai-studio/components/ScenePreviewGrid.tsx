@@ -110,7 +110,7 @@ const SceneCard = ({ scene, index, topic, isGenerating }: SceneCardProps) => {
         <span className="text-xs font-mono text-gray-400 dark:text-white/30 bg-gray-100 dark:bg-white/5 px-2 py-0.5 rounded-full">{scene.duration}</span>
       </div>
 
-      {/* Image area */}
+      {/* Image area — 9:16 portrait (YouTube Shorts) */}
       <div className="relative w-full bg-gray-100 dark:bg-dark-base" style={{ aspectRatio: '16/9' }}>
         {/* Loading spinner */}
         {(imageLoading || isGenerating) && (
@@ -220,7 +220,7 @@ const ScenePreviewGrid = ({ generatingAll, topic }: ScenePreviewGridProps) => {
       </div>
 
       {/* Grid */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-3 overflow-y-auto flex-1 pr-1">
+      <div className="grid grid-cols-2 xl:grid-cols-3 2xl:grid-cols-5 gap-3 overflow-y-auto flex-1 pr-1">
         {SCENES.map((scene, index) => (
           <SceneCard
             key={scene.id}

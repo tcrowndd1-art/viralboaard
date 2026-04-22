@@ -5,6 +5,7 @@ import { useSavedChannels } from '@/hooks/useSavedChannels';
 import type { SavedChannel } from '@/mocks/userDashboard';
 import SubscriberChart from './components/SubscriberChart';
 import ViewsBarChart from './components/ViewsBarChart';
+import RevenueChart from './components/RevenueChart';
 import RecentVideos from './components/RecentVideos';
 import AIInsightsPanel from './components/AIInsightsPanel';
 import CompetitorComparison from './components/CompetitorComparison';
@@ -342,9 +343,14 @@ const ChannelDetailPage = () => {
           <CompetitorComparison />
 
           {/* Charts row */}
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 mb-6">
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 mb-4">
             <SubscriberChart />
             <ViewsBarChart />
+          </div>
+
+          {/* Revenue Chart */}
+          <div className="mb-6">
+            <RevenueChart />
           </div>
 
           {/* Recent Videos */}

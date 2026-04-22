@@ -215,6 +215,54 @@ const translations = {
   dash_video_editor: '비디오 에디터',
   dash_chrome_extension: '크롬 익스텐션',
   dash_revenue_calculator: '수익 계산기',
+
+  // Home page sections
+  home_popular_channels: '인기채널',
+  home_by_subs: '구독자순',
+  home_by_views: '조회수순',
+  home_view_all: '전체보기 →',
+  home_viral_score_order: '바이럴 점수순',
+  home_shorts_entermusic: '🎵 엔터·음악',
+  home_shorts_edtech: '📚 교육·기술',
+  home_trending_live: '실시간 트렌드',
+  home_total_views_top: '전체 조회수 TOP',
+  home_shorts_1m: '숏츠 1달',
+  home_longform_3m: '롱폼 3달',
+  home_rising_channels: '성장세 채널',
+  home_views_vs_subs: '구독자 대비 조회수 ↑',
+  home_top_views: '조회수 TOP',
+  home_est_revenue: '수익 추정 포함',
+  home_viral_100: '×100+ 초바이럴',
+  home_viral_30: '×30+ 급상승',
+  home_viral_10: '×10+ 성장중',
+
+  // Categories
+  cat_all: '전체',
+  cat_entertainment: '엔터테인먼트',
+  cat_gaming: '게임',
+  cat_music: '음악',
+  cat_education: '교육',
+  cat_health: '건강',
+  cat_sports: '스포츠',
+  cat_science: '과학',
+  cat_psychology: '심리',
+  cat_selfdev: '자기계발',
+  cat_stories: '야담',
+  cat_other: '기타',
+
+  // Time strings
+  time_today: '오늘',
+  time_days_ago: '일 전',
+  time_weeks_ago: '주 전',
+
+  // Search banner
+  search_channel_placeholder: '채널명으로 검색...',
+  search_btn: '검색',
+  search_loading: '검색 중...',
+  search_recent_label: '최근 검색',
+
+  // Live creators
+  live_analyzing: '크리에이터 분석 중...',
 };
 
 export default translations;

@@ -4,6 +4,42 @@ import { useTranslation } from 'react-i18next';
 import i18n from '@/i18n';
 import { useTheme } from '@/hooks/useTheme';
 
+/* ── ViralBoard SVG Logo Icon ── */
+const ViralBoardIcon = ({ size = 26 }: { size?: number }) => (
+  <svg width={size} height={size} viewBox="0 0 26 26" fill="none" xmlns="http://www.w3.org/2000/svg" style={{ flexShrink: 0 }}>
+    <defs>
+      <linearGradient id="vbg" x1="0" y1="0" x2="26" y2="26" gradientUnits="userSpaceOnUse">
+        <stop offset="0%" stopColor="#ff3535" />
+        <stop offset="100%" stopColor="#c0180c" />
+      </linearGradient>
+    </defs>
+    {/* Rounded square background */}
+    <rect width="26" height="26" rx="7" fill="url(#vbg)" />
+    {/* Bar chart — ascending left→right, white */}
+    <rect x="4.5" y="17" width="4" height="5"  rx="1.2" fill="white" fillOpacity="0.75" />
+    <rect x="11"  y="12" width="4" height="10" rx="1.2" fill="white" fillOpacity="0.88" />
+    <rect x="17.5" y="7" width="4" height="15" rx="1.2" fill="white" />
+    {/* Trend arrow line across tops */}
+    <polyline
+      points="6.5,16.5 13,11.5 19.5,6.5"
+      stroke="white"
+      strokeWidth="1.4"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeOpacity="0.5"
+    />
+    {/* Arrow head at top-right */}
+    <polyline
+      points="17.5,6.5 19.5,6.5 19.5,8.5"
+      stroke="white"
+      strokeWidth="1.4"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeOpacity="0.5"
+    />
+  </svg>
+);
+
 const RECENT_SEARCHES_KEY = 'viralboard_recent_searches';
 const AUTH_KEY = 'viralboard_auth';
 
@@ -28,9 +64,9 @@ const LANGUAGES = [
 ];
 
 const LANGUAGES_FULL = [
-  { code: 'en', label: 'English' },
-  { code: 'pt', label: 'Português' },
-  { code: 'ko', label: '한국어' },
+  { code: 'en', flag: '🇺🇸', label: 'English',    sub: 'Switch to English' },
+  { code: 'ko', flag: '🇰🇷', label: '한국어',       sub: '한국어로 변경' },
+  { code: 'pt', flag: '🇧🇷', label: 'Português',   sub: 'Mudar para Português' },
 ];
 
 const TopHeader = ({ onMobileMenuToggle }: { onMobileMenuToggle?: () => void } = {}) => {
@@ -152,16 +188,16 @@ const TopHeader = ({ onMobileMenuToggle }: { onMobileMenuToggle?: () => void } =
             {/* Logo — always visible on desktop */}
             <Link
               to="/"
-              className="hidden md:block font-black text-sm tracking-widest text-gray-900 dark:text-white uppercase hover:text-red-600 dark:hover:text-red-400 transition-colors whitespace-nowrap"
+              className="hidden md:flex items-center gap-2 group transition-opacity hover:opacity-85 whitespace-nowrap"
             >
-              ViralBoard
+              <ViralBoardIcon size={24} />
+              <span className="font-black text-[12px] tracking-[0.1em] text-gray-900 dark:text-white uppercase">
+                ViralBoard
+              </span>
             </Link>
             {/* Logo on mobile */}
-            <Link
-              to="/"
-              className="md:hidden font-black text-sm tracking-widest text-gray-900 dark:text-white uppercase hover:text-red-600 dark:hover:text-red-400 transition-colors whitespace-nowrap"
-            >
-              VB
+            <Link to="/" className="md:hidden">
+              <ViralBoardIcon size={26} />
             </Link>
           </div>
 
@@ -376,6 +412,7 @@ const TopHeader = ({ onMobileMenuToggle }: { onMobileMenuToggle?: () => void } =
           )}
         </div>
       )}
+
     </>
   );
 };

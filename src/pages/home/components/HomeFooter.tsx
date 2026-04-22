@@ -80,14 +80,16 @@ const HomeFooter = () => {
       </div>
 
       {/* About */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between px-6 py-4 gap-2">
-        <div>
-          <p className="text-sm font-semibold text-gray-700 dark:text-white/60 mb-1">DIFF., Inc.</p>
-          <p className="text-xs text-gray-400 dark:text-white/25">
-            CEO: Hyogeun, Wang &nbsp;·&nbsp; Address: JS-Tower 5852, 6, Teheran-ro 79-gil, Gangnam-gu, Seoul, Republic of Korea &nbsp;·&nbsp; Email: hello@viralboard.co
-          </p>
+      <div className="px-6 py-4 space-y-2">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
+          <div>
+            <p className="text-xs font-semibold text-gray-500 dark:text-white/40 mb-0.5">Eliteglobal Ltda</p>
+            <p className="text-[11px] text-gray-400 dark:text-white/20">
+              CNPJ: 00.000.000/0001-00 &nbsp;·&nbsp; Av. Paulista, 1374 — São Paulo, SP 01310-100, Brazil &nbsp;·&nbsp; contact@viralboard.co
+            </p>
+          </div>
+          <p className="text-[11px] text-gray-400 dark:text-white/20 whitespace-nowrap">{t('footer_copyright')}</p>
         </div>
-        <p className="text-xs text-gray-400 dark:text-white/20 whitespace-nowrap">{t('footer_copyright')}</p>
       </div>
     </footer>
   );

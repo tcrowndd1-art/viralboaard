@@ -47,6 +47,33 @@ const CPM_BY_CATEGORY: Record<string, number> = {
   Sports: 5.2, News: 4.8, Comedy: 3.6, Kids: 2.1,
 };
 
+const fmtRevenue = (n: number) => {
+  if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(1)}M`;
+  if (n >= 1_000) return `$${(n / 1_000).toFixed(0)}K`;
+  return `$${n}`;
+};
+
+// Country CPM multiplier relative to US baseline
+// Source: industry estimates — US=1.0, KR≈0.25, IN≈0.08, MX≈0.12, AR≈0.10, RU≈0.15, ID≈0.09
+const CPM_COUNTRY_MULT: Record<string, number> = {
+  US: 1.0, GB: 0.9, CA: 0.85, AU: 0.8,
+  KR: 0.25, JP: 0.35, DE: 0.7, FR: 0.6,
+  MX: 0.12, AR: 0.10, BR: 0.14,
+  IN: 0.08, ID: 0.09, PH: 0.08,
+  RU: 0.15, TR: 0.12,
+};
+
+// Shorts + ad-skipped + non-monetized views: ~35-40% of total views are not monetized
+const MONETIZABLE_RATE = 0.62;
+
+const calcRevenue = (ch: RankingChannelItem) => {
+  const cpm = CPM_BY_CATEGORY[ch.category] ?? 3.5;
+  const countryMult = CPM_COUNTRY_MULT[ch.country] ?? 0.3;
+  const effectiveViews = ch.views * MONETIZABLE_RATE;
+  const base = (effectiveViews / 12 / 1000) * cpm * countryMult;
+  return { min: Math.round(base * 0.6), max: Math.round(base * 1.4) };
+};
+
 const seededRand = (seed: number, offset = 0) => {
   const x = Math.sin(seed * 9301 + offset * 49297 + 233) * 10000;
   return x - Math.floor(x);
@@ -64,8 +91,9 @@ const buildSparkline = (ch: RankingChannelItem): number[] => {
 
 const buildChannelPopup = (ch: RankingChannelItem): ChannelPopupData => {
   const cpm = CPM_BY_CATEGORY[ch.category] ?? 3.5;
-  const monthlyViews = ch.views / 12;
-  const revenueBase = (monthlyViews / 1000) * cpm;
+  const countryMult = CPM_COUNTRY_MULT[ch.country] ?? 0.3;
+  const monthlyViews = (ch.views * MONETIZABLE_RATE) / 12;
+  const revenueBase = (monthlyViews / 1000) * cpm * countryMult;
   const r = seededRand(ch.rank);
   return {
     type: 'channel',
@@ -188,8 +216,8 @@ const RankingsTable = ({ channels, sortKey, sortDir, onSort }: RankingsTableProp
               <th className="px-4 py-3 text-xs font-semibold text-gray-500 dark:text-off-white/40 uppercase tracking-wider text-left hidden md:table-cell">{t('rankings_col_category')}</th>
               <th className="px-4 py-3 text-xs font-semibold text-gray-500 dark:text-off-white/40 uppercase tracking-wider text-left hidden lg:table-cell">{t('rankings_col_country')}</th>
               <Th label={t('rankings_col_subscribers')} sortable colKey="subscribers" {...thProps} align="text-right" />
-              <Th label={t('rankings_col_views')} sortable colKey="views" {...thProps} align="text-right" />
-              <Th label={t('rankings_col_growth')} sortable colKey="growthPercent" {...thProps} align="text-right" />
+              <th className="px-4 py-3 text-xs font-semibold text-gray-500 dark:text-off-white/40 uppercase tracking-wider text-right">평균 조회수</th>
+              <th className="px-4 py-3 text-xs font-semibold text-gray-500 dark:text-off-white/40 uppercase tracking-wider text-right">영상당 속도</th>
               {/* Bookmark col */}
               <th className="px-3 py-3 w-10"></th>
             </tr>
@@ -233,11 +261,21 @@ const RankingsTable = ({ channels, sortKey, sortDir, onSort }: RankingsTableProp
                         onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
                       />
                     </div>
-                    <div className="flex items-center gap-2 min-w-0">
-                      <span className="text-sm text-gray-800 dark:text-off-white font-medium group-hover:text-red-600 dark:group-hover:text-red-400 transition-colors truncate max-w-[160px]">
-                        {ch.name}
-                      </span>
-                      <i className="ri-bar-chart-box-line text-red-400 text-xs w-3 h-3 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"></i>
+                    <div className="flex flex-col min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm text-gray-800 dark:text-off-white font-medium group-hover:text-red-600 dark:group-hover:text-red-400 transition-colors truncate max-w-[160px]">
+                          {ch.name}
+                        </span>
+                        <i className="ri-bar-chart-box-line text-red-400 text-xs w-3 h-3 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"></i>
+                      </div>
+                      {(() => {
+                        const { min, max } = calcRevenue(ch);
+                        return (
+                          <span className="text-[10px] font-mono text-green-600 dark:text-green-400 bg-green-50 dark:bg-green-500/10 px-1.5 py-0.5 rounded w-fit mt-0.5">
+                            {fmtRevenue(min)}–{fmtRevenue(max)}/mo
+                          </span>
+                        );
+                      })()}
                     </div>
                   </div>
                 </td>
@@ -252,7 +290,7 @@ const RankingsTable = ({ channels, sortKey, sortDir, onSort }: RankingsTableProp
                 {/* Country */}
                 <td className="px-4 py-3 hidden lg:table-cell">
                   <span className="text-sm text-gray-500 dark:text-off-white/40">
-                    {countryFlag[ch.country] ?? ''} {ch.country}
+                    {countryFlag[ch.country] ?? ch.country}
                   </span>
                 </td>
 
@@ -261,16 +299,39 @@ const RankingsTable = ({ channels, sortKey, sortDir, onSort }: RankingsTableProp
                   <span className="text-sm text-gray-800 dark:text-off-white font-mono">{formatNumber(ch.subscribers)}</span>
                 </td>
 
-                {/* Views */}
+                {/* Avg views per video */}
                 <td className="px-4 py-3 text-right">
-                  <span className="text-sm text-gray-500 dark:text-off-white/50 font-mono">{formatNumber(ch.views)}</span>
+                  {ch.videoCount > 0 ? (
+                    <>
+                      <span className="text-sm text-gray-800 dark:text-off-white font-mono">
+                        {formatNumber(Math.round(ch.views / ch.videoCount))}
+                      </span>
+                      <p className="text-[9px] text-gray-300 dark:text-white/20 mt-0.5">{ch.videoCount}개 영상</p>
+                    </>
+                  ) : (
+                    <span className="text-sm text-gray-500 dark:text-off-white/50 font-mono">{formatNumber(ch.views)}</span>
+                  )}
                 </td>
 
-                {/* Growth */}
+                {/* Velocity: views-per-subscriber (engagement momentum) */}
                 <td className="px-4 py-3 text-right">
-                  <span className={`text-sm font-mono font-medium ${ch.growthPercent > 0 ? 'text-green-600 dark:text-green-400' : ch.growthPercent < 0 ? 'text-red-500 dark:text-red-400' : 'text-gray-400 dark:text-off-white/30'}`}>
-                    {ch.growthPercent > 0 ? '+' : ''}{ch.growthPercent.toFixed(1)}%
-                  </span>
+                  {ch.subscribers > 0 ? (() => {
+                    const vps = ch.views / ch.subscribers;
+                    const avg = channels.reduce((s, c) => s + (c.subscribers > 0 ? c.views / c.subscribers : 0), 0) / Math.max(channels.length, 1);
+                    const ratio = Math.round(ch.views / ch.subscribers);
+                    const cls = ratio >= 1000 ? 'bg-amber-400 text-black' : ratio >= 300 ? 'bg-green-400/90 text-black' : ratio >= 100 ? 'bg-sky-400/90 text-black' : 'bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-white/40';
+                    const diff = vps - avg;
+                    return (
+                      <>
+                        <span className={`text-[9px] font-black px-1.5 py-0.5 rounded leading-none ${cls}`}>
+                          ×{ratio >= 10000 ? `${(ratio/1000).toFixed(0)}K` : ratio.toLocaleString()}
+                        </span>
+                        <p className={`text-[9px] font-semibold mt-0.5 ${diff > 0 ? 'text-emerald-500 dark:text-emerald-400' : 'text-gray-300 dark:text-white/20'}`}>
+                          {diff > 0 ? `↑ avg +${Math.round(diff)}` : `avg ${Math.round(diff)}`}
+                        </p>
+                      </>
+                    );
+                  })() : <span className="text-[10px] text-gray-300 dark:text-white/20">—</span>}
                 </td>
 
                 {/* Bookmark */}

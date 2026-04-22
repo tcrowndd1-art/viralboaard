@@ -215,6 +215,54 @@ const translations = {
   dash_video_editor: 'Video Editor',
   dash_chrome_extension: 'Chrome Extension',
   dash_revenue_calculator: 'Revenue Calculator',
+
+  // Home page sections
+  home_popular_channels: 'Popular Channels',
+  home_by_subs: 'By Subscribers',
+  home_by_views: 'By Views',
+  home_view_all: 'View All →',
+  home_viral_score_order: 'By Viral Score',
+  home_shorts_entermusic: '🎵 Entertainment·Music',
+  home_shorts_edtech: '📚 Education·Tech',
+  home_trending_live: 'Trending Live',
+  home_total_views_top: 'Total Views TOP',
+  home_shorts_1m: 'Shorts 1mo',
+  home_longform_3m: 'Longform 3mo',
+  home_rising_channels: 'Rising Channels',
+  home_views_vs_subs: 'Views vs Subs ↑',
+  home_top_views: 'Top Views',
+  home_est_revenue: 'Est. revenue',
+  home_viral_100: '×100+ Viral',
+  home_viral_30: '×30+ Rising',
+  home_viral_10: '×10+ Growing',
+
+  // Categories
+  cat_all: 'All',
+  cat_entertainment: 'Entertainment',
+  cat_gaming: 'Gaming',
+  cat_music: 'Music',
+  cat_education: 'Education',
+  cat_health: 'Health',
+  cat_sports: 'Sports',
+  cat_science: 'Science',
+  cat_psychology: 'Psychology',
+  cat_selfdev: 'Self-Dev',
+  cat_stories: 'Stories',
+  cat_other: 'Other',
+
+  // Time strings
+  time_today: 'Today',
+  time_days_ago: 'd ago',
+  time_weeks_ago: 'w ago',
+
+  // Search banner
+  search_channel_placeholder: 'Search by channel name...',
+  search_btn: 'Search',
+  search_loading: 'Searching...',
+  search_recent_label: 'Recent',
+
+  // Live creators
+  live_analyzing: 'Analyzing creators...',
 };
 
 export default translations;

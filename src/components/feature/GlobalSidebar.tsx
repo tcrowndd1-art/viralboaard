@@ -1,6 +1,7 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useSavedChannels } from '@/hooks/useSavedChannels';
+import { useSavedVideos } from '@/hooks/useSavedVideos';
 
 interface GlobalSidebarProps {
   mobileOpen?: boolean;
@@ -13,19 +14,19 @@ interface GlobalSidebarProps {
 /* ── Primary 7-item nav (spec) ── */
 const NAV_ITEMS = [
   { href: '/',                   icon: 'ri-home-4-line',        label: 'Home',            exact: true  },
+  { href: '/video-rankings',     icon: 'ri-video-line',         label: 'Video Rankings',  exact: false },
   { href: '/rankings',           icon: 'ri-bar-chart-line',     label: 'Channel Rankings', exact: false },
   { href: '/search',             icon: 'ri-search-line',        label: 'Search',          exact: false },
   { href: '/ai-studio',          icon: 'ri-film-ai-line',       label: 'AI Studio',       exact: false },
-  { href: '/comment-manager',    icon: 'ri-chat-settings-line', label: 'Comment Manager', exact: false },
   { href: '/video-editor',       icon: 'ri-scissors-cut-line',  label: 'Video Editor',    exact: false },
-  { href: '/revenue-calculator', icon: 'ri-calculator-line',    label: 'Revenue Calc',    exact: false },
+  // { href: '/revenue-calculator', icon: 'ri-calculator-line', label: 'Revenue Calc', exact: false },
 ];
 
 /* ── Extra items below divider ── */
 const EXTRA_ITEMS = [
-  { href: '/dashboard',        icon: 'ri-dashboard-line', label: 'My Dashboard',    exact: true  },
-  { href: '/video-rankings',   icon: 'ri-video-line',     label: 'Video Rankings',  exact: false },
-  { href: '/chrome-extension', icon: 'ri-chrome-line',    label: 'Chrome Extension',exact: false },
+  { href: '/dashboard',        icon: 'ri-dashboard-line',     label: 'My Dashboard',    exact: true  },
+  { href: '/comment-manager',  icon: 'ri-chat-settings-line', label: 'Comment Manager', exact: false },
+  { href: '/chrome-extension', icon: 'ri-chrome-line',        label: 'Chrome Extension',exact: false },
 ];
 
 const GlobalSidebar = ({
@@ -39,6 +40,7 @@ const GlobalSidebar = ({
   const path = location.pathname;
   const { t } = useTranslation();
   const { channels: savedChannelsList } = useSavedChannels();
+  const { videos: savedVideosList } = useSavedVideos();
 
   const isActive = (href: string, exact: boolean) =>
     exact ? path === href : path.startsWith(href);
@@ -186,6 +188,51 @@ const GlobalSidebar = ({
                 className="text-xs text-gray-400 dark:text-white/25 hover:text-gray-600 dark:hover:text-white/50 px-1 mt-1 block transition-colors cursor-pointer"
               >
                 +{savedChannelsList.length - 5} more
+              </Link>
+            )}
+          </div>
+
+          {/* Saved videos */}
+          <div className="px-4 pt-3 pb-2 border-t border-gray-200 dark:border-dark-border mt-1">
+            <p className="text-[10px] font-bold text-gray-400 dark:text-white/30 uppercase tracking-widest mb-2 px-1">
+              즐겨찾기 영상
+            </p>
+            {savedVideosList.length === 0 ? (
+              <div className="text-center py-3">
+                <i className="ri-bookmark-line text-xl text-gray-300 dark:text-white/20 w-6 h-6 flex items-center justify-center mx-auto mb-1"></i>
+                <p className="text-xs text-gray-400 dark:text-white/30">저장한 영상이 없습니다</p>
+              </div>
+            ) : (
+              savedVideosList.slice(0, 4).map((v) => (
+                <a
+                  key={v.videoId}
+                  href={`https://youtube.com/watch?v=${v.videoId}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={onMobileClose}
+                  className="flex items-center gap-2 py-1.5 px-1 cursor-pointer hover:bg-gray-100 dark:hover:bg-white/5 rounded-lg transition-colors group min-h-[36px]"
+                >
+                  <div className="w-10 h-6 rounded overflow-hidden flex-shrink-0 bg-gray-100 dark:bg-dark-card relative">
+                    <img
+                      src={v.thumbnail}
+                      alt={v.title}
+                      className="w-full h-full object-cover"
+                      onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }}
+                    />
+                    <i className="ri-play-fill absolute inset-0 flex items-center justify-center text-white text-[10px] opacity-0 group-hover:opacity-100 transition-opacity bg-black/30"></i>
+                  </div>
+                  <span className="text-xs text-gray-500 dark:text-white/50 group-hover:text-gray-900 dark:group-hover:text-off-white truncate transition-colors leading-tight flex-1">
+                    {v.title}
+                  </span>
+                </a>
+              ))
+            )}
+            {savedVideosList.length > 4 && (
+              <Link
+                to="/"
+                className="text-xs text-gray-400 dark:text-white/25 hover:text-gray-600 dark:hover:text-white/50 px-1 mt-1 block transition-colors cursor-pointer"
+              >
+                +{savedVideosList.length - 4} more
               </Link>
             )}
           </div>
