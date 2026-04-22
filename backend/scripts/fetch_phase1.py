@@ -105,6 +105,33 @@ def fetch_category(cat_id):
     return r.json().get('items', [])
 
 
+def fetch_channel_details(channel_ids):
+    """여러 channel_id → subscribers + thumbnail (quota: 1 unit/50채널)"""
+    if not channel_ids:
+        return {}
+    result = {}
+    for i in range(0, len(channel_ids), 50):
+        batch = channel_ids[i:i+50]
+        try:
+            r = requests.get('https://www.googleapis.com/youtube/v3/channels', params={
+                'part': 'snippet,statistics',
+                'id': ','.join(batch),
+                'key': next_key(),
+            }, timeout=30)
+            r.raise_for_status()
+            for item in r.json().get('items', []):
+                ch_id = item['id']
+                st = item.get('statistics', {})
+                sn = item.get('snippet', {})
+                result[ch_id] = {
+                    'subscriber_count':    int(st.get('subscriberCount', 0) or 0),
+                    'channel_thumbnail_url': sn.get('thumbnails', {}).get('default', {}).get('url', ''),
+                }
+        except Exception as e:
+            print(f'  [WARN] channels.list 배치 실패: {mask_secrets(e)[:150]}')
+    return result
+
+
 def fetch_channel_recent(channel_id):
     """채널 업로드 플레이리스트 → 최근 영상 (~3 units)"""
     r1 = requests.get('https://www.googleapis.com/youtube/v3/channels', params={
@@ -138,31 +165,35 @@ def fetch_channel_recent(channel_id):
     return r3.json().get('items', [])
 
 
-def to_record(item, category, country, ref=False, style=None):
+def to_record(item, category, country, ref=False, style=None, ch_details=None):
     s  = item.get('snippet', {})
     st = item.get('statistics', {})
     c  = item.get('contentDetails', {})
     vid = item['id']
     w, h = fetch_oembed(vid)
+    ch_id = s.get('channelId')
+    detail = (ch_details or {}).get(ch_id, {})
 
     return {
-        'video_id':          vid,
-        'category':          category,
-        'country':           country,
-        'title':             s.get('title'),
-        'channel':           s.get('channelTitle'),
-        'channel_id':        s.get('channelId'),
-        'views':             int(st.get('viewCount',  0) or 0),
-        'likes':             int(st.get('likeCount',  0) or 0),
-        'comments':          int(st.get('commentCount', 0) or 0),
-        'duration_seconds':  parse_duration(c.get('duration')),
-        'published_at':      s.get('publishedAt'),
-        'tags':              s.get('tags', []),
-        'thumbnail_url':     s.get('thumbnails', {}).get('high', {}).get('url'),
-        'reference_channel': ref,
-        'style_tag':         style,
-        'actual_width':      w,
-        'actual_height':     h,
+        'video_id':              vid,
+        'category':              category,
+        'country':               country,
+        'title':                 s.get('title'),
+        'channel':               s.get('channelTitle'),
+        'channel_id':            ch_id,
+        'views':                 int(st.get('viewCount',  0) or 0),
+        'likes':                 int(st.get('likeCount',  0) or 0),
+        'comments':              int(st.get('commentCount', 0) or 0),
+        'duration_seconds':      parse_duration(c.get('duration')),
+        'published_at':          s.get('publishedAt'),
+        'tags':                  s.get('tags', []),
+        'thumbnail_url':         s.get('thumbnails', {}).get('high', {}).get('url'),
+        'reference_channel':     ref,
+        'style_tag':             style,
+        'actual_width':          w,
+        'actual_height':         h,
+        'subscriber_count':      detail.get('subscriber_count'),
+        'channel_thumbnail_url': detail.get('channel_thumbnail_url'),
     }
 
 
@@ -186,10 +217,11 @@ def save(supabase, records):
         'duration_seconds':  r['duration_seconds'],
         'published_at':      r['published_at'],
         'snapshot_date':     today,
-        'reference_channel': r['reference_channel'],
-        'style_tag':         r['style_tag'],
-        'actual_width':      r['actual_width'],
-        'actual_height':     r['actual_height'],
+        'reference_channel':     r['reference_channel'],
+        'style_tag':             r['style_tag'],
+        'actual_width':          r['actual_width'],
+        'actual_height':         r['actual_height'],
+        'subscriber_count':      r.get('subscriber_count'),
     } for r in records]
     supabase.table('viralboard_history').insert(history).execute()
     return len(records)
@@ -197,36 +229,49 @@ def save(supabase, records):
 
 def main():
     sb = create_client(SUPABASE_URL, SUPABASE_KEY)
-    total = 0
-    fails = []
+    all_items   = []  # (item, category, ref, style)
+    fails       = []
 
     print(f'=== Phase 1 Fetcher {datetime.utcnow().isoformat()} ===')
 
-    # 트랙 1: 카테고리
-    print('--- 트랙 1: 카테고리 ---')
+    # 트랙 1: 카테고리 수집
+    print('--- 트랙 1: 카테고리 수집 ---')
     for name, cid in CATEGORIES.items():
         try:
             items = fetch_category(cid)
-            recs = [to_record(i, name, COUNTRY) for i in items]
-            n = save(sb, recs)
-            total += n
-            print(f'  {name}: {n}건')
+            for i in items:
+                all_items.append((i, name, False, None))
+            print(f'  {name}: {len(items)}건')
         except Exception as e:
             fails.append(f'category:{name} → {mask_secrets(e)}')
             print(f'  [FAIL] {name}: {mask_secrets(e)}')
 
-    # 트랙 2: 참고 채널
-    print('--- 트랙 2: 참고 채널 ---')
+    # 트랙 2: 참고 채널 수집
+    print('--- 트랙 2: 참고 채널 수집 ---')
     for ch in REFERENCE_CHANNELS:
         try:
             items = fetch_channel_recent(ch['id'])
-            recs = [to_record(i, 'reference', COUNTRY, True, ch['style_tag']) for i in items]
-            n = save(sb, recs)
-            total += n
-            print(f'  {ch["name"]}: {n}건')
+            for i in items:
+                all_items.append((i, 'reference', True, ch['style_tag']))
+            print(f'  {ch["name"]}: {len(items)}건')
         except Exception as e:
             fails.append(f'channel:{ch["name"]} → {mask_secrets(e)}')
             print(f'  [FAIL] {ch["name"]}: {mask_secrets(e)}')
+
+    # 채널 상세 일괄 조회 (subscriber + avatar)
+    unique_ch_ids = list({
+        i.get('snippet', {}).get('channelId')
+        for (i, _, _, _) in all_items
+        if i.get('snippet', {}).get('channelId')
+    })
+    print(f'--- 채널 상세 조회: {len(unique_ch_ids)}개 채널 ---')
+    ch_details = fetch_channel_details(unique_ch_ids)
+    print(f'  응답: {len(ch_details)}개')
+
+    # 레코드 변환 + 저장
+    recs = [to_record(i, cat, COUNTRY, ref, style, ch_details)
+            for (i, cat, ref, style) in all_items]
+    total = save(sb, recs)
 
     print(f'\n=== 완료: {total}건 저장 / 실패: {len(fails)} ===')
     for f in fails:
