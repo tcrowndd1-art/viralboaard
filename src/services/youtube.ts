@@ -1,11 +1,7 @@
 import { markKeyExhausted, getFirstAvailableKeyIndex } from './quotaGuard';
 
-/* ── 3-key rotation pool ── */
-const API_KEYS: string[] = [
-  import.meta.env.VITE_YOUTUBE_API_KEY,
-  import.meta.env.VITE_YOUTUBE_API_KEY_2,
-  import.meta.env.VITE_YOUTUBE_API_KEY_3,
-].filter((k): k is string => typeof k === 'string' && k.length > 0);
+/* ── [MIGRATED] Keys moved to backend — frontend calls are stubs ── */
+const API_KEYS: string[] = [];
 
 const BASE = 'https://www.googleapis.com/youtube/v3';
 
@@ -154,77 +150,14 @@ function fmtViews(n: number): string {
   return `+${n}`;
 }
 
-export async function fetchPopularChannels(regionCode = 'KR'): Promise<PopularChannelItem[]> {
-  if (regionCode === 'ALL') regionCode = 'KR';
-
-  const videosData = await get<any>('videos', {
-    part: 'snippet',
-    chart: 'mostPopular',
-    regionCode,
-    maxResults: '50',
-  });
-
-  const seen = new Set<string>();
-  const channelIds: string[] = [];
-  for (const item of (videosData.items ?? [])) {
-    const cid: string = item.snippet?.channelId ?? '';
-    if (cid && !seen.has(cid)) { seen.add(cid); channelIds.push(cid); }
-  }
-  if (channelIds.length === 0) return [];
-
-  const channelData = await get<any>('channels', {
-    part: 'snippet,statistics',
-    id: channelIds.join(','),
-  });
-
-  const sorted = [...(channelData.items ?? [])].sort(
-    (a: any, b: any) =>
-      parseInt(b.statistics?.subscriberCount ?? '0') - parseInt(a.statistics?.subscriberCount ?? '0')
-  );
-
-  return sorted.map((ch: any, i: number) => {
-    const subs = parseInt(ch.statistics?.subscriberCount ?? '0');
-    const views = parseInt(ch.statistics?.viewCount ?? '0');
-    return {
-      rank: i + 1,
-      name: ch.snippet?.title ?? 'Unknown',
-      score: fmtSubs(subs),
-      avatar: ch.snippet?.thumbnails?.high?.url ?? ch.snippet?.thumbnails?.default?.url ?? '',
-      channelId: ch.id,
-      subscribers: subs,
-      totalViews: views,
-    };
-  });
+export async function fetchPopularChannels(_regionCode = 'KR'): Promise<PopularChannelItem[]> {
+  console.warn('[MIGRATED] Supabase 읽기로 이전.');
+  return [];
 }
 
-export async function fetchTrendingVideos(regionCode = 'KR', maxResults = 10): Promise<TrendingVideoItem[]> {
-  if (regionCode === 'ALL') regionCode = 'KR';
-
-  const data = await get<any>('videos', {
-    part: 'snippet,statistics',
-    chart: 'mostPopular',
-    regionCode,
-    maxResults: String(maxResults),
-  });
-  const items: any[] = data.items ?? [];
-  if (items.length === 0) return [];
-
-  const channelIds = [...new Set(items.map((v: any) => v.snippet.channelId))].join(',');
-  const chData = await get<any>('channels', { part: 'snippet', id: channelIds });
-  const avatarMap = new Map<string, string>(
-    chData.items?.map((ch: any) => [ch.id, ch.snippet.thumbnails?.default?.url ?? ''])
-  );
-
-  return items.map((v: any, i: number) => ({
-    rank: i + 1,
-    title: v.snippet.title,
-    score: fmtViews(parseInt(v.statistics.viewCount ?? '0')),
-    thumbnail: `https://img.youtube.com/vi/${v.id}/mqdefault.jpg`,
-    channelName: v.snippet.channelTitle,
-    channelAvatar: avatarMap.get(v.snippet.channelId) ?? '',
-    videoId: v.id,
-    channelId: v.snippet.channelId,
-  }));
+export async function fetchTrendingVideos(_regionCode = 'KR', _maxResults = 10): Promise<TrendingVideoItem[]> {
+  console.warn('[MIGRATED] Supabase 읽기로 이전.');
+  return [];
 }
 
 export async function fetchLiveVideos(): Promise<TrendingVideoItem[]> {
@@ -232,26 +165,9 @@ export async function fetchLiveVideos(): Promise<TrendingVideoItem[]> {
   return [];
 }
 
-export async function searchChannels(query: string, maxResults = 5): Promise<ChannelResult[]> {
-  const searchData = await get<any>('search', {
-    part: 'snippet', type: 'channel', q: query, maxResults: String(maxResults),
-  });
-  const items = searchData.items ?? [];
-  if (!items.length) return [];
-  const channelIds = items.map((i: any) => i.id.channelId).join(',');
-  const channelData = await get<any>('channels', { part: 'snippet,statistics,brandingSettings', id: channelIds });
-  return (channelData.items ?? []).map((ch: any) => ({
-    id: ch.id,
-    name: ch.snippet.title,
-    handle: ch.snippet.customUrl ?? `@${ch.snippet.title}`,
-    avatar: ch.snippet.thumbnails?.high?.url ?? ch.snippet.thumbnails?.default?.url ?? '',
-    banner: ch.brandingSettings?.image?.bannerExternalUrl ?? '',
-    subscribers: parseInt(ch.statistics.subscriberCount ?? '0'),
-    totalViews: parseInt(ch.statistics.viewCount ?? '0'),
-    videoCount: parseInt(ch.statistics.videoCount ?? '0'),
-    country: ch.snippet.country ?? '',
-    description: ch.snippet.description ?? '',
-  }));
+export async function searchChannels(_query: string, _maxResults = 5): Promise<ChannelResult[]> {
+  console.warn('[MIGRATED] Supabase 읽기로 이전.');
+  return [];
 }
 
 export async function searchVideos(query: string, maxResults = 10): Promise<VideoResult[]> {
