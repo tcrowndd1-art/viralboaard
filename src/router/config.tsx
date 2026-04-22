@@ -1,6 +1,9 @@
 import type { RouteObject } from "react-router-dom";
+import { Navigate } from "react-router-dom";
 import NotFound from "../pages/NotFound";
 import Home from "../pages/home/page";
+import { DataTab } from "../pages/DataTab";
+import { StudioTab } from "../pages/StudioTab";
 import Login from "../pages/login/page";
 import Signup from "../pages/signup/page";
 import Dashboard from "../pages/dashboard/page";
@@ -20,6 +23,14 @@ const routes: RouteObject[] = [
   {
     path: "/",
     element: <Home />,
+  },
+  {
+    path: "/data",
+    element: <DataTab />,
+  },
+  {
+    path: "/studio",
+    element: <StudioTab />,
   },
   {
     path: "/login",
