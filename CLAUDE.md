@@ -1,3 +1,5 @@
+[트리거] "디자인/UI/화면/복원/되돌려" → "어느 URL?" 먼저 질문. 조사 금지.
+
 # ViralBoard Project Execution History & Error Log
 ## [Anti-Pattern: The 'False Completion' Loop]
 
