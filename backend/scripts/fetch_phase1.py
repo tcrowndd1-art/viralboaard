@@ -42,13 +42,13 @@ CATEGORIES = {
     'entertainment': '24',
     'news_politics': '25',
     'howto_style':   '26',
-    'education':     '27',
+    'science_tech':  '28',
 }
 
 REFERENCE_CHANNELS = [
     {'id': 'UCsXVk37bltHxD1rDPwtNM8Q', 'name': 'Kurzgesagt',        'style_tag': '3d_anim_info'},
     {'id': 'UCvz84_Q0BbvZThy75mbd-Dg', 'name': 'Zack D. Films',     'style_tag': '3d_anim_short'},
-    {'id': 'UCfK9_7pC_S1fX3C2kOshV_w', 'name': 'Primate Economics',  'style_tag': 'econ_explainer'},
+    {'id': 'UC14Fb2zWTEZklONPXFbLrTQ', 'name': 'Primate Economics',  'style_tag': 'econ_explainer'},
     {'id': 'UC-lHJZR3Gqxm24_Vd_AJ5Yw', 'name': 'GymCoding',         'style_tag': 'tech_info_kr'},
     {'id': 'UCU5Bngb-griCg_96ZXpXOgg', 'name': 'Kimhamzzi',          'style_tag': 'hybrid_vlog_series'},
 ]
@@ -220,7 +220,7 @@ def main():
     for ch in REFERENCE_CHANNELS:
         try:
             items = fetch_channel_recent(ch['id'])
-            recs = [to_record(i, ch['style_tag'], COUNTRY, True, ch['style_tag']) for i in items]
+            recs = [to_record(i, 'reference', COUNTRY, True, ch['style_tag']) for i in items]
             n = save(sb, recs)
             total += n
             print(f'  {ch["name"]}: {n}건')
