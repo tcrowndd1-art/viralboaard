@@ -1,0 +1,55 @@
+1
+00:00:00,000 --> 00:00:05,000
+Eu dei a mesma tarefa de criar um jogo para a mesma IA, mas o resultado foi um choque.
+
+2
+00:00:05,000 --> 00:00:10,000
+De um lado, um jogo que nem abre e custou 9 dólares.
+
+3
+00:00:10,000 --> 00:00:15,000
+Do outro, um jogo perfeito, totalmente funcional, que custou 200 dólares.
+
+4
+00:00:15,000 --> 00:00:20,000
+O modelo era o mesmo: o Claude. A única diferença? A "estrutura" de trabalho, o Harness.
+
+5
+00:00:20,000 --> 00:00:25,000
+Por que a IA sozinha falha? A Anthropic descobriu dois problemas fatais.
+
+6
+00:00:25,000 --> 00:00:30,000
+Primeiro: a "Ansiedade de Contexto". A IA perde o foco e tenta entregar de qualquer jeito.
+
+7
+00:00:30,000 --> 00:00:35,000
+Segundo: a "Falta de Autocrítica". Ela cria um código horrível e jura que está perfeito.
+
+8
+00:00:35,000 --> 00:00:40,000
+Para resolver isso, eles dividiram a IA em três funções.
+
+9
+00:00:40,000 --> 00:00:45,000
+O Planejador analisa o pedido e cria o mapa. O Gerador constrói passo a passo.
+
+10
+00:00:45,000 --> 00:00:50,000
+E o Avaliador, usando o Playwright, testa o app na prática e caça cada bug.
+
+11
+00:00:50,000 --> 00:00:55,000
+Com o Claude 3.6, o foco melhorou, mas o revisor continua sendo obrigatório.
+
+12
+00:00:55,000 --> 00:01:00,000
+Quanto mais complexa a tarefa, mais robusto precisa ser o seu sistema.
+
+13
+00:01:00,000 --> 00:01:05,000
+No fim, o segredo não é um prompt mágico, mas a sua capacidade de projetar um sistema.
+
+14
+00:01:05,000 --> 00:01:10,000
+Na era onde um laptop vence um prédio, o diferencial é o Harness que você constrói.
