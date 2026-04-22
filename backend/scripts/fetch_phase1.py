@@ -9,6 +9,18 @@ from datetime import datetime, date
 from supabase import create_client
 from dotenv import load_dotenv
 
+
+def mask_secrets(text):
+    """URL의 key=, token=, bearer 등 자동 마스킹"""
+    text = str(text)
+    text = re.sub(r'(key=)[A-Za-z0-9_-]+', r'\1***MASKED***', text)
+    text = re.sub(r'(token=)[A-Za-z0-9_-]+', r'\1***MASKED***', text)
+    text = re.sub(r'(Bearer\s+)[A-Za-z0-9_.-]+', r'\1***MASKED***', text)
+    text = re.sub(r'AIza[A-Za-z0-9_-]{20,}', '***MASKED***', text)
+    text = re.sub(r'sb_secret_[A-Za-z0-9_-]+', '***MASKED***', text)
+    text = re.sub(r'eyJ[A-Za-z0-9_.-]{20,}', '***MASKED***', text)
+    return text
+
 env_path = os.path.join(os.path.dirname(__file__), '..', '..', '.env')
 load_dotenv(env_path)
 
@@ -200,8 +212,8 @@ def main():
             total += n
             print(f'  {name}: {n}건')
         except Exception as e:
-            fails.append(f'category:{name} → {e}')
-            print(f'  [FAIL] {name}: {e}')
+            fails.append(f'category:{name} → {mask_secrets(e)}')
+            print(f'  [FAIL] {name}: {mask_secrets(e)}')
 
     # 트랙 2: 참고 채널
     print('--- 트랙 2: 참고 채널 ---')
@@ -213,8 +225,8 @@ def main():
             total += n
             print(f'  {ch["name"]}: {n}건')
         except Exception as e:
-            fails.append(f'channel:{ch["name"]} → {e}')
-            print(f'  [FAIL] {ch["name"]}: {e}')
+            fails.append(f'channel:{ch["name"]} → {mask_secrets(e)}')
+            print(f'  [FAIL] {ch["name"]}: {mask_secrets(e)}')
 
     print(f'\n=== 완료: {total}건 저장 / 실패: {len(fails)} ===')
     for f in fails:
