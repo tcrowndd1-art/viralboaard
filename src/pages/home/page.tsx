@@ -11,7 +11,7 @@ import {
 import type { ChannelResult, VideoResult, PopularChannelItem, TrendingVideoItem, ViralVideoItem } from '@/services/youtube';
 import { cacheGet, cacheSet, addSearchHistory } from '@/services/cache';
 import { viralMockData } from '@/mocks/viralData';
-import { supabase } from '@/lib/supabase';
+import { supabase } from '@/services/supabase';
 
 const COUNTRY_FLAG: Record<string, string> = {
   KR: '🇰🇷', US: '🇺🇸', JP: '🇯🇵', GB: '🇬🇧', IN: '🇮🇳',
