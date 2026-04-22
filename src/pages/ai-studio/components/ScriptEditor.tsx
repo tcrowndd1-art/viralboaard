@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect, useRef } from 'react';
 import { generateScript, parseRawScript, analyzeYouTubeVideos, type ChannelContext } from '@/services/openrouter';
 
-const API_KEY = import.meta.env.VITE_YOUTUBE_API_KEY as string;
+// [MIGRATED] Direct YouTube API calls moved to backend
 
 interface ScriptSection {
   id: string;
@@ -217,12 +217,10 @@ const ScriptEditor = ({ topic, onTopicChange, onSectionChange, onScriptChange, o
       const videoData = await Promise.all(
         validUrls.map(async (url) => {
           const vid = extractVideoId(url)!;
-          const res = await fetch(`https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${vid}&key=${API_KEY}`);
-          const data = await res.json();
-          const item = data.items?.[0];
+          // [MIGRATED] YouTube API call replaced with stub
           return {
-            title: item?.snippet?.title ?? vid,
-            description: item?.snippet?.description ?? '',
+            title: vid,
+            description: '',
           };
         })
       );

@@ -228,8 +228,25 @@ export async function fetchTrendingVideos(regionCode = 'KR', maxResults = 10): P
 }
 
 export async function fetchLiveVideos(): Promise<TrendingVideoItem[]> {
-  console.warn('[MIGRATED] Supabase 읽기로 이전.');
-  return [];
+  const data = await get<any>('search', {
+    part: 'snippet',
+    type: 'video',
+    eventType: 'live',
+    order: 'viewCount',
+    maxResults: '5',
+    regionCode: 'KR',
+  });
+  const items: any[] = data.items ?? [];
+  return items.map((v: any, i: number) => ({
+    rank: i + 1,
+    title: v.snippet.title,
+    score: 'watching now',
+    thumbnail: `https://img.youtube.com/vi/${v.id.videoId}/mqdefault.jpg`,
+    channelName: v.snippet.channelTitle,
+    channelAvatar: v.snippet.thumbnails?.default?.url ?? '',
+    videoId: v.id.videoId,
+    channelId: v.snippet.channelId ?? '',
+  }));
 }
 
 export async function searchChannels(query: string, maxResults = 5): Promise<ChannelResult[]> {
@@ -350,8 +367,55 @@ export async function fetchRecentVideos(channelId: string): Promise<VideoResult[
 }
 
 export async function fetchViralVideos(regionCode = 'KR', maxResults = 50): Promise<ViralVideoItem[]> {
-  console.warn('[MIGRATED] Supabase 읽기로 이전.');
-  return [];
+  if (regionCode === 'ALL') regionCode = 'KR';
+
+  // Fetch popular videos with stats in one call
+  const videoData = await get<any>('videos', {
+    part: 'snippet,statistics',
+    chart: 'mostPopular',
+    regionCode,
+    maxResults: String(maxResults),
+  });
+  const items: any[] = videoData.items ?? [];
+  if (items.length === 0) return [];
+
+  // Get subscriber counts for each unique channel
+  const channelIds = [...new Set(items.map((v: any) => v.snippet?.channelId).filter(Boolean))];
+  const chData = await get<any>('channels', {
+    part: 'snippet,statistics',
+    id: channelIds.join(','),
+  });
+
+  const subMap = new Map<string, number>(
+    (chData.items ?? []).map((ch: any) => [ch.id, parseInt(ch.statistics?.subscriberCount ?? '0')])
+  );
+  const avatarMap = new Map<string, string>(
+    (chData.items ?? []).map((ch: any) => [ch.id, ch.snippet?.thumbnails?.default?.url ?? ''])
+  );
+
+  // viralScore = views / max(subscribers, 1)  — higher = blowing up relative to audience size
+  const viral = items.map((v: any) => {
+    const views = parseInt(v.statistics?.viewCount ?? '0');
+    const subscribers = subMap.get(v.snippet?.channelId) ?? 1;
+    return {
+      rank: 0,
+      videoId: v.id,
+      title: v.snippet?.title ?? '',
+      channelName: v.snippet?.channelTitle ?? '',
+      channelAvatar: avatarMap.get(v.snippet?.channelId) ?? '',
+      channelId: v.snippet?.channelId ?? '',
+      subscribers,
+      views,
+      viralScore: views / Math.max(subscribers, 1),
+      uploadDate: v.snippet?.publishedAt?.slice(0, 10) ?? '',
+      thumbnail: `https://img.youtube.com/vi/${v.id}/mqdefault.jpg`,
+      category: VIDEO_CAT_MAP[v.snippet?.categoryId] ?? 'Entertainment',
+      country: regionCode,
+    };
+  });
+
+  viral.sort((a, b) => b.viralScore - a.viralScore);
+  return viral.map((v, i) => ({ ...v, rank: i + 1 }));
 }
 
 const VIDEO_CAT_MAP: Record<string, string> = {
