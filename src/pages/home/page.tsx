@@ -162,7 +162,7 @@ const VideoCard = ({
       >
         <img src={v.thumbnail} alt={v.title}
           className="w-full h-full object-cover group-hover:scale-[1.04] transition-transform duration-300"
-          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+          onError={(e) => { const img = e.target as HTMLImageElement; if (img.src.includes('hqdefault')) { img.src = img.src.replace('hqdefault', 'mqdefault'); } else { img.style.opacity = '0'; } }} />
         <div className="absolute bottom-1.5 right-1.5 bg-black/75 backdrop-blur-sm rounded px-1.5 leading-none" style={{ paddingTop: '3px', paddingBottom: '3px' }}>
           <span className="text-emerald-400 text-[9px] font-black leading-none">{revMin}–{revMax}</span>
         </div>
@@ -208,7 +208,7 @@ const ShortsCard = ({ v }: { v: ViralVideoItem }) => {
       <div className="relative overflow-hidden rounded-xl bg-gray-100 dark:bg-white/10" style={{ aspectRatio: '9/16' }}>
         <img src={v.thumbnail} alt={v.title}
           className="w-full h-full object-cover object-center group-hover:scale-[1.07] transition-transform duration-300"
-          onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+          onError={(e) => { const img = e.target as HTMLImageElement; if (img.src.includes('hqdefault')) { img.src = img.src.replace('hqdefault', 'mqdefault'); } else { img.style.opacity = '0'; } }} />
         <div className="absolute top-1.5 right-1.5">
           <span className={`text-[7px] font-black px-1 rounded leading-none ${multi.cls}`} style={{ paddingTop: '2px', paddingBottom: '2px' }}>
             {multi.text}
@@ -239,7 +239,7 @@ const TrendCard = ({ v }: { v: TrendingVideoItem }) => (
     <div className="relative overflow-hidden rounded-xl bg-gray-100 dark:bg-white/10 mb-2" style={{ aspectRatio: '16/9' }}>
       <img src={v.thumbnail} alt={v.title}
         className="w-full h-full object-cover group-hover:scale-[1.04] transition-transform duration-300"
-        onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+        onError={(e) => { const img = e.target as HTMLImageElement; if (img.src.includes('hqdefault')) { img.src = img.src.replace('hqdefault', 'mqdefault'); } else { img.style.opacity = '0'; } }} />
     </div>
     <p className="text-[12px] text-gray-900 dark:text-white/85 font-semibold line-clamp-2 leading-snug mb-1 group-hover:text-red-500 transition-colors">{v.title}</p>
     <div className="flex items-center gap-1">

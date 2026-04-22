@@ -187,7 +187,7 @@ def to_record(item, category, country, ref=False, style=None, ch_details=None):
         'duration_seconds':      parse_duration(c.get('duration')),
         'published_at':          s.get('publishedAt'),
         'tags':                  s.get('tags', []),
-        'thumbnail_url':         s.get('thumbnails', {}).get('high', {}).get('url'),
+        'thumbnail_url':         s.get('thumbnails', {}).get('medium', {}).get('url'),
         'reference_channel':     ref,
         'style_tag':             style,
         'actual_width':          w,
