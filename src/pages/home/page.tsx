@@ -257,7 +257,7 @@ const SectionHeader = ({
   icon: string; iconColor: string; title: string;
   glowColor?: string; badge?: React.ReactNode;
 }) => (
-  <div className="flex items-center gap-2 mb-3 px-6">
+  <div className="flex items-center gap-2 mb-3 px-4 sm:px-6">
     <i className={`${icon} ${iconColor} text-sm`}></i>
     <h2
       className={`text-[13px] font-black tracking-tight ${!glowColor ? 'text-gray-900 dark:text-white' : ''}`}
@@ -295,7 +295,7 @@ const ShortsSection = ({ data, activeCat }: { data: ViralVideoItem[]; activeCat:
     return (
       <div className="mb-6">
         {/* Row label */}
-        <div className="px-6 flex items-center gap-2.5 mb-3">
+        <div className="px-4 sm:px-6 flex items-center gap-2.5 mb-3">
           <div className="w-1 h-5 rounded-full flex-shrink-0" style={{ background: accent }} />
           <span
             className="text-[11px] font-black px-2.5 py-1 rounded-lg flex-shrink-0"
@@ -305,8 +305,14 @@ const ShortsSection = ({ data, activeCat }: { data: ViralVideoItem[]; activeCat:
           </span>
           <span className="text-[9px] text-gray-400 dark:text-white/40 font-mono">{items.length}</span>
         </div>
-        {/* Cards */}
-        <div className="flex gap-3 px-6 items-stretch">
+        {/* Cards — mobile: 2-col, desktop: split 4+4 */}
+        <div className="sm:hidden grid grid-cols-2 gap-2 px-4">
+          {paged.map((v, i) =>
+            v ? <ShortsCard key={v.videoId} v={v} />
+              : <SkeletonCard key={i} k={i} />
+          )}
+        </div>
+        <div className="hidden sm:flex gap-3 px-6 items-stretch">
           <div className="grid gap-3 flex-1" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
             {half1.map((v, i) =>
               v ? <ShortsCard key={v.videoId} v={v} />
@@ -343,7 +349,7 @@ const ShortsSection = ({ data, activeCat }: { data: ViralVideoItem[]; activeCat:
     const label = t(catKey, activeCat);
     return (
       <section>
-        <div className="flex items-center gap-2 mb-4 px-6">
+        <div className="flex items-center gap-2 mb-4 px-4 sm:px-6">
           <i className="ri-scissors-cut-line text-red-500 text-sm"></i>
           <h2 className="text-[13px] font-black text-gray-900 dark:text-white tracking-tight">Shorts</h2>
           <span className="text-[9px] text-gray-500 dark:text-white/50 font-mono ml-1 bg-gray-100 dark:bg-white/10 px-2 py-0.5 rounded">{t('home_viral_score_order')}</span>
@@ -398,7 +404,7 @@ const VideoSection = ({
   return (
     <section>
       <SectionHeader icon={icon} iconColor={iconColor} title={title} glowColor={glowColor} badge={badge} />
-      <div className="grid grid-cols-4 gap-4 px-6">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 px-4 sm:px-6">
         {paged.length === 0
           ? Array.from({ length: PER_PAGE }).map((_, i) => (
               <div key={i} className="animate-pulse">
@@ -433,7 +439,7 @@ const TrendingSection = ({ items, loaded }: { items: TrendingVideoItem[]; loaded
       <SectionHeader icon="ri-fire-line" iconColor="text-orange-500" title={t('home_trending_live')}
         badge={<span className="flex items-center gap-1 text-[9px] text-red-500"><span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse inline-block"></span>LIVE · KR</span>}
       />
-      <div className="grid grid-cols-4 gap-4 px-6">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 px-4 sm:px-6">
         {!loaded && items.length === 0
           ? Array.from({ length: PER_PAGE }).map((_, i) => (
               <div key={i} className="animate-pulse">
@@ -660,7 +666,7 @@ const HomePage = () => {
             const isLoading = !homeDataLoaded && popularChannels.length === 0;
             return (
               <div>
-                <div className="flex items-center justify-between mb-3 px-6">
+                <div className="flex items-center justify-between mb-3 px-4 sm:px-6">
                   <div className="flex items-center gap-2">
                     <span className="text-[10px] font-black text-gray-400 dark:text-white/45 uppercase tracking-[0.15em]">{t('home_popular_channels')}</span>
                     <span className="text-[9px] font-black px-2 py-0.5 rounded-full text-black" style={{ background: 'linear-gradient(135deg, #fbbf24, #f59e0b)' }}>TOP10</span>
@@ -681,7 +687,7 @@ const HomePage = () => {
                   </div>
                   <a href="/rankings" className="text-[10px] text-gray-400 dark:text-white/45 hover:text-red-500 transition-colors mr-6">{t('home_view_all')}</a>
                 </div>
-                <div className="overflow-x-auto scrollbar-hide px-6 pb-1">
+                <div className="overflow-x-auto scrollbar-hide px-4 sm:px-6 pb-1">
                   <div className="flex gap-2.5" style={{ width: 'max-content' }}>
                     {(isLoading ? Array.from({ length: 10 }) : chList).map((ch, i) =>
                       ch ? (
@@ -740,8 +746,8 @@ const HomePage = () => {
           {(() => {
             const allCountries = Array.from(new Set(videoPool.map(v => v.country).filter(Boolean))).sort();
             return (
-              <div className="px-6 -mt-4 space-y-2">
-                <div className="flex items-center gap-1.5 flex-wrap">
+              <div className="px-4 sm:px-6 -mt-4 space-y-2">
+                <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide pb-1 flex-nowrap sm:flex-wrap">
                   {/* Country modal trigger */}
                   <button
                     onClick={() => setCountryModalOpen(true)}
