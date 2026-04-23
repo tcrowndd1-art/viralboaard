@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Users, Eye, Video, X, Sparkles } from 'lucide-react';
 import type { ChannelResult, VideoResult } from '@/services/youtube';
 import { analyzeChannelGrowth, type ChannelAnalysis } from '@/services/openrouter';
+import { VideoModal } from '@/components/VideoModal';
 
 interface Props {
   channel: ChannelResult;
@@ -25,6 +26,7 @@ const ANALYSIS_LABELS: { key: keyof Omit<ChannelAnalysis, 'copyStrategy'>; label
 ];
 
 const ChannelSearchResult = ({ channel, videos, onClose }: Props) => {
+  const [modalVideo, setModalVideo] = useState<{ videoId: string; isShorts: boolean } | null>(null);
   const navigate = useNavigate();
   const [aiResult, setAiResult] = useState<ChannelAnalysis | null>(null);
   const [aiLoading, setAiLoading] = useState(false);
@@ -179,12 +181,10 @@ const ChannelSearchResult = ({ channel, videos, onClose }: Props) => {
           </h3>
           <div className="space-y-3">
             {videos.map((v) => (
-              <a
+              <div
                 key={v.videoId}
-                href={`https://www.youtube.com/watch?v=${v.videoId}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-3 group"
+                onClick={() => setModalVideo({ videoId: v.videoId, isShorts: false })}
+                className="flex items-center gap-3 group cursor-pointer"
               >
                 <div className="relative flex-shrink-0 w-24 h-[54px] rounded overflow-hidden bg-gray-100 dark:bg-white/10">
                   <img
@@ -206,10 +206,13 @@ const ChannelSearchResult = ({ channel, videos, onClose }: Props) => {
                     <span>{v.uploadDate}</span>
                   </div>
                 </div>
-              </a>
+              </div>
             ))}
           </div>
         </div>
+      )}
+      {modalVideo && (
+        <VideoModal videoId={modalVideo.videoId} isShorts={modalVideo.isShorts} onClose={() => setModalVideo(null)} />
       )}
     </div>
   );

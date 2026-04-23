@@ -1,5 +1,6 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, createContext, useContext } from 'react';
 import { useTranslation } from 'react-i18next';
+import { VideoModal } from '@/components/VideoModal';
 import TopHeader from './components/TopHeader';
 import GlobalSidebar from '@/components/feature/GlobalSidebar';
 import SearchBanner from './components/SearchBanner';
@@ -18,6 +19,10 @@ const COUNTRY_FLAG: Record<string, string> = {
   MX: '🇲🇽', BR: '🇧🇷', ID: '🇮🇩', DE: '🇩🇪', CA: '🇨🇦',
   AU: '🇦🇺', FR: '🇫🇷', PH: '🇵🇭', TW: '🇹🇼', TH: '🇹🇭', RU: '🇷🇺',
 };
+
+type PlayHandler = (videoId: string, isShorts: boolean) => void;
+const VideoPlayContext = createContext<PlayHandler | null>(null);
+const usePlayVideo = (): PlayHandler => useContext(VideoPlayContext) ?? (() => {});
 
 const CACHE_KEY = (q: string) => `vb_channel_${q.toLowerCase().trim()}`;
 const SAVED_VIDEOS_KEY = 'viralboard_saved_videos';
@@ -180,13 +185,14 @@ const VideoCard = ({
   const multi = multiBadge(v.viralScore);
   const tier = channelTier(v.subscribers);
   const saved = savedIds.has(v.videoId);
+  const playVideo = usePlayVideo();
 
   return (
     <div className="group cursor-pointer relative w-full">
       <div
         className="relative overflow-hidden rounded-xl bg-gray-100 dark:bg-white/10 mb-2"
         style={{ aspectRatio: '16/9' }}
-        onClick={() => window.open(`https://www.youtube.com/watch?v=${v.videoId}`, '_blank')}
+        onClick={() => playVideo(v.videoId, false)}
       >
         <img src={v.thumbnail} alt={v.title}
           className="w-full h-full object-cover group-hover:scale-[1.04] transition-transform duration-300"
@@ -200,7 +206,7 @@ const VideoCard = ({
         </div>
       </div>
       <div className="flex items-start gap-1.5">
-        <div className="flex-1 min-w-0 cursor-pointer" onClick={() => window.open(`https://www.youtube.com/watch?v=${v.videoId}`, '_blank')}>
+        <div className="flex-1 min-w-0 cursor-pointer" onClick={() => playVideo(v.videoId, false)}>
           <p className="text-[12px] text-gray-900 dark:text-white/85 font-semibold line-clamp-2 leading-snug mb-1 group-hover:text-red-500 dark:group-hover:text-red-400 transition-colors">{v.title}</p>
           <div className="flex items-center gap-1 flex-wrap">
             <span className="text-[10px] text-gray-400 dark:text-white/30 truncate max-w-[120px]">{v.channelName}</span>
@@ -228,6 +234,7 @@ const VideoCard = ({
 const ShortsCard = ({ v }: { v: ViralVideoItem }) => {
   const { t } = useTranslation();
   const multi = multiBadge(v.viralScore);
+  const playVideo = usePlayVideo();
   const daysAgo = Math.max(0, Math.floor((Date.now() - new Date(v.uploadDate).getTime()) / 86400000));
   const ago = daysAgo === 0
     ? t('time_today')
@@ -235,7 +242,7 @@ const ShortsCard = ({ v }: { v: ViralVideoItem }) => {
       ? `${daysAgo}${t('time_days_ago')}`
       : `${Math.floor(daysAgo / 7)}${t('time_weeks_ago')}`;
   return (
-    <a href={(v.duration ?? 0) <= 60 ? `https://www.youtube.com/shorts/${v.videoId}` : `https://www.youtube.com/watch?v=${v.videoId}`} target="_blank" rel="noopener noreferrer"
+    <div onClick={() => playVideo(v.videoId, (v.duration ?? 0) <= 60)}
       className="group cursor-pointer block w-full">
       <div className="relative overflow-hidden rounded-xl bg-gray-100 dark:bg-white/10" style={{ aspectRatio: '9/16' }}>
         <img src={v.thumbnail} alt={v.title}
@@ -262,13 +269,15 @@ const ShortsCard = ({ v }: { v: ViralVideoItem }) => {
           </div>
         </div>
       </div>
-    </a>
+    </div>
   );
 };
 
 /* ── Trending card (API, 16:9) ── */
-const TrendCard = ({ v }: { v: TrendingVideoItem }) => (
-  <a href={`https://www.youtube.com/watch?v=${v.videoId}`} target="_blank" rel="noopener noreferrer"
+const TrendCard = ({ v }: { v: TrendingVideoItem }) => {
+  const playVideo = usePlayVideo();
+  return (
+  <div onClick={() => playVideo(v.videoId, false)}
     className="group cursor-pointer block w-full">
     <div className="relative overflow-hidden rounded-xl bg-gray-100 dark:bg-white/10 mb-2" style={{ aspectRatio: '16/9' }}>
       <img src={v.thumbnail} alt={v.title}
@@ -281,8 +290,9 @@ const TrendCard = ({ v }: { v: TrendingVideoItem }) => (
       <span className="text-[10px] text-gray-300 dark:text-white/15">·</span>
       <span className="text-[10px] text-gray-400 dark:text-white/30 font-mono">{v.score}</span>
     </div>
-  </a>
-);
+  </div>
+  );
+};
 
 /* ── Section header (no pagination — moved to bottom of grids) ── */
 const SectionHeader = ({
@@ -519,6 +529,8 @@ const HomePage = () => {
   const [activeCountry, setActiveCountry] = useState('All');
   const [countryModalOpen, setCountryModalOpen] = useState(false);
   const [savedIds, setSavedIds] = useState<Set<string>>(() => loadSavedVideos());
+  const [modalVideo, setModalVideo] = useState<{ videoId: string; isShorts: boolean } | null>(null);
+  const playVideo = useCallback<PlayHandler>((videoId, isShorts) => setModalVideo({ videoId, isShorts }), []);
   const modalRef = useRef<HTMLDivElement>(null);
 
   const [chTab, setChTab] = useState<'subs' | 'views'>('subs');
@@ -709,6 +721,7 @@ const HomePage = () => {
   };
 
   return (
+    <VideoPlayContext.Provider value={playVideo}>
     <div className="min-h-screen bg-white dark:bg-[#0a0a0a] transition-colors">
       <TopHeader onMobileMenuToggle={() => setSidebarOpen(v => !v)} />
       <GlobalSidebar mobileOpen={sidebarOpen} onMobileClose={() => setSidebarOpen(false)} />
@@ -949,7 +962,11 @@ const HomePage = () => {
 
         <HomeFooter />
       </div>
+      {modalVideo && (
+        <VideoModal videoId={modalVideo.videoId} isShorts={modalVideo.isShorts} onClose={() => setModalVideo(null)} />
+      )}
     </div>
+    </VideoPlayContext.Provider>
   );
 };
 

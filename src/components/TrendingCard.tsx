@@ -1,15 +1,17 @@
+import { useState } from 'react';
 import type { TrendingVideo } from '../types/trending';
+import { VideoModal } from './VideoModal';
 
 interface Props { video: TrendingVideo; }
 
 export function TrendingCard({ video }: Props) {
+  const [modalVideo, setModalVideo] = useState<{ videoId: string; isShorts: boolean } | null>(null);
   return (
-    <a
-      href={`https://www.youtube.com/watch?v=${video.video_id}`}
-      target="_blank"
-      rel="noopener noreferrer"
+    <>
+    <div
+      onClick={() => setModalVideo({ videoId: video.video_id, isShorts: video.is_shorts })}
       data-testid={`trending-card-${video.video_id}`}
-      className="block bg-white rounded-lg border hover:shadow-md transition p-3"
+      className="block bg-white rounded-lg border hover:shadow-md transition p-3 cursor-pointer"
     >
       <div className="relative">
         <img
@@ -30,6 +32,10 @@ export function TrendingCard({ video }: Props) {
         <span>👁 {video.views.toLocaleString()}</span>
         <span>👍 {video.likes.toLocaleString()}</span>
       </div>
-    </a>
+    </div>
+    {modalVideo && (
+      <VideoModal videoId={modalVideo.videoId} isShorts={modalVideo.isShorts} onClose={() => setModalVideo(null)} />
+    )}
+    </>
   );
 }

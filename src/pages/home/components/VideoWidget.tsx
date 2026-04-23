@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { VideoModal } from '@/components/VideoModal';
 
 interface VideoItem {
   rank: number;
@@ -17,6 +18,7 @@ interface VideoWidgetProps {
 
 const VideoWidget = ({ title, items }: VideoWidgetProps) => {
   const [period, setPeriod] = useState<'Daily' | 'Weekly'>('Daily');
+  const [modalVideo, setModalVideo] = useState<{ videoId: string; isShorts: boolean } | null>(null);
 
   return (
     <section className="bg-white dark:bg-[#181818] border border-gray-200 dark:border-white/10 rounded-sm overflow-hidden transition-colors">
@@ -43,7 +45,7 @@ const VideoWidget = ({ title, items }: VideoWidgetProps) => {
       {/* Body */}
       <div className="divide-y divide-gray-50 dark:divide-white/5">
         {items.map((item) => (
-          <div key={item.rank} className="flex gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-white/[0.03] cursor-pointer transition-colors" onClick={() => window.open(`https://www.youtube.com/watch?v=${item.videoId}`, '_blank')}>
+          <div key={item.rank} className="flex gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-white/[0.03] cursor-pointer transition-colors" onClick={() => setModalVideo({ videoId: item.videoId, isShorts: false })}>
             {/* Thumbnail */}
             <div className="relative flex-shrink-0 w-24 h-14 bg-gray-100 dark:bg-white/10 rounded overflow-hidden">
               <img
@@ -81,6 +83,9 @@ const VideoWidget = ({ title, items }: VideoWidgetProps) => {
       <div className="border-t border-gray-100 dark:border-white/10 px-4 py-2 text-center">
         <button className="text-xs text-gray-400 dark:text-white/25 hover:text-gray-600 dark:hover:text-white/50 cursor-pointer transition-colors">• • •</button>
       </div>
+      {modalVideo && (
+        <VideoModal videoId={modalVideo.videoId} isShorts={modalVideo.isShorts} onClose={() => setModalVideo(null)} />
+      )}
     </section>
   );
 };

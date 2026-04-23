@@ -1,4 +1,6 @@
+import { useState } from 'react';
 import type { TrendingVideoItem } from '@/services/youtube';
+import { VideoModal } from '@/components/VideoModal';
 
 interface Props {
   items?: TrendingVideoItem[];
@@ -6,6 +8,7 @@ interface Props {
 
 const TopLivesWidget = ({ items }: Props) => {
   const data = items && items.length > 0 ? items : [];
+  const [modalVideo, setModalVideo] = useState<{ videoId: string; isShorts: boolean } | null>(null);
 
   return (
     <div className="bg-white dark:bg-[#181818] border border-gray-200 dark:border-white/10 rounded-sm overflow-hidden transition-colors">
@@ -32,7 +35,7 @@ const TopLivesWidget = ({ items }: Props) => {
       <div className="overflow-x-auto">
         <div className="flex gap-3 px-4 py-3" style={{ minWidth: 'max-content' }}>
           {data.map((item) => (
-            <div key={item.rank} onClick={() => window.open(`https://www.youtube.com/watch?v=${item.videoId}`, '_blank')} className="w-44 flex-shrink-0 cursor-pointer group">
+            <div key={item.rank} onClick={() => setModalVideo({ videoId: item.videoId, isShorts: false })} className="w-44 flex-shrink-0 cursor-pointer group">
               <div className="relative w-44 h-24 bg-gray-100 dark:bg-white/10 rounded overflow-hidden mb-2">
                 <img
                   src={item.thumbnail}
@@ -67,6 +70,9 @@ const TopLivesWidget = ({ items }: Props) => {
       <div className="border-t border-gray-100 dark:border-white/10 px-4 py-2 text-center">
         <button className="text-xs text-gray-400 dark:text-white/25 hover:text-gray-600 dark:hover:text-white/50 cursor-pointer transition-colors">• • •</button>
       </div>
+      {modalVideo && (
+        <VideoModal videoId={modalVideo.videoId} isShorts={modalVideo.isShorts} onClose={() => setModalVideo(null)} />
+      )}
     </div>
   );
 };

@@ -19,6 +19,7 @@ import TopHeader from '@/pages/home/components/TopHeader';
 import GlobalSidebar from '@/components/feature/GlobalSidebar';
 import HoverPopup from '@/components/feature/HoverPopup';
 import type { VideoPopupData } from '@/components/feature/HoverPopup';
+import { VideoModal } from '@/components/VideoModal';
 
 type SortKey = 'rank' | 'views' | 'uploadDate';
 type SortDir = 'asc' | 'desc';
@@ -258,6 +259,7 @@ const VideoRankingsPage = () => {
   const { t } = useTranslation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [pageMode, setPageMode] = useState<PageMode>('rankings');
+  const [modalVideo, setModalVideo] = useState<{ videoId: string; isShorts: boolean } | null>(null);
 
   const [allVideos, setAllVideos] = useState<RankingVideoItem[]>([]);
   const [apiLoading, setApiLoading] = useState(true);
@@ -723,7 +725,7 @@ const VideoRankingsPage = () => {
                           return (
                             <tr
                               key={video.videoId}
-                              onClick={() => window.open(`https://www.youtube.com/watch?v=${video.videoId}`, '_blank')}
+                              onClick={() => setModalVideo({ videoId: video.videoId, isShorts: false })}
                               className="transition-colors cursor-pointer group hover:bg-red-50/40 dark:hover:bg-red-600/5"
                             >
                               <td className="px-4 py-3 text-center w-10">
@@ -894,7 +896,7 @@ const VideoRankingsPage = () => {
                     const vph = calcVPH(video.views, video.uploadDate);
                     return (
                       <tr key={video.videoId}
-                        onClick={() => window.open(`https://www.youtube.com/watch?v=${video.videoId}`, '_blank')}
+                        onClick={() => setModalVideo({ videoId: video.videoId, isShorts: false })}
                         onMouseEnter={(e) => handleRowEnter(video.videoId, e)}
                         onMouseLeave={handleRowLeave}
                         className={`transition-colors cursor-pointer group ${isHovered ? 'bg-red-50/60 dark:bg-red-600/5' : 'hover:bg-gray-50 dark:hover:bg-white/[0.03]'}`}>
@@ -1028,6 +1030,9 @@ const VideoRankingsPage = () => {
           anchorRect={anchorRect}
           visible={!!hoveredVideoId}
         />
+      )}
+      {modalVideo && (
+        <VideoModal videoId={modalVideo.videoId} isShorts={modalVideo.isShorts} onClose={() => setModalVideo(null)} />
       )}
     </div>
   );

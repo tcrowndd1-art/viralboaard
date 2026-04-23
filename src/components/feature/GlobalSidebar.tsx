@@ -1,7 +1,9 @@
+import { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useSavedChannels } from '@/hooks/useSavedChannels';
 import { useSavedVideos } from '@/hooks/useSavedVideos';
+import { VideoModal } from '@/components/VideoModal';
 
 interface GlobalSidebarProps {
   mobileOpen?: boolean;
@@ -39,6 +41,7 @@ const GlobalSidebar = ({
   const location = useLocation();
   const path = location.pathname;
   const { t } = useTranslation();
+  const [modalVideo, setModalVideo] = useState<{ videoId: string; isShorts: boolean } | null>(null);
   const { channels: savedChannelsList } = useSavedChannels();
   const { videos: savedVideosList } = useSavedVideos();
 
@@ -204,12 +207,9 @@ const GlobalSidebar = ({
               </div>
             ) : (
               savedVideosList.slice(0, 4).map((v) => (
-                <a
+                <div
                   key={v.videoId}
-                  href={`https://youtube.com/watch?v=${v.videoId}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={onMobileClose}
+                  onClick={() => { onMobileClose?.(); setModalVideo({ videoId: v.videoId, isShorts: false }); }}
                   className="flex items-center gap-2 py-1.5 px-1 cursor-pointer hover:bg-gray-100 dark:hover:bg-white/5 rounded-lg transition-colors group min-h-[36px]"
                 >
                   <div className="w-10 h-6 rounded overflow-hidden flex-shrink-0 bg-gray-100 dark:bg-dark-card relative">
@@ -224,7 +224,7 @@ const GlobalSidebar = ({
                   <span className="text-xs text-gray-500 dark:text-white/50 group-hover:text-gray-900 dark:group-hover:text-off-white truncate transition-colors leading-tight flex-1">
                     {v.title}
                   </span>
-                </a>
+                </div>
               ))
             )}
             {savedVideosList.length > 4 && (
@@ -248,6 +248,9 @@ const GlobalSidebar = ({
           </div>
         </div>
       </nav>
+      {modalVideo && (
+        <VideoModal videoId={modalVideo.videoId} isShorts={modalVideo.isShorts} onClose={() => setModalVideo(null)} />
+      )}
     </>
   );
 };
