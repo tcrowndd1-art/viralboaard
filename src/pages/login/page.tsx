@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { useAuth } from '@/hooks/useAuth';
+import { ViralBoardIcon } from '@/components/ViralBoardIcon';
 
 const LoginPage = () => {
   const navigate = useNavigate();
@@ -53,8 +54,11 @@ const LoginPage = () => {
   return (
     <div className="min-h-screen bg-[#0f0f0f] flex flex-col">
       <header className="flex items-center justify-between px-6 py-4 border-b border-white/10">
-        <Link to="/" className="font-black text-lg tracking-widest text-white uppercase cursor-pointer">
-          ViralBoard
+        <Link to="/" className="flex items-center gap-2 group transition-opacity hover:opacity-85 whitespace-nowrap cursor-pointer">
+          <ViralBoardIcon size={24} />
+          <span className="font-black text-[12px] tracking-[0.1em] text-white uppercase">
+            ViralBoard
+          </span>
         </Link>
         <div className="flex items-center gap-2 text-sm text-white/50">
           <span>{t('login_no_account')}</span>
