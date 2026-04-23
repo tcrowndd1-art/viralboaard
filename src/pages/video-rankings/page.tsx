@@ -238,7 +238,7 @@ const calcVPH = (views: number, uploadDate: string): number => {
 };
 
 const calcVideoScore = (viral: ViralVideoItem): number => {
-  const viralNorm = Math.min(viral.viralScore / 200, 1) * 40;
+  const viralNorm = Math.min((viral.viralScore ?? 0) / 200, 1) * 40;
   const viewsNorm = Math.min(viral.views / 20_000_000, 1) * 30;
   const recencyDays = (Date.now() - new Date(viral.uploadDate).getTime()) / 86_400_000;
   const recencyNorm = Math.max(0, 1 - recencyDays / 7) * 30;

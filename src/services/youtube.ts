@@ -118,7 +118,7 @@ export interface ViralVideoItem {
   channelId: string;
   subscribers: number;
   views: number;
-  viralScore: number;
+  viralScore: number | null;
   uploadDate: string;
   thumbnail: string;
   category: string;

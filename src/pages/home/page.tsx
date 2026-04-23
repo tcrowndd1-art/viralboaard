@@ -52,7 +52,8 @@ function channelTier(subs: number) {
   if (subs >= 10_000)    return { label: 'Micro', cls: 'bg-emerald-400/90 text-black' };
   return                        { label: 'Nano',  cls: 'bg-gray-300/90 text-black' };
 }
-function multiBadge(score: number) {
+function multiBadge(score: number | null) {
+  if (score === null) return null;
   const t = `×${Math.round(score)}`;
   if (score >= 100) return { text: t, cls: 'bg-amber-400 text-black' };
   if (score >= 30)  return { text: t, cls: 'bg-green-400/90 text-black' };
@@ -178,7 +179,7 @@ const VideoCard = ({
             <span className="text-[10px] text-gray-400 dark:text-white/30 truncate max-w-[120px]">{v.channelName}</span>
             <span className="text-[10px] text-gray-300 dark:text-white/15">·</span>
             <span className="text-[10px] text-gray-400 dark:text-white/30 font-mono">{fmtViews(v.views)}</span>
-            <span className={`text-[8px] font-black px-1 py-px rounded leading-none ${multi.cls}`}>{multi.text}</span>
+            {multi && <span className={`text-[8px] font-black px-1 py-px rounded leading-none ${multi.cls}`}>{multi.text}</span>}
           </div>
         </div>
         <button onClick={(e) => { e.stopPropagation(); onToggleSave(v.videoId); }}
@@ -209,11 +210,13 @@ const ShortsCard = ({ v }: { v: ViralVideoItem }) => {
         <img src={v.thumbnail} alt={v.title}
           className="w-full h-full object-cover object-center group-hover:scale-[1.07] transition-transform duration-300"
           onError={(e) => { const img = e.target as HTMLImageElement; if (img.src.includes('hqdefault')) { img.src = img.src.replace('hqdefault', 'mqdefault'); } else { img.style.opacity = '0'; } }} />
-        <div className="absolute top-1.5 right-1.5">
-          <span className={`text-[7px] font-black px-1 rounded leading-none ${multi.cls}`} style={{ paddingTop: '2px', paddingBottom: '2px' }}>
-            {multi.text}
-          </span>
-        </div>
+        {multi && (
+          <div className="absolute top-1.5 right-1.5">
+            <span className={`text-[7px] font-black px-1 rounded leading-none ${multi.cls}`} style={{ paddingTop: '2px', paddingBottom: '2px' }}>
+              {multi.text}
+            </span>
+          </div>
+        )}
         <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/92 via-black/45 to-transparent px-2 pb-2 pt-10">
           <p className="text-white text-[10px] font-semibold line-clamp-2 leading-tight mb-1.5">{v.title}</p>
           <div className="flex items-center justify-between gap-1">
@@ -506,7 +509,7 @@ const HomePage = () => {
           channelId: v.channel_id,
           subscribers: 0,
           views: v.views,
-          viralScore: v.views / 1000,
+          viralScore: v.subscriber_count > 0 ? v.views / v.subscriber_count : null,
           uploadDate: v.fetched_at,
           thumbnail: v.thumbnail_url,
           category: v.category,
