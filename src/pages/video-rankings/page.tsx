@@ -6,7 +6,7 @@ import { RankingVideoItem, ViralVideoItem } from '@/services/youtube';
 import { viralMockData } from '@/mocks/viralData';
 import { cacheGet, cacheSet } from '@/services/cache';
 import { supabase } from '@/services/supabase';
-import { CountryModal, COUNTRY_FLAG, loadCountry } from '@/components/CountryModal';
+import { CountryPicker, loadCountry } from '@/components/CountryModal';
 
 const DB_CAT_MAP: Record<string, string> = {
   entertainment: 'Entertainment',
@@ -274,7 +274,6 @@ const VideoRankingsPage = () => {
   const [savedIds, setSavedIds] = useState<Set<string>>(() => loadSavedVideos());
 
   const [country, setCountry] = useState(() => loadCountry());
-  const [countryModalOpen, setCountryModalOpen] = useState(false);
   const [category, setCategory] = useState('ALL');
   const [period, setPeriod] = useState('Daily');
   const [sortKey, setSortKey] = useState<SortKey>('rank');
@@ -479,14 +478,7 @@ const VideoRankingsPage = () => {
 
   const categoryOptions = videoCategories.map(c => ({ value: c === 'All Categories' ? 'ALL' : c, label: c }));
   const CountryTrigger = () => (
-    <button
-      onClick={() => setCountryModalOpen(true)}
-      className="flex items-center gap-2 bg-white dark:bg-dark-card border border-gray-200 dark:border-dark-border hover:border-gray-300 dark:hover:border-gray-700 text-gray-700 dark:text-white/70 text-sm px-3 py-2 rounded-lg cursor-pointer whitespace-nowrap transition-colors min-w-[140px]"
-    >
-      <i className="ri-map-pin-line text-gray-400 dark:text-white/30 w-4 h-4 flex items-center justify-center"></i>
-      <span className="flex-1 text-left">{COUNTRY_FLAG[country] ?? '🌐'} {country}</span>
-      <i className="ri-arrow-down-s-line text-gray-400 dark:text-white/30 w-4 h-4 flex items-center justify-center"></i>
-    </button>
+    <CountryPicker current={country} onSelect={(c) => { setCountry(c); setPage(1); }} variant="bordered" />
   );
   const periodOptions = [
     { value: 'Daily', label: t('rankings_period_daily') },
@@ -1040,12 +1032,6 @@ const VideoRankingsPage = () => {
       {modalVideo && (
         <VideoModal videoId={modalVideo.videoId} isShorts={modalVideo.isShorts} onClose={() => setModalVideo(null)} />
       )}
-      <CountryModal
-        open={countryModalOpen}
-        current={country}
-        onSelect={(c) => { setCountry(c); setPage(1); }}
-        onClose={() => setCountryModalOpen(false)}
-      />
     </div>
   );
 };

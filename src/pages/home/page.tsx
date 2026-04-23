@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback, createContext, useContext } from 'react';
 import { useTranslation } from 'react-i18next';
 import { VideoModal } from '@/components/VideoModal';
-import { CountryModal, COUNTRY_FLAG, loadCountry } from '@/components/CountryModal';
+import { CountryPicker, loadCountry } from '@/components/CountryModal';
 import TopHeader from './components/TopHeader';
 import GlobalSidebar from '@/components/feature/GlobalSidebar';
 import SearchBanner from './components/SearchBanner';
@@ -522,7 +522,6 @@ const HomePage = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeCat, setActiveCat] = useState<Cat>('All');
   const [activeCountry, setActiveCountry] = useState(() => loadCountry());
-  const [countryModalOpen, setCountryModalOpen] = useState(false);
   const [savedIds, setSavedIds] = useState<Set<string>>(() => loadSavedVideos());
   const [modalVideo, setModalVideo] = useState<{ videoId: string; isShorts: boolean } | null>(null);
   const playVideo = useCallback<PlayHandler>((videoId, isShorts) => setModalVideo({ videoId, isShorts }), []);
@@ -813,15 +812,7 @@ const HomePage = () => {
           {/* ── Filter bar ── */}
           <div className="px-4 sm:px-6 -mt-4 space-y-2">
             <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide pb-1 flex-nowrap sm:flex-wrap">
-              {/* Country modal trigger */}
-              <button
-                onClick={() => setCountryModalOpen(true)}
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold transition-all cursor-pointer border bg-red-600 text-white border-red-600 shadow-sm"
-              >
-                <span>{COUNTRY_FLAG[activeCountry] ?? '🌐'}</span>
-                <span>{activeCountry}</span>
-                <i className="ri-arrow-down-s-line text-[10px] opacity-60"></i>
-              </button>
+              <CountryPicker current={activeCountry} onSelect={setActiveCountry} variant="pill" isKo={isKo} />
               <div className="w-px h-5 bg-gray-200 dark:bg-white/10 flex-shrink-0" />
               {/* Category pills */}
               {CATS.map(cat => (
@@ -840,13 +831,6 @@ const HomePage = () => {
               <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-sky-400 inline-block"></span>{t('home_viral_10')}</span>
             </div>
 
-            <CountryModal
-              open={countryModalOpen}
-              current={activeCountry}
-              onSelect={setActiveCountry}
-              onClose={() => setCountryModalOpen(false)}
-              isKo={isKo}
-            />
           </div>
 
           {/* ── Shorts (category-aware) ── */}

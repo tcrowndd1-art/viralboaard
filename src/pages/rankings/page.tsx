@@ -11,7 +11,7 @@ import Pagination from './components/Pagination';
 import { useSavedChannels } from '@/hooks/useSavedChannels';
 import { cacheGet, cacheSet } from '@/services/cache';
 import { supabase } from '@/services/supabase';
-import { CountryModal, COUNTRY_FLAG, loadCountry } from '@/components/CountryModal';
+import { CountryPicker, loadCountry } from '@/components/CountryModal';
 
 const DB_CAT_MAP: Record<string, string> = {
   entertainment: 'Entertainment',
@@ -128,7 +128,6 @@ const RankingsPage = () => {
   const [apiError, setApiError] = useState<string | null>(null);
   const [viewTab, setViewTab] = useState<ViewTab>('all');
   const [country, setCountry] = useState(() => loadCountry());
-  const [countryModalOpen, setCountryModalOpen] = useState(false);
   const [category, setCategory] = useState('ALL');
   const [period, setPeriod] = useState('Daily');
   const [sortKey, setSortKey] = useState<SortKey>('rank');
@@ -298,14 +297,7 @@ const RankingsPage = () => {
                 onCategoryChange={handleFilterChange(setCategory)}
                 onPeriodChange={handleFilterChange(setPeriod)}
                 countrySlot={
-                  <button
-                    onClick={() => setCountryModalOpen(true)}
-                    className="flex items-center gap-2 bg-white dark:bg-dark-card border border-gray-200 dark:border-dark-border hover:border-gray-300 dark:hover:border-off-white/20 text-gray-700 dark:text-off-white/70 text-sm px-3 py-2 rounded-lg cursor-pointer whitespace-nowrap transition-colors min-w-[140px]"
-                  >
-                    <i className="ri-map-pin-line text-gray-400 dark:text-off-white/30 w-4 h-4 flex items-center justify-center"></i>
-                    <span className="flex-1 text-left">{COUNTRY_FLAG[country] ?? '🌐'} {country}</span>
-                    <i className="ri-arrow-down-s-line text-gray-400 dark:text-off-white/30 w-4 h-4 flex items-center justify-center"></i>
-                  </button>
+                  <CountryPicker current={country} onSelect={(c) => { setCountry(c); setPage(1); }} variant="bordered" />
                 }
               />
             </div>
@@ -399,12 +391,6 @@ const RankingsPage = () => {
           )}
         </div>
       </div>
-      <CountryModal
-        open={countryModalOpen}
-        current={country}
-        onSelect={(c) => { setCountry(c); setPage(1); }}
-        onClose={() => setCountryModalOpen(false)}
-      />
     </div>
   );
 };
