@@ -208,33 +208,7 @@ export async function searchVideos(query: string, maxResults = 10): Promise<Vide
 export async function searchChannel(query: string): Promise<ChannelResult | null> {
   if (!query || query.length < 2) return null;
 
-  // 1) Edge Function (full YouTube search) — preferred
-  try {
-    const { data, error } = await supabase.functions.invoke('search-channel', {
-      body: { query },
-    });
-    if (!error && data?.channels && Array.isArray(data.channels)) {
-      if (data.channels.length === 0) return null;
-      const top = data.channels[0];
-      return {
-        id: top.channel_id,
-        name: top.channel_name,
-        handle: '',
-        avatar: top.avatar,
-        banner: '',
-        subscribers: top.subscriber_count,
-        totalViews: top.view_count,
-        videoCount: top.video_count,
-        country: top.country ?? '',
-        description: top.description,
-      };
-    }
-    if (error) console.warn('[searchChannel] edge function unavailable, falling back to DB:', error);
-  } catch (e) {
-    console.warn('[searchChannel] edge function threw, falling back to DB:', e);
-  }
-
-  // 2) DB fallback (collected channels only)
+  // DB-only search (collected channels). Edge Function path removed — not deployed.
   const { data: dbData, error: dbErr } = await supabase
     .from('viralboard_data')
     .select('channel_id, channel, channel_thumbnail_url, subscriber_count, views, country')
