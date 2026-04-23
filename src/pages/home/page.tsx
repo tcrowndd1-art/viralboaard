@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback, useRef, createContext, useContext } from 'react';
+import { useState, useEffect, useCallback, createContext, useContext } from 'react';
 import { useTranslation } from 'react-i18next';
 import { VideoModal } from '@/components/VideoModal';
+import { CountryModal, COUNTRY_FLAG, loadCountry } from '@/components/CountryModal';
 import TopHeader from './components/TopHeader';
 import GlobalSidebar from '@/components/feature/GlobalSidebar';
 import SearchBanner from './components/SearchBanner';
@@ -13,12 +14,6 @@ import type { ChannelResult, VideoResult, PopularChannelItem, TrendingVideoItem,
 import { cacheGet, cacheSet, addSearchHistory } from '@/services/cache';
 import { viralMockData } from '@/mocks/viralData';
 import { supabase } from '@/services/supabase';
-
-const COUNTRY_FLAG: Record<string, string> = {
-  KR: '🇰🇷', US: '🇺🇸', JP: '🇯🇵', GB: '🇬🇧', IN: '🇮🇳',
-  MX: '🇲🇽', BR: '🇧🇷', ID: '🇮🇩', DE: '🇩🇪', CA: '🇨🇦',
-  AU: '🇦🇺', FR: '🇫🇷', PH: '🇵🇭', TW: '🇹🇼', TH: '🇹🇭', RU: '🇷🇺',
-};
 
 type PlayHandler = (videoId: string, isShorts: boolean) => void;
 const VideoPlayContext = createContext<PlayHandler | null>(null);
@@ -526,12 +521,11 @@ const HomePage = () => {
   const isKo = i18n.language.startsWith('ko');
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeCat, setActiveCat] = useState<Cat>('All');
-  const [activeCountry, setActiveCountry] = useState('All');
+  const [activeCountry, setActiveCountry] = useState(() => loadCountry());
   const [countryModalOpen, setCountryModalOpen] = useState(false);
   const [savedIds, setSavedIds] = useState<Set<string>>(() => loadSavedVideos());
   const [modalVideo, setModalVideo] = useState<{ videoId: string; isShorts: boolean } | null>(null);
   const playVideo = useCallback<PlayHandler>((videoId, isShorts) => setModalVideo({ videoId, isShorts }), []);
-  const modalRef = useRef<HTMLDivElement>(null);
 
   const [chTab, setChTab] = useState<'subs' | 'views'>('subs');
   const [searching, setSearching] = useState(false);
@@ -689,9 +683,7 @@ const HomePage = () => {
       const cats = CAT_MAP[activeCat];
       result = result.filter(v => cats.some(c => c.toLowerCase() === v.category.toLowerCase()));
     }
-    if (activeCountry !== 'All') {
-      result = result.filter(v => v.country === activeCountry);
-    }
+    result = result.filter(v => v.country === activeCountry);
     return result;
   };
 
@@ -820,106 +812,43 @@ const HomePage = () => {
           <div className="border-t border-gray-100 dark:border-white/[0.05]" />
 
           {/* ── Filter bar ── */}
-          {(() => {
-            const allCountries = Array.from(new Set(videoPool.map(v => v.country).filter(Boolean))).sort();
-            return (
-              <div className="px-4 sm:px-6 -mt-4 space-y-2">
-                <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide pb-1 flex-nowrap sm:flex-wrap">
-                  {/* Country modal trigger */}
-                  <button
-                    onClick={() => setCountryModalOpen(true)}
-                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold transition-all cursor-pointer border ${
-                      activeCountry !== 'All'
-                        ? 'bg-red-600 text-white border-red-600 shadow-sm'
-                        : 'bg-gray-100 dark:bg-white/10 text-gray-600 dark:text-white/60 border-transparent hover:bg-gray-200 dark:hover:bg-white/20'
-                    }`}
-                  >
-                    <span>{activeCountry === 'All' ? '🌏' : (COUNTRY_FLAG[activeCountry] ?? '🌐')}</span>
-                    <span>{activeCountry === 'All' ? t('cat_all') : activeCountry}</span>
-                    <i className="ri-arrow-down-s-line text-[10px] opacity-60"></i>
-                  </button>
-                  <div className="w-px h-5 bg-gray-200 dark:bg-white/10 flex-shrink-0" />
-                  {/* Category pills */}
-                  {CATS.map(cat => (
-                    <button key={cat} onClick={() => setActiveCat(cat)}
-                      className={`px-3 py-1 rounded-full text-[11px] font-semibold transition-all whitespace-nowrap cursor-pointer ${
-                        activeCat === cat
-                          ? 'bg-gray-900 dark:bg-white text-white dark:text-black shadow-sm'
-                          : 'bg-gray-100 dark:bg-white/10 text-gray-600 dark:text-white/60 hover:bg-gray-200 dark:hover:bg-white/20'
-                      }`}>{CAT_LABELS[cat]}</button>
-                  ))}
-                </div>
-                {/* Viral legend */}
-                <div className="flex items-center gap-2.5 text-[9px] text-gray-400 dark:text-white/45">
-                  <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block"></span>{t('home_viral_100')}</span>
-                  <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-green-400 inline-block"></span>{t('home_viral_30')}</span>
-                  <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-sky-400 inline-block"></span>{t('home_viral_10')}</span>
-                  {activeCountry !== 'All' && (
-                    <button onClick={() => setActiveCountry('All')} className="ml-2 text-red-400 hover:text-red-500 flex items-center gap-0.5 cursor-pointer">
-                      <i className="ri-close-circle-line text-xs"></i> {activeCountry}
-                    </button>
-                  )}
-                </div>
+          <div className="px-4 sm:px-6 -mt-4 space-y-2">
+            <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide pb-1 flex-nowrap sm:flex-wrap">
+              {/* Country modal trigger */}
+              <button
+                onClick={() => setCountryModalOpen(true)}
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[10px] font-bold transition-all cursor-pointer border bg-red-600 text-white border-red-600 shadow-sm"
+              >
+                <span>{COUNTRY_FLAG[activeCountry] ?? '🌐'}</span>
+                <span>{activeCountry}</span>
+                <i className="ri-arrow-down-s-line text-[10px] opacity-60"></i>
+              </button>
+              <div className="w-px h-5 bg-gray-200 dark:bg-white/10 flex-shrink-0" />
+              {/* Category pills */}
+              {CATS.map(cat => (
+                <button key={cat} onClick={() => setActiveCat(cat)}
+                  className={`px-3 py-1 rounded-full text-[11px] font-semibold transition-all whitespace-nowrap cursor-pointer ${
+                    activeCat === cat
+                      ? 'bg-gray-900 dark:bg-white text-white dark:text-black shadow-sm'
+                      : 'bg-gray-100 dark:bg-white/10 text-gray-600 dark:text-white/60 hover:bg-gray-200 dark:hover:bg-white/20'
+                  }`}>{CAT_LABELS[cat]}</button>
+              ))}
+            </div>
+            {/* Viral legend */}
+            <div className="flex items-center gap-2.5 text-[9px] text-gray-400 dark:text-white/45">
+              <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-amber-400 inline-block"></span>{t('home_viral_100')}</span>
+              <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-green-400 inline-block"></span>{t('home_viral_30')}</span>
+              <span className="flex items-center gap-1"><span className="w-1.5 h-1.5 rounded-full bg-sky-400 inline-block"></span>{t('home_viral_10')}</span>
+            </div>
 
-                {/* ── Country Modal ── */}
-                {countryModalOpen && (
-                  <div
-                    className="fixed inset-0 z-50 flex items-center justify-center"
-                    onClick={() => setCountryModalOpen(false)}
-                  >
-                    <div className="absolute inset-0 bg-black/50 backdrop-blur-[2px]" />
-                    <div
-                      ref={modalRef}
-                      className="relative bg-white dark:bg-[#161616] rounded-2xl shadow-2xl w-[320px] max-w-[90vw] overflow-hidden border border-gray-100 dark:border-white/[0.08]"
-                      onClick={e => e.stopPropagation()}
-                    >
-                      <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-gray-100 dark:border-white/[0.06]">
-                        <div className="flex items-center gap-2">
-                          <i className="ri-global-line text-sm text-gray-500 dark:text-white/50"></i>
-                          <span className="text-[13px] font-black text-gray-900 dark:text-white">{isKo ? '지역 선택' : 'Select Region'}</span>
-                        </div>
-                        <button onClick={() => setCountryModalOpen(false)}
-                          className="w-7 h-7 flex items-center justify-center rounded-full text-gray-400 dark:text-white/40 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors cursor-pointer">
-                          <i className="ri-close-line text-base"></i>
-                        </button>
-                      </div>
-                      <div className="px-3 pt-3 pb-1">
-                        <button
-                          onClick={() => { setActiveCountry('All'); setCountryModalOpen(false); }}
-                          className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-[12px] font-bold transition-all cursor-pointer ${
-                            activeCountry === 'All'
-                              ? 'bg-red-600 text-white'
-                              : 'bg-gray-50 dark:bg-white/[0.04] text-gray-700 dark:text-white/70 hover:bg-gray-100 dark:hover:bg-white/[0.08]'
-                          }`}
-                        >
-                          <span className="text-base leading-none">🌏</span>
-                          <span>{isKo ? '전체 지역' : 'All Regions'}</span>
-                          {activeCountry === 'All' && <i className="ri-check-line ml-auto text-white text-sm"></i>}
-                        </button>
-                      </div>
-                      <div className="grid grid-cols-3 gap-1.5 px-3 pb-3 pt-2">
-                        {allCountries.map(c => (
-                          <button
-                            key={c}
-                            onClick={() => { setActiveCountry(c); setCountryModalOpen(false); }}
-                            className={`flex items-center gap-1.5 px-2.5 py-2 rounded-xl text-[11px] font-semibold transition-all cursor-pointer ${
-                              activeCountry === c
-                                ? 'bg-red-600 text-white shadow-sm'
-                                : 'bg-gray-50 dark:bg-white/[0.04] text-gray-700 dark:text-white/70 hover:bg-gray-100 dark:hover:bg-white/[0.08]'
-                            }`}
-                          >
-                            <span className="text-sm leading-none flex-shrink-0">{COUNTRY_FLAG[c] ?? '🌐'}</span>
-                            <span className="truncate">{c}</span>
-                            {activeCountry === c && <i className="ri-check-line ml-auto text-[10px] flex-shrink-0"></i>}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            );
-          })()}
+            <CountryModal
+              open={countryModalOpen}
+              current={activeCountry}
+              onSelect={setActiveCountry}
+              onClose={() => setCountryModalOpen(false)}
+              isKo={isKo}
+            />
+          </div>
 
           {/* ── Shorts (category-aware) ── */}
           <ShortsSection data={videoPool.filter(v => v.isShorts)} activeCat={activeCat} loaded={homeDataLoaded} />

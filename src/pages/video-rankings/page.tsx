@@ -6,6 +6,7 @@ import { RankingVideoItem, ViralVideoItem } from '@/services/youtube';
 import { viralMockData } from '@/mocks/viralData';
 import { cacheGet, cacheSet } from '@/services/cache';
 import { supabase } from '@/services/supabase';
+import { CountryModal, COUNTRY_FLAG, loadCountry } from '@/components/CountryModal';
 
 const DB_CAT_MAP: Record<string, string> = {
   entertainment: 'Entertainment',
@@ -272,7 +273,8 @@ const VideoRankingsPage = () => {
   const [viewTab, setViewTab] = useState<ViewTab>('all');
   const [savedIds, setSavedIds] = useState<Set<string>>(() => loadSavedVideos());
 
-  const [country, setCountry] = useState('ALL');
+  const [country, setCountry] = useState(() => loadCountry());
+  const [countryModalOpen, setCountryModalOpen] = useState(false);
   const [category, setCategory] = useState('ALL');
   const [period, setPeriod] = useState('Daily');
   const [sortKey, setSortKey] = useState<SortKey>('rank');
@@ -475,8 +477,17 @@ const VideoRankingsPage = () => {
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
   const hoveredVideo = paginated.find(v => v.videoId === hoveredVideoId) ?? null;
 
-  const countryOptions = [{ value: 'ALL', label: 'All Countries' }, ...countries.filter(c => c.code !== 'ALL').map(c => ({ value: c.code, label: c.label }))];
   const categoryOptions = videoCategories.map(c => ({ value: c === 'All Categories' ? 'ALL' : c, label: c }));
+  const CountryTrigger = () => (
+    <button
+      onClick={() => setCountryModalOpen(true)}
+      className="flex items-center gap-2 bg-white dark:bg-dark-card border border-gray-200 dark:border-dark-border hover:border-gray-300 dark:hover:border-gray-700 text-gray-700 dark:text-white/70 text-sm px-3 py-2 rounded-lg cursor-pointer whitespace-nowrap transition-colors min-w-[140px]"
+    >
+      <i className="ri-map-pin-line text-gray-400 dark:text-white/30 w-4 h-4 flex items-center justify-center"></i>
+      <span className="flex-1 text-left">{COUNTRY_FLAG[country] ?? '🌐'} {country}</span>
+      <i className="ri-arrow-down-s-line text-gray-400 dark:text-white/30 w-4 h-4 flex items-center justify-center"></i>
+    </button>
+  );
   const periodOptions = [
     { value: 'Daily', label: t('rankings_period_daily') },
     { value: 'Weekly', label: t('rankings_period_weekly') },
@@ -606,7 +617,7 @@ const VideoRankingsPage = () => {
             <div className="space-y-3">
               {/* Filters row */}
               <div className="bg-gray-50 dark:bg-dark-card border border-gray-200 dark:border-dark-border rounded-lg px-4 py-3 flex flex-wrap items-center gap-3">
-                <Dropdown value={country} options={countryOptions} onChange={v => { setCountry(v); setPage(1); }} icon="ri-map-pin-line" />
+                <CountryTrigger />
                 <div className="flex items-center bg-white dark:bg-dark-base border border-gray-200 dark:border-dark-border rounded-lg p-1">
                   {periodOptions.map(p => (
                     <button
@@ -651,12 +662,7 @@ const VideoRankingsPage = () => {
           {pageMode === 'viral' && (
             <>
               <div className="bg-gray-50 dark:bg-dark-card border border-gray-200 dark:border-dark-border rounded-lg px-4 py-3 flex flex-wrap items-center gap-3">
-                <Dropdown
-                  value={country}
-                  options={countryOptions}
-                  onChange={v => { setCountry(v); setPage(1); }}
-                  icon="ri-map-pin-line"
-                />
+                <CountryTrigger />
                 <span className="text-xs text-gray-400 dark:text-white/30 ml-1">국가별 인기 영상 중 구독자 대비 조회수 폭발 순위</span>
               </div>
               {viralLoading && (
@@ -860,7 +866,7 @@ const VideoRankingsPage = () => {
                 선택한 국가 / 카테고리 / 기간 조합으로 조회된 영상이 없습니다.
               </p>
               <button
-                onClick={() => { setCategory('ALL'); setCountry('ALL'); setPeriod('Daily'); setPage(1); }}
+                onClick={() => { setCategory('ALL'); setPeriod('Daily'); setPage(1); }}
                 className="text-xs text-red-600 dark:text-red-400 border border-red-300 dark:border-red-500/40 px-4 py-2 rounded-lg hover:bg-red-100 dark:hover:bg-red-500/10 transition-colors cursor-pointer"
               >
                 필터 초기화
@@ -1034,6 +1040,12 @@ const VideoRankingsPage = () => {
       {modalVideo && (
         <VideoModal videoId={modalVideo.videoId} isShorts={modalVideo.isShorts} onClose={() => setModalVideo(null)} />
       )}
+      <CountryModal
+        open={countryModalOpen}
+        current={country}
+        onSelect={(c) => { setCountry(c); setPage(1); }}
+        onClose={() => setCountryModalOpen(false)}
+      />
     </div>
   );
 };

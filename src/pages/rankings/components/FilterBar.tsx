@@ -1,14 +1,13 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { countries, categories } from '@/mocks/channelRankings';
+import { categories } from '@/mocks/channelRankings';
 
 interface FilterBarProps {
-  country: string;
   category: string;
   period: string;
-  onCountryChange: (v: string) => void;
   onCategoryChange: (v: string) => void;
   onPeriodChange: (v: string) => void;
+  countrySlot?: ReactNode;
 }
 
 interface DropdownProps {
@@ -65,10 +64,9 @@ const Dropdown = ({ label, value, options, onChange, icon }: DropdownProps) => {
   );
 };
 
-const FilterBar = ({ country, category, period, onCountryChange, onCategoryChange, onPeriodChange }: FilterBarProps) => {
+const FilterBar = ({ category, period, onCategoryChange, onPeriodChange, countrySlot }: FilterBarProps) => {
   const { t } = useTranslation();
 
-  const countryOptions = countries.map((c) => ({ value: c.code, label: c.label }));
   const categoryOptions = categories.map((c) => ({ value: c === 'All Categories' ? 'ALL' : c, label: c }));
   const periodOptions = [
     { value: 'Daily', label: t('rankings_period_daily') },
@@ -78,13 +76,7 @@ const FilterBar = ({ country, category, period, onCountryChange, onCategoryChang
 
   return (
     <div className="flex flex-wrap items-center gap-3">
-      <Dropdown
-        label={t('rankings_country')}
-        value={country}
-        options={countryOptions}
-        onChange={onCountryChange}
-        icon="ri-map-pin-line"
-      />
+      {countrySlot}
       <Dropdown
         label={t('rankings_category')}
         value={category}
