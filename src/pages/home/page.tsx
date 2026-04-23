@@ -605,7 +605,7 @@ const HomePage = () => {
     let result = items;
     if (activeCat !== 'All') {
       const cats = CAT_MAP[activeCat];
-      result = result.filter(v => cats.includes(v.category));
+      result = result.filter(v => cats.some(c => c.toLowerCase() === v.category.toLowerCase()));
     }
     if (activeCountry !== 'All') {
       result = result.filter(v => v.country === activeCountry);
