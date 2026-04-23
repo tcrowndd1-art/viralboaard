@@ -92,8 +92,8 @@ const normalizeCategory = (c: string): string => DB_CAT_MAP[c] ?? c;
 
 /* ── Shorts rows config ── */
 const SHORTS_ROWS = [
-  { key: 'entermusic', tKey: 'home_shorts_entermusic', cats: ['Entertainment', 'Music', 'Comedy', 'Kids'], accent: '#ef4444', accentBg: 'rgba(239,68,68,0.10)', accentBorder: 'rgba(239,68,68,0.22)' },
-  { key: 'edtech',     tKey: 'home_shorts_edtech',     cats: ['Education', 'Technology', 'News'],          accent: '#818cf8', accentBg: 'rgba(99,102,241,0.10)', accentBorder: 'rgba(99,102,241,0.22)' },
+  { key: 'entermusic', tKey: 'home_shorts_entermusic', cats: ['Entertainment', 'Stories', 'Other'], accent: '#ef4444', accentBg: 'rgba(239,68,68,0.10)', accentBorder: 'rgba(239,68,68,0.22)' },
+  { key: 'edtech',     tKey: 'home_shorts_edtech',     cats: ['Science', 'Self-Dev', 'News'],       accent: '#818cf8', accentBg: 'rgba(99,102,241,0.10)', accentBorder: 'rgba(99,102,241,0.22)' },
 ] as const;
 
 /* ── Per-category accent colors for dynamic shorts rows ── */
@@ -646,8 +646,9 @@ const HomePage = () => {
 
   /* API 데이터 우선, quota 소진 시 mock fallback */
   const videoPool = liveVideos.length > 0 ? liveVideos : viralMockData;
-  const risingVideos = filterByCat([...videoPool].sort((a, b) => b.viralScore - a.viralScore));
-  const topViewVideos = filterByCat([...videoPool].sort((a, b) => b.views - a.views));
+  const longformPool = videoPool.filter(v => !v.isShorts);
+  const risingVideos = filterByCat([...longformPool].sort((a, b) => b.viralScore - a.viralScore));
+  const topViewVideos = filterByCat([...longformPool].sort((a, b) => b.views - a.views));
   const topViewsAll = topViewVideos;
   const chBySubs  = [...popularChannels].sort((a, b) => b.subscribers - a.subscribers);
   const chByViews = [...popularChannels].sort((a, b) => b.totalViews - a.totalViews);
