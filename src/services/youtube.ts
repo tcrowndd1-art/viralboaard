@@ -142,6 +142,7 @@ export interface RankingChannelItem {
   views: number;
   videoCount: number;
   growthPercent: number;
+  rankChange?: number | null;
 }
 
 function fmtSubs(n: number): string {

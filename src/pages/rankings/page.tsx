@@ -9,8 +9,103 @@ import RankingsTable from './components/RankingsTable';
 import type { SortKey, SortDir } from './components/RankingsTable';
 import Pagination from './components/Pagination';
 import { useSavedChannels } from '@/hooks/useSavedChannels';
-import { fetchChannelRankings } from '@/services/youtube';
 import { cacheGet, cacheSet } from '@/services/cache';
+import { supabase } from '@/services/supabase';
+
+const DB_CAT_MAP: Record<string, string> = {
+  entertainment: 'Entertainment',
+  news_politics: 'News',
+  science_tech:  'Science',
+  howto_style:   'Self-Dev',
+  people_blogs:  'Stories',
+  reference:     'Other',
+};
+
+async function fetchChannelRankingsSupabase(regionCode: string, periodName: string): Promise<RankingChannelItem[]> {
+  const targetCountry = regionCode === 'ALL' ? 'KR' : regionCode;
+  const days = periodName === 'Weekly' ? 7 : periodName === 'Monthly' ? 30 : 1;
+  const cutoff = new Date(Date.now() - days * 86_400_000).toISOString();
+
+  const { data: current, error } = await supabase
+    .from('viralboard_data')
+    .select('channel_id,channel,channel_thumbnail_url,subscriber_count,views,category')
+    .eq('country', targetCountry)
+    .gte('fetched_at', cutoff);
+
+  if (error) throw error;
+
+  type Agg = { name: string; avatar: string; subscribers: number; views: number; videoCount: number; category: string };
+  const chMap = new Map<string, Agg>();
+  for (const v of current ?? []) {
+    const id = (v as any).channel_id;
+    if (!id) continue;
+    const ex = chMap.get(id);
+    const subs = (v as any).subscriber_count ?? 0;
+    const thumb = (v as any).channel_thumbnail_url ?? '';
+    if (!ex) {
+      chMap.set(id, {
+        name: (v as any).channel ?? '',
+        avatar: thumb,
+        subscribers: subs,
+        views: (v as any).views ?? 0,
+        videoCount: 1,
+        category: DB_CAT_MAP[(v as any).category] ?? (v as any).category ?? 'Other',
+      });
+    } else {
+      ex.views += (v as any).views ?? 0;
+      ex.videoCount += 1;
+      if (subs > ex.subscribers) ex.subscribers = subs;
+      if (!ex.avatar && thumb) ex.avatar = thumb;
+    }
+  }
+
+  const y = new Date(); y.setDate(y.getDate() - days);
+  const ySnap = y.toISOString().slice(0, 10);
+  const { data: prev } = await supabase
+    .from('viralboard_history')
+    .select('video_id,subscriber_count,title,channel')
+    .eq('country', targetCountry)
+    .eq('snapshot_date', ySnap);
+
+  const prevSubsByChannel = new Map<string, number>();
+  for (const row of prev ?? []) {
+    const title = (row as any).title ?? '';
+    const name = (row as any).channel ?? '';
+    const subs = (row as any).subscriber_count ?? 0;
+    const key = `${name}::${title}`;
+    if (!prevSubsByChannel.has(key) || prevSubsByChannel.get(key)! < subs) {
+      prevSubsByChannel.set(key, subs);
+    }
+  }
+  const prevSubsByName = new Map<string, number>();
+  for (const [key, subs] of prevSubsByChannel.entries()) {
+    const name = key.split('::')[0];
+    const ex = prevSubsByName.get(name) ?? 0;
+    if (subs > ex) prevSubsByName.set(name, subs);
+  }
+
+  const channels: RankingChannelItem[] = [...chMap.entries()]
+    .sort((a, b) => b[1].subscribers - a[1].subscribers)
+    .slice(0, 50)
+    .map(([id, ch], i) => {
+      const prevSubs = prevSubsByName.get(ch.name) ?? 0;
+      const growth = prevSubs > 0 ? ((ch.subscribers - prevSubs) / prevSubs) * 100 : 0;
+      return {
+        rank: i + 1,
+        channelId: id,
+        name: ch.name,
+        avatar: ch.avatar,
+        category: ch.category,
+        country: targetCountry,
+        subscribers: ch.subscribers,
+        views: ch.views,
+        videoCount: ch.videoCount,
+        growthPercent: parseFloat(growth.toFixed(2)),
+      };
+    });
+
+  return channels;
+}
 
 const PAGE_SIZE = 10;
 
@@ -40,25 +135,8 @@ const RankingsPage = () => {
 
   useEffect(() => {
     const regionCode = REGION_MAP[country] ?? 'KR';
-    // countryFilter: filter channel results by actual channel country field
-    const countryFilter = country === 'ALL' ? '' : country;
-    let publishedAfter = '';
-    let publishedBefore = '';
-    // YouTube data has ~7-day processing delay — offset the window to avoid empty/incomplete data.
-    // Weekly:  look at 8–14 days ago  (stable 7-day window)
-    // Monthly: look at 8–37 days ago  (stable 30-day window)
-    if (period === 'Weekly') {
-      const from = new Date(); from.setDate(from.getDate() - 14);
-      const to   = new Date(); to.setDate(to.getDate() - 7);
-      publishedAfter  = from.toISOString();
-      publishedBefore = to.toISOString();
-    } else if (period === 'Monthly') {
-      const from = new Date(); from.setDate(from.getDate() - 37);
-      const to   = new Date(); to.setDate(to.getDate() - 7);
-      publishedAfter  = from.toISOString();
-      publishedBefore = to.toISOString();
-    }
-    const cacheKey = `vb_ch_rankings_v3_${country}_${period}`;
+    const targetCountry = regionCode === 'ALL' ? 'KR' : regionCode;
+    const cacheKey = `vb_ch_rankings_v4_${targetCountry}_${period}`;
     const cached = cacheGet<RankingChannelItem[]>(cacheKey);
 
     if (cached) {
@@ -72,9 +150,8 @@ const RankingsPage = () => {
     setApiError(null);
     setAllChannels([]);
 
-    fetchChannelRankings(regionCode, publishedAfter, publishedBefore, countryFilter)
-      .then((data) => {
-        const channels = data as RankingChannelItem[];
+    fetchChannelRankingsSupabase(regionCode, period)
+      .then((channels) => {
         setAllChannels(channels);
         cacheSet(cacheKey, channels);
       })
@@ -255,22 +332,10 @@ const RankingsPage = () => {
               <button
                 onClick={() => {
                   const regionCode = REGION_MAP[country] ?? 'KR';
-                  let publishedAfter = '';
-                  let publishedBefore = '';
-                  if (period === 'Weekly') {
-                    const from = new Date(); from.setDate(from.getDate() - 14);
-                    const to = new Date(); to.setDate(to.getDate() - 7);
-                    publishedAfter = from.toISOString(); publishedBefore = to.toISOString();
-                  } else if (period === 'Monthly') {
-                    const from = new Date(); from.setDate(from.getDate() - 37);
-                    const to = new Date(); to.setDate(to.getDate() - 7);
-                    publishedAfter = from.toISOString(); publishedBefore = to.toISOString();
-                  }
-                  const retryCountryFilter = country === 'ALL' ? '' : country;
                   setApiError(null);
                   setApiLoading(true);
-                  fetchChannelRankings(regionCode, publishedAfter, publishedBefore, retryCountryFilter)
-                    .then((data) => { setAllChannels(data as RankingChannelItem[]); })
+                  fetchChannelRankingsSupabase(regionCode, period)
+                    .then((channels) => { setAllChannels(channels); })
                     .catch((err) => setApiError(err instanceof Error ? err.message : '오류가 발생했습니다.'))
                     .finally(() => setApiLoading(false));
                 }}
