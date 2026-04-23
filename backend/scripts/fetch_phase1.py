@@ -1,11 +1,10 @@
 """
 ViralBoard Phase 1 Fetcher
-- 트랙 1: 카테고리 mostPopular (KR, 5종)
-- 트랙 2: 참고 채널 추적 (5개)
-- oEmbed로 실제 영상 비율 판별 (위장 Shorts 탐지)
+- 트랙 1: 카테고리 mostPopular (KR/US/JP/BR, 5종)
+- 트랙 2: 참고 채널 추적 (5개, 국가 무관 — reference 태그)
 """
 import os, sys, re, requests
-from datetime import datetime, date
+from datetime import datetime, date, timezone
 from supabase import create_client
 from dotenv import load_dotenv
 
@@ -53,7 +52,7 @@ REFERENCE_CHANNELS = [
     {'id': 'UCU5Bngb-griCg_96ZXpXOgg', 'name': 'Kimhamzzi',          'style_tag': 'hybrid_vlog_series'},
 ]
 
-COUNTRY = 'KR'
+COUNTRIES = ['KR', 'US', 'JP', 'BR']
 PER_CATEGORY = 5
 PER_CHANNEL = 5
 
@@ -75,28 +74,12 @@ def parse_duration(s):
     return int(h or 0) * 3600 + int(mi or 0) * 60 + int(se or 0)
 
 
-def fetch_oembed(video_id):
-    """quota 0. 실패해도 None 반환."""
-    try:
-        url = (
-            f'https://www.youtube.com/oembed'
-            f'?url=https://www.youtube.com/watch?v={video_id}&format=json'
-        )
-        r = requests.get(url, timeout=10)
-        if r.status_code == 200:
-            d = r.json()
-            return d.get('width'), d.get('height')
-    except Exception:
-        pass
-    return None, None
-
-
-def fetch_category(cat_id):
+def fetch_category(cat_id, country):
     """videos.list mostPopular — 1 unit"""
     r = requests.get('https://www.googleapis.com/youtube/v3/videos', params={
         'part': 'snippet,statistics,contentDetails',
         'chart': 'mostPopular',
-        'regionCode': COUNTRY,
+        'regionCode': country,
         'videoCategoryId': cat_id,
         'maxResults': PER_CATEGORY,
         'key': next_key(),
@@ -170,7 +153,6 @@ def to_record(item, category, country, ref=False, style=None, ch_details=None):
     st = item.get('statistics', {})
     c  = item.get('contentDetails', {})
     vid = item['id']
-    w, h = fetch_oembed(vid)
     ch_id = s.get('channelId')
     detail = (ch_details or {}).get(ch_id, {})
 
@@ -190,8 +172,6 @@ def to_record(item, category, country, ref=False, style=None, ch_details=None):
         'thumbnail_url':         s.get('thumbnails', {}).get('medium', {}).get('url'),
         'reference_channel':     ref,
         'style_tag':             style,
-        'actual_width':          w,
-        'actual_height':         h,
         'subscriber_count':      detail.get('subscriber_count'),
         'channel_thumbnail_url': detail.get('channel_thumbnail_url'),
     }
@@ -219,8 +199,6 @@ def save(supabase, records):
         'snapshot_date':     today,
         'reference_channel':     r['reference_channel'],
         'style_tag':             r['style_tag'],
-        'actual_width':          r['actual_width'],
-        'actual_height':         r['actual_height'],
         'subscriber_count':      r.get('subscriber_count'),
     } for r in records]
     supabase.table('viralboard_history').insert(history).execute()
@@ -229,30 +207,32 @@ def save(supabase, records):
 
 def main():
     sb = create_client(SUPABASE_URL, SUPABASE_KEY)
-    all_items   = []  # (item, category, ref, style)
+    all_items   = []  # (item, category, country, ref, style)
     fails       = []
 
-    print(f'=== Phase 1 Fetcher {datetime.utcnow().isoformat()} ===')
+    print(f'=== Phase 1 Fetcher {datetime.now(timezone.utc).isoformat()} ===')
 
-    # 트랙 1: 카테고리 수집
-    print('--- 트랙 1: 카테고리 수집 ---')
-    for name, cid in CATEGORIES.items():
-        try:
-            items = fetch_category(cid)
-            for i in items:
-                all_items.append((i, name, False, None))
-            print(f'  {name}: {len(items)}건')
-        except Exception as e:
-            fails.append(f'category:{name} → {mask_secrets(e)}')
-            print(f'  [FAIL] {name}: {mask_secrets(e)}')
+    # 트랙 1: 카테고리 수집 (4국가)
+    print(f'--- 트랙 1: 카테고리 수집 ({len(COUNTRIES)}국가) ---')
+    for country in COUNTRIES:
+        print(f'  [{country}]')
+        for name, cid in CATEGORIES.items():
+            try:
+                items = fetch_category(cid, country)
+                for i in items:
+                    all_items.append((i, name, country, False, None))
+                print(f'    {name}: {len(items)}건')
+            except Exception as e:
+                fails.append(f'category:{country}/{name} → {mask_secrets(e)}')
+                print(f'    [FAIL] {name}: {mask_secrets(e)}')
 
-    # 트랙 2: 참고 채널 수집
+    # 트랙 2: 참고 채널 수집 (국가 무관, 1번만 → 'KR' 태그 유지)
     print('--- 트랙 2: 참고 채널 수집 ---')
     for ch in REFERENCE_CHANNELS:
         try:
             items = fetch_channel_recent(ch['id'])
             for i in items:
-                all_items.append((i, 'reference', True, ch['style_tag']))
+                all_items.append((i, 'reference', 'KR', True, ch['style_tag']))
             print(f'  {ch["name"]}: {len(items)}건')
         except Exception as e:
             fails.append(f'channel:{ch["name"]} → {mask_secrets(e)}')
@@ -261,7 +241,7 @@ def main():
     # 채널 상세 일괄 조회 (subscriber + avatar)
     unique_ch_ids = list({
         i.get('snippet', {}).get('channelId')
-        for (i, _, _, _) in all_items
+        for (i, _, _, _, _) in all_items
         if i.get('snippet', {}).get('channelId')
     })
     print(f'--- 채널 상세 조회: {len(unique_ch_ids)}개 채널 ---')
@@ -269,8 +249,8 @@ def main():
     print(f'  응답: {len(ch_details)}개')
 
     # 레코드 변환 + 저장
-    recs = [to_record(i, cat, COUNTRY, ref, style, ch_details)
-            for (i, cat, ref, style) in all_items]
+    recs = [to_record(i, cat, country, ref, style, ch_details)
+            for (i, cat, country, ref, style) in all_items]
     total = save(sb, recs)
 
     print(f'\n=== 완료: {total}건 저장 / 실패: {len(fails)} ===')
