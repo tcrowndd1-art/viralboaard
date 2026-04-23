@@ -649,6 +649,7 @@ const HomePage = () => {
   const risingVideos = filterByCat([...videoPool].sort((a, b) => b.viralScore - a.viralScore));
   const topViewVideos = filterByCat([...videoPool].sort((a, b) => b.views - a.views));
   const topViewsAll = topViewVideos;
+  const chBySubs  = [...popularChannels].sort((a, b) => b.subscribers - a.subscribers);
   const chByViews = [...popularChannels].sort((a, b) => b.totalViews - a.totalViews);
 
   /* Category display labels */
@@ -687,7 +688,7 @@ const HomePage = () => {
 
           {/* ── Popular Channels TOP10 — horizontal scroll with tabs ── */}
           {(() => {
-            const chList = chTab === 'subs' ? popularChannels.slice(0, 10) : chByViews.slice(0, 10);
+            const chList = (chTab === 'subs' ? chBySubs : chByViews).slice(0, 10);
             const isLoading = !homeDataLoaded && popularChannels.length === 0;
             return (
               <div>
