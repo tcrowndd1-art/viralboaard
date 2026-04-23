@@ -9,7 +9,6 @@ import RankingsTable from './components/RankingsTable';
 import type { SortKey, SortDir } from './components/RankingsTable';
 import Pagination from './components/Pagination';
 import { useSavedChannels } from '@/hooks/useSavedChannels';
-import { cacheGet, cacheSet } from '@/services/cache';
 import { supabase } from '@/services/supabase';
 import { CountryPicker, loadCountry } from '@/components/CountryModal';
 
@@ -136,16 +135,6 @@ const RankingsPage = () => {
 
   useEffect(() => {
     const regionCode = REGION_MAP[country] ?? 'KR';
-    const targetCountry = regionCode === 'ALL' ? 'KR' : regionCode;
-    const cacheKey = `vb_ch_rankings_v4_${targetCountry}_${period}`;
-    const cached = cacheGet<RankingChannelItem[]>(cacheKey);
-
-    if (cached) {
-      setAllChannels(cached);
-      setApiLoading(false);
-      setApiError(null);
-      return;
-    }
 
     setApiLoading(true);
     setApiError(null);
@@ -154,7 +143,6 @@ const RankingsPage = () => {
     fetchChannelRankingsSupabase(regionCode, period)
       .then((channels) => {
         setAllChannels(channels);
-        cacheSet(cacheKey, channels);
       })
       .catch((err) => {
         console.error('RankingsPage Error:', err);

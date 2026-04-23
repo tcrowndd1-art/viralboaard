@@ -4,7 +4,6 @@ import { videoCategories } from '@/mocks/videoRankings';
 import { countries } from '@/mocks/channelRankings';
 import { RankingVideoItem, ViralVideoItem } from '@/services/youtube';
 import { viralMockData } from '@/mocks/viralData';
-import { cacheGet, cacheSet } from '@/services/cache';
 import { supabase } from '@/services/supabase';
 import { CountryPicker, loadCountry } from '@/components/CountryModal';
 
@@ -358,7 +357,6 @@ const VideoRankingsPage = () => {
       });
 
       setAllVideos(mapped);
-      cacheSet(`vb_vid_rankings_v3_${targetCountry}_${periodKey}`, mapped);
     };
 
     run()
@@ -372,10 +370,6 @@ const VideoRankingsPage = () => {
   useEffect(() => {
     const regionCode = REGION_MAP[country] ?? 'KR';
     const periodKey = period.toLowerCase();
-    const targetCountry = regionCode === 'ALL' ? 'KR' : regionCode;
-    const cacheKey = `vb_vid_rankings_v3_${targetCountry}_${periodKey}`;
-    const cached = cacheGet<RankingVideoItem[]>(cacheKey);
-    if (cached) { setAllVideos(cached); setApiLoading(false); setApiError(null); return; }
     doFetch(regionCode, period, periodKey);
   }, [country, period, doFetch]);
 
@@ -383,11 +377,6 @@ const VideoRankingsPage = () => {
 
   const doFetchViral = useCallback((regionCode: string) => {
     const targetCountry = regionCode === 'ALL' ? 'KR' : regionCode;
-    const cacheKey = `vb_viral_v2_${targetCountry}`;
-    const cached = cacheGet<ViralVideoItem[]>(cacheKey);
-    if (cached) {
-      setViralVideos(cached); setViralLoading(false); setViralError(null); setViralIsDemo(false); return;
-    }
     setViralLoading(true);
     setViralError(null);
     setViralVideos([]);
@@ -430,7 +419,6 @@ const VideoRankingsPage = () => {
 
       setViralVideos(mapped);
       setViralIsDemo(false);
-      cacheSet(cacheKey, mapped);
     };
 
     run()

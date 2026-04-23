@@ -2,6 +2,14 @@ const TTL_MS = 24 * 60 * 60 * 1000;
 const HISTORY_KEY = 'vb_search_history';
 const MAX_HISTORY = 5;
 
+try {
+  const stale = ['vb_vid_rankings_', 'vb_ch_rankings_', 'vb_viral_'];
+  for (let i = localStorage.length - 1; i >= 0; i--) {
+    const k = localStorage.key(i);
+    if (k && stale.some(p => k.startsWith(p))) localStorage.removeItem(k);
+  }
+} catch { /* ignore */ }
+
 interface CacheEntry<T> {
   data: T;
   ts: number;
