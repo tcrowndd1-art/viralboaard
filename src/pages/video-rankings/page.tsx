@@ -3,9 +3,18 @@ import { useTranslation } from 'react-i18next';
 import { videoCategories } from '@/mocks/videoRankings';
 import { countries } from '@/mocks/channelRankings';
 import { RankingVideoItem, ViralVideoItem } from '@/services/youtube';
-import { fetchVideoRankings, fetchViralVideos } from '@/services/youtube';
 import { viralMockData } from '@/mocks/viralData';
 import { cacheGet, cacheSet } from '@/services/cache';
+import { supabase } from '@/services/supabase';
+
+const DB_CAT_MAP: Record<string, string> = {
+  entertainment: 'Entertainment',
+  news_politics: 'News',
+  science_tech:  'Science',
+  howto_style:   'Self-Dev',
+  people_blogs:  'Stories',
+  reference:     'Other',
+};
 import TopHeader from '@/pages/home/components/TopHeader';
 import GlobalSidebar from '@/components/feature/GlobalSidebar';
 import HoverPopup from '@/components/feature/HoverPopup';
@@ -295,16 +304,61 @@ const VideoRankingsPage = () => {
     });
   }, []);
 
-  const doFetch = useCallback((regionCode: string, publishedAfter: string, periodKey: string) => {
+  const doFetch = useCallback((regionCode: string, periodName: string, periodKey: string) => {
     setApiLoading(true);
     setApiError(null);
     setAllVideos([]);
-    fetchVideoRankings(regionCode, 50, publishedAfter)
-      .then((data) => {
-        const videos = data as RankingVideoItem[];
-        setAllVideos(videos);
-        cacheSet(`vb_vid_rankings_v2_${regionCode}_${periodKey}`, videos);
-      })
+
+    const targetCountry = regionCode === 'ALL' ? 'KR' : regionCode;
+    const days = periodName === 'Weekly' ? 7 : periodName === 'Monthly' ? 30 : 1;
+    const cutoff = new Date(Date.now() - days * 86_400_000).toISOString();
+
+    const run = async () => {
+      const { data: current, error } = await supabase
+        .from('viralboard_data')
+        .select('video_id,title,channel,channel_id,channel_thumbnail_url,subscriber_count,views,published_at,fetched_at,category,country')
+        .eq('country', targetCountry)
+        .gte('fetched_at', cutoff)
+        .order('views', { ascending: false })
+        .limit(50);
+
+      if (error) throw error;
+
+      const y = new Date(); y.setDate(y.getDate() - 1);
+      const ySnap = y.toISOString().slice(0, 10);
+      const { data: prev } = await supabase
+        .from('viralboard_history')
+        .select('video_id,views')
+        .eq('country', targetCountry)
+        .eq('snapshot_date', ySnap)
+        .order('views', { ascending: false })
+        .limit(100);
+
+      const prevRank = new Map<string, number>();
+      (prev ?? []).forEach((v: any, i: number) => prevRank.set(v.video_id, i + 1));
+
+      const mapped: RankingVideoItem[] = (current ?? []).map((v: any, i: number) => {
+        const pr = prevRank.get(v.video_id);
+        return {
+          rank: i + 1,
+          videoId: v.video_id,
+          title: v.title ?? '',
+          channelName: v.channel ?? '',
+          channelAvatar: v.channel_thumbnail_url ?? '',
+          channelSubscribers: v.subscriber_count ?? 0,
+          views: v.views ?? 0,
+          uploadDate: v.published_at ?? v.fetched_at ?? '',
+          category: DB_CAT_MAP[v.category] ?? v.category ?? 'Other',
+          country: v.country,
+          rankChange: pr != null ? pr - (i + 1) : null,
+        };
+      });
+
+      setAllVideos(mapped);
+      cacheSet(`vb_vid_rankings_v3_${targetCountry}_${periodKey}`, mapped);
+    };
+
+    run()
       .catch((err: unknown) => {
         setAllVideos([]);
         setApiError(err instanceof Error ? err.message : 'Unknown error');
@@ -315,24 +369,18 @@ const VideoRankingsPage = () => {
   useEffect(() => {
     const regionCode = REGION_MAP[country] ?? 'KR';
     const periodKey = period.toLowerCase();
-    let publishedAfter = '';
-    if (period === 'Weekly') {
-      const d = new Date(); d.setDate(d.getDate() - 7);
-      publishedAfter = d.toISOString();
-    } else if (period === 'Monthly') {
-      const d = new Date(); d.setDate(d.getDate() - 30);
-      publishedAfter = d.toISOString();
-    }
-    const cacheKey = `vb_vid_rankings_v2_${regionCode}_${periodKey}`;
+    const targetCountry = regionCode === 'ALL' ? 'KR' : regionCode;
+    const cacheKey = `vb_vid_rankings_v3_${targetCountry}_${periodKey}`;
     const cached = cacheGet<RankingVideoItem[]>(cacheKey);
     if (cached) { setAllVideos(cached); setApiLoading(false); setApiError(null); return; }
-    doFetch(regionCode, publishedAfter, periodKey);
+    doFetch(regionCode, period, periodKey);
   }, [country, period, doFetch]);
 
   const [viralIsDemo, setViralIsDemo] = useState(false);
 
   const doFetchViral = useCallback((regionCode: string) => {
-    const cacheKey = `vb_viral_v1_${regionCode}`;
+    const targetCountry = regionCode === 'ALL' ? 'KR' : regionCode;
+    const cacheKey = `vb_viral_v2_${targetCountry}`;
     const cached = cacheGet<ViralVideoItem[]>(cacheKey);
     if (cached) {
       setViralVideos(cached); setViralLoading(false); setViralError(null); setViralIsDemo(false); return;
@@ -341,14 +389,49 @@ const VideoRankingsPage = () => {
     setViralError(null);
     setViralVideos([]);
     setViralIsDemo(false);
-    fetchViralVideos(regionCode)
-      .then((data) => {
-        setViralVideos(data);
-        setViralIsDemo(false);
-        cacheSet(cacheKey, data);
-      })
+
+    const run = async () => {
+      const { data, error } = await supabase
+        .from('viralboard_data')
+        .select('video_id,title,channel,channel_id,channel_thumbnail_url,subscriber_count,views,published_at,fetched_at,category,country,thumbnail_url,is_shorts,duration_seconds,likes,comments')
+        .eq('country', targetCountry)
+        .gt('subscriber_count', 0)
+        .order('views', { ascending: false })
+        .limit(200);
+
+      if (error) throw error;
+
+      const mapped: ViralVideoItem[] = (data ?? [])
+        .map((v: any) => ({
+          rank: 0,
+          videoId: v.video_id,
+          title: v.title ?? '',
+          channelName: v.channel ?? '',
+          channelAvatar: v.channel_thumbnail_url ?? '',
+          channelId: v.channel_id ?? '',
+          subscribers: v.subscriber_count ?? 0,
+          views: v.views ?? 0,
+          viralScore: v.subscriber_count > 0 ? v.views / v.subscriber_count : 0,
+          uploadDate: v.published_at ?? v.fetched_at ?? '',
+          thumbnail: (v.thumbnail_url ?? '').replace(/\/(hq|mq|sd)default\.jpg/, '/maxresdefault.jpg'),
+          category: DB_CAT_MAP[v.category] ?? v.category ?? 'Other',
+          country: v.country,
+          isShorts: v.is_shorts ?? false,
+          duration: v.duration_seconds ?? 0,
+          likes: v.likes ?? 0,
+          comments: v.comments ?? 0,
+        }))
+        .sort((a: ViralVideoItem, b: ViralVideoItem) => (b.viralScore ?? 0) - (a.viralScore ?? 0))
+        .slice(0, 50)
+        .map((v: ViralVideoItem, i: number) => ({ ...v, rank: i + 1 }));
+
+      setViralVideos(mapped);
+      setViralIsDemo(false);
+      cacheSet(cacheKey, mapped);
+    };
+
+    run()
       .catch(() => {
-        // API quota exhausted — show demo data so UI is functional
         setViralVideos(viralMockData);
         setViralIsDemo(true);
         setViralError(null);
@@ -756,7 +839,7 @@ const VideoRankingsPage = () => {
               <button
                 onClick={() => {
                   const rc = REGION_MAP[country] ?? 'KR';
-                  doFetch(rc, '', period.toLowerCase());
+                  doFetch(rc, period, period.toLowerCase());
                 }}
                 className="text-xs text-red-600 dark:text-red-400 border border-red-300 dark:border-red-500/40 px-4 py-2 rounded-lg hover:bg-red-100 dark:hover:bg-red-500/10 transition-colors cursor-pointer"
               >

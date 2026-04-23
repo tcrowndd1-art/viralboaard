@@ -108,6 +108,7 @@ export interface RankingVideoItem {
   uploadDate: string;
   category: string;
   country: string;
+  rankChange?: number | null;
 }
 
 export interface ViralVideoItem {
