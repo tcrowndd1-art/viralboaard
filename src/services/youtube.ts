@@ -124,6 +124,9 @@ export interface ViralVideoItem {
   category: string;
   country: string;
   isShorts?: boolean;
+  isRealShorts?: boolean;
+  likes?: number;
+  comments?: number;
 }
 
 export interface RankingChannelItem {

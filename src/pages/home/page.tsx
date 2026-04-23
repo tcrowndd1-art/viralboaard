@@ -173,7 +173,7 @@ const VideoCard = ({
       >
         <img src={v.thumbnail} alt={v.title}
           className="w-full h-full object-cover group-hover:scale-[1.04] transition-transform duration-300"
-          onError={(e) => { const img = e.target as HTMLImageElement; if (img.src.includes('hqdefault')) { img.src = img.src.replace('hqdefault', 'mqdefault'); } else { img.style.opacity = '0'; } }} />
+          onError={(e) => { const img = e.target as HTMLImageElement; if (img.src.includes('maxresdefault')) { img.src = img.src.replace('maxresdefault', 'hqdefault'); } else if (img.src.includes('hqdefault')) { img.src = img.src.replace('hqdefault', 'mqdefault'); } else { img.style.opacity = '0'; } }} />
         <div className="absolute bottom-1.5 right-1.5 bg-black/75 backdrop-blur-sm rounded px-1.5 leading-none" style={{ paddingTop: '3px', paddingBottom: '3px' }}>
           <span className="text-emerald-400 text-[9px] font-black leading-none">{revMin}–{revMax}</span>
         </div>
@@ -188,7 +188,11 @@ const VideoCard = ({
           <div className="flex items-center gap-1 flex-wrap">
             <span className="text-[10px] text-gray-400 dark:text-white/30 truncate max-w-[120px]">{v.channelName}</span>
             <span className="text-[10px] text-gray-300 dark:text-white/15">·</span>
-            <span className="text-[10px] text-gray-400 dark:text-white/30 font-mono">{fmtViews(v.views)}</span>
+            <span className="text-[10px] text-gray-400 dark:text-white/30 font-mono inline-flex items-center gap-0.5"><i className="ri-eye-line text-[10px]"></i>{fmtViews(v.views)}</span>
+            <span className="text-[10px] text-gray-300 dark:text-white/15">·</span>
+            <span className="text-[10px] text-gray-400 dark:text-white/30 font-mono inline-flex items-center gap-0.5"><i className="ri-thumb-up-line text-[10px]"></i>{fmtViews(v.likes ?? 0)}</span>
+            <span className="text-[10px] text-gray-300 dark:text-white/15">·</span>
+            <span className="text-[10px] text-gray-400 dark:text-white/30 font-mono inline-flex items-center gap-0.5"><i className="ri-chat-3-line text-[10px]"></i>{fmtViews(v.comments ?? 0)}</span>
             {multi && <span className={`text-[8px] font-black px-1 py-px rounded leading-none ${multi.cls}`}>{multi.text}</span>}
           </div>
         </div>
@@ -214,12 +218,12 @@ const ShortsCard = ({ v }: { v: ViralVideoItem }) => {
       ? `${daysAgo}${t('time_days_ago')}`
       : `${Math.floor(daysAgo / 7)}${t('time_weeks_ago')}`;
   return (
-    <a href={`https://www.youtube.com/shorts/${v.videoId}`} target="_blank" rel="noopener noreferrer"
+    <a href={v.isRealShorts ? `https://www.youtube.com/shorts/${v.videoId}` : `https://www.youtube.com/watch?v=${v.videoId}`} target="_blank" rel="noopener noreferrer"
       className="group cursor-pointer block w-full">
       <div className="relative overflow-hidden rounded-xl bg-gray-100 dark:bg-white/10" style={{ aspectRatio: '9/16' }}>
         <img src={v.thumbnail} alt={v.title}
           className="w-full h-full object-cover object-center group-hover:scale-[1.07] transition-transform duration-300"
-          onError={(e) => { const img = e.target as HTMLImageElement; if (img.src.includes('hqdefault')) { img.src = img.src.replace('hqdefault', 'mqdefault'); } else { img.style.opacity = '0'; } }} />
+          onError={(e) => { const img = e.target as HTMLImageElement; if (img.src.includes('maxresdefault')) { img.src = img.src.replace('maxresdefault', 'hqdefault'); } else if (img.src.includes('hqdefault')) { img.src = img.src.replace('hqdefault', 'mqdefault'); } else { img.style.opacity = '0'; } }} />
         {multi && (
           <div className="absolute top-1.5 right-1.5">
             <span className={`text-[7px] font-black px-1 rounded leading-none ${multi.cls}`} style={{ paddingTop: '2px', paddingBottom: '2px' }}>
@@ -252,7 +256,7 @@ const TrendCard = ({ v }: { v: TrendingVideoItem }) => (
     <div className="relative overflow-hidden rounded-xl bg-gray-100 dark:bg-white/10 mb-2" style={{ aspectRatio: '16/9' }}>
       <img src={v.thumbnail} alt={v.title}
         className="w-full h-full object-cover group-hover:scale-[1.04] transition-transform duration-300"
-        onError={(e) => { const img = e.target as HTMLImageElement; if (img.src.includes('hqdefault')) { img.src = img.src.replace('hqdefault', 'mqdefault'); } else { img.style.opacity = '0'; } }} />
+        onError={(e) => { const img = e.target as HTMLImageElement; if (img.src.includes('maxresdefault')) { img.src = img.src.replace('maxresdefault', 'hqdefault'); } else if (img.src.includes('hqdefault')) { img.src = img.src.replace('hqdefault', 'mqdefault'); } else { img.style.opacity = '0'; } }} />
     </div>
     <p className="text-[12px] text-gray-900 dark:text-white/85 font-semibold line-clamp-2 leading-snug mb-1 group-hover:text-red-500 transition-colors">{v.title}</p>
     <div className="flex items-center gap-1">
@@ -521,10 +525,13 @@ const HomePage = () => {
           views: v.views,
           viralScore: v.subscriber_count > 0 ? v.views / v.subscriber_count : null,
           uploadDate: v.fetched_at,
-          thumbnail: v.thumbnail_url,
+          thumbnail: (v.thumbnail_url ?? '').replace(/\/(hq|mq|sd)default\.jpg/, '/maxresdefault.jpg'),
           category: normalizeCategory(v.category),
           country: v.country,
           isShorts: v.is_shorts ?? false,
+          isRealShorts: v.is_real_shorts ?? false,
+          likes: v.likes ?? 0,
+          comments: v.comments ?? 0,
         }));
         if (!cancelled) setLiveVideos(viral);
 
@@ -547,15 +554,17 @@ const HomePage = () => {
         if (!cancelled) setTrendingVideos(trending);
 
         // 인기 채널 (popularChannels) — channel_id별 조회수 집계
-        const channelMap = new Map<string, { name: string; channelId: string; totalViews: number; subscribers: number }>();
+        const channelMap = new Map<string, { name: string; channelId: string; totalViews: number; subscribers: number; avatar: string }>();
         for (const v of data) {
           const subs = v.subscriber_count ?? 0;
+          const thumb = v.channel_thumbnail_url ?? '';
           const existing = channelMap.get(v.channel_id);
           if (!existing) {
-            channelMap.set(v.channel_id, { name: v.channel, channelId: v.channel_id, totalViews: v.views, subscribers: subs });
+            channelMap.set(v.channel_id, { name: v.channel, channelId: v.channel_id, totalViews: v.views, subscribers: subs, avatar: thumb });
           } else {
             existing.totalViews += v.views;
             if (subs > existing.subscribers) existing.subscribers = subs;
+            if (!existing.avatar && thumb) existing.avatar = thumb;
           }
         }
         const popular: PopularChannelItem[] = [...channelMap.values()]
@@ -567,7 +576,7 @@ const HomePage = () => {
             score: ch.totalViews >= 1_000_000
               ? `${(ch.totalViews / 1_000_000).toFixed(1)}M`
               : `${(ch.totalViews / 1_000).toFixed(0)}K`,
-            avatar: '',
+            avatar: ch.avatar,
             channelId: ch.channelId,
             subscribers: ch.subscribers,
             totalViews: ch.totalViews,
@@ -863,16 +872,6 @@ const HomePage = () => {
           {/* ── Shorts (category-aware) ── */}
           <ShortsSection data={videoPool.filter(v => v.isShorts)} activeCat={activeCat} />
 
-          {/* ── Saved Videos ── */}
-          {savedIds.size > 0 && (() => {
-            const saved = videoPool.filter(v => savedIds.has(v.videoId));
-            if (!saved.length) return null;
-            return (
-              <VideoSection icon="ri-bookmark-fill" iconColor="text-red-500" title="Saved Videos"
-                badge={<span className="text-[10px] bg-red-100 dark:bg-red-500/20 text-red-500 dark:text-red-400 px-1.5 py-0.5 rounded-full font-bold">{savedIds.size}</span>}
-                items={saved} savedIds={savedIds} onToggleSave={handleToggleSave} />
-            );
-          })()}
 
           {/* ── Rising Channels ── */}
           <VideoSection icon="ri-rocket-line" iconColor="text-emerald-500"
