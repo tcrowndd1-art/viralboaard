@@ -1,4 +1,5 @@
 import { markKeyExhausted, getFirstAvailableKeyIndex } from './quotaGuard';
+import { supabase } from './supabase';
 
 /* ── [MIGRATED] Keys moved to backend — frontend calls are stubs ── */
 const API_KEYS: string[] = [];
@@ -203,69 +204,77 @@ export async function searchVideos(query: string, maxResults = 10): Promise<Vide
 }
 
 export async function searchChannel(query: string): Promise<ChannelResult | null> {
-  const searchData = await get<any>('search', {
-    part: 'snippet',
-    type: 'channel',
-    q: query,
-    maxResults: '1',
-  });
-  const item = searchData.items?.[0];
-  if (!item) return null;
-  const channelId: string = item.id.channelId;
+  const { data, error } = await supabase
+    .from('viralboard_data')
+    .select('channel_id, channel, channel_thumbnail_url, subscriber_count, views, country')
+    .ilike('channel', `%${query}%`)
+    .limit(200);
+  if (error || !data || data.length === 0) return null;
 
-  const channelData = await get<any>('channels', {
-    part: 'snippet,statistics,brandingSettings',
-    id: channelId,
-  });
-  const ch = channelData.items?.[0];
-  if (!ch) return null;
+  // Pick the channel (channel_id) with the highest subscriber_count among matches
+  const byChannel = new Map<string, { name: string; avatar: string; subscribers: number; totalViews: number; videoCount: number; country: string }>();
+  for (const v of data) {
+    const id = v.channel_id;
+    const existing = byChannel.get(id);
+    if (!existing) {
+      byChannel.set(id, {
+        name: v.channel,
+        avatar: v.channel_thumbnail_url ?? '',
+        subscribers: v.subscriber_count ?? 0,
+        totalViews: v.views ?? 0,
+        videoCount: 1,
+        country: v.country ?? '',
+      });
+    } else {
+      existing.totalViews += v.views ?? 0;
+      existing.videoCount += 1;
+      if ((v.subscriber_count ?? 0) > existing.subscribers) existing.subscribers = v.subscriber_count;
+      if (!existing.avatar && v.channel_thumbnail_url) existing.avatar = v.channel_thumbnail_url;
+    }
+  }
+  const [bestId, best] = [...byChannel.entries()].sort((a, b) => b[1].subscribers - a[1].subscribers)[0];
 
   return {
-    id: channelId,
-    name: ch.snippet.title,
-    handle: ch.snippet.customUrl ?? `@${ch.snippet.title}`,
-    avatar: ch.snippet.thumbnails?.high?.url ?? ch.snippet.thumbnails?.default?.url ?? '',
-    banner: ch.brandingSettings?.image?.bannerExternalUrl ?? '',
-    subscribers: parseInt(ch.statistics.subscriberCount ?? '0'),
-    totalViews: parseInt(ch.statistics.viewCount ?? '0'),
-    videoCount: parseInt(ch.statistics.videoCount ?? '0'),
-    country: ch.snippet.country ?? '',
-    description: ch.snippet.description ?? '',
+    id: bestId,
+    name: best.name,
+    handle: `@${best.name}`,
+    avatar: best.avatar,
+    banner: '',
+    subscribers: best.subscribers,
+    totalViews: best.totalViews,
+    videoCount: best.videoCount,
+    country: best.country,
+    description: '',
   };
 }
 
 export async function fetchRecentVideos(channelId: string): Promise<VideoResult[]> {
-  const searchData = await get<any>('search', {
-    part: 'snippet',
-    channelId,
-    type: 'video',
-    order: 'date',
-    maxResults: '5',
-  });
-  const items: any[] = searchData.items ?? [];
-  if (items.length === 0) return [];
+  const { data, error } = await supabase
+    .from('viralboard_data')
+    .select('video_id, title, channel, views, likes, published_at, thumbnail_url, duration_seconds')
+    .eq('channel_id', channelId)
+    .order('published_at', { ascending: false })
+    .limit(5);
+  if (error || !data) return [];
 
-  const videoIds = items.map((v: any) => v.id.videoId).join(',');
+  const fmtDur = (sec: number): string => {
+    const h = Math.floor(sec / 3600);
+    const m = Math.floor((sec % 3600) / 60);
+    const s = sec % 60;
+    const mm = String(m).padStart(h > 0 ? 2 : 1, '0');
+    const ss = String(s).padStart(2, '0');
+    return h > 0 ? `${h}:${mm}:${ss}` : `${mm}:${ss}`;
+  };
 
-  const [statsData, detailData] = await Promise.all([
-    get<any>('videos', { part: 'statistics', id: videoIds }),
-    get<any>('videos', { part: 'contentDetails', id: videoIds }),
-  ]);
-
-  const statsMap = new Map<string, any>(statsData.items?.map((v: any) => [v.id, v.statistics]));
-  const durationMap = new Map<string, string>(
-    detailData.items?.map((v: any) => [v.id, parseDuration(v.contentDetails.duration)])
-  );
-
-  return items.map((v: any) => ({
-    videoId: v.id.videoId,
-    title: v.snippet.title,
-    channelName: v.snippet.channelTitle ?? '',
-    views: parseInt(statsMap.get(v.id.videoId)?.viewCount ?? '0'),
-    likes: parseInt(statsMap.get(v.id.videoId)?.likeCount ?? '0'),
-    uploadDate: v.snippet.publishedAt?.slice(0, 10) ?? '',
-    thumbnail: `https://img.youtube.com/vi/${v.id.videoId}/mqdefault.jpg`,
-    duration: durationMap.get(v.id.videoId) ?? '0:00',
+  return data.map((v: any) => ({
+    videoId: v.video_id,
+    title: v.title,
+    channelName: v.channel ?? '',
+    views: v.views ?? 0,
+    likes: v.likes ?? 0,
+    uploadDate: (v.published_at ?? '').slice(0, 10),
+    thumbnail: (v.thumbnail_url ?? '').replace(/\/(hq|mq|sd)default\.jpg/, '/maxresdefault.jpg'),
+    duration: fmtDur(v.duration_seconds ?? 0),
   }));
 }
 
