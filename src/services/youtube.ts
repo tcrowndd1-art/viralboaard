@@ -125,7 +125,7 @@ export interface ViralVideoItem {
   category: string;
   country: string;
   isShorts?: boolean;
-  isRealShorts?: boolean;
+  duration?: number;
   likes?: number;
   comments?: number;
 }

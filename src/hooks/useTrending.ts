@@ -30,10 +30,8 @@ export function useTrending({ category, shorts, sort, referenceOnly }: UseTrendi
         if (referenceOnly) {
           query = query.eq('reference_channel', true);
         }
-        if (shorts === 'real') {
-          query = query.eq('is_real_shorts', true);
-        } else if (shorts === 'fake') {
-          query = query.eq('is_fake_shorts', true);
+        if (shorts === 'shorts') {
+          query = query.eq('is_shorts', true);
         } else if (shorts === 'longform') {
           query = query.eq('is_shorts', false);
         }

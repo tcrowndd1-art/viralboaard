@@ -25,8 +25,7 @@ const CATEGORIES: { v: CategoryFilter; l: string }[] = [
 
 const SHORTS: { v: ShortsFilter; l: string }[] = [
   { v: 'all', l: '전체' },
-  { v: 'real', l: '🟢 진짜 Shorts' },
-  { v: 'fake', l: '🔴 위장 Shorts' },
+  { v: 'shorts', l: 'Shorts' },
   { v: 'longform', l: '롱폼' },
 ];
 

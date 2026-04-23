@@ -18,22 +18,6 @@ export function TrendingCard({ video }: Props) {
           className="w-full h-40 object-cover rounded mb-2"
           loading="lazy"
         />
-        {video.is_fake_shorts && (
-          <span
-            data-testid="fake-shorts-badge"
-            className="absolute top-1 right-1 bg-red-500 text-white text-xs px-2 py-1 rounded"
-          >
-            🔴 위장 Shorts
-          </span>
-        )}
-        {!video.is_fake_shorts && video.is_real_shorts && (
-          <span
-            data-testid="real-shorts-badge"
-            className="absolute top-1 right-1 bg-green-500 text-white text-xs px-2 py-1 rounded"
-          >
-            🟢 Shorts
-          </span>
-        )}
       </div>
       <h3 className="font-semibold text-sm line-clamp-2 mb-1">{video.title}</h3>
       <p className="text-xs text-gray-500 mb-1">{video.channel}</p>

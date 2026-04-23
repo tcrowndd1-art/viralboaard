@@ -218,7 +218,7 @@ const ShortsCard = ({ v }: { v: ViralVideoItem }) => {
       ? `${daysAgo}${t('time_days_ago')}`
       : `${Math.floor(daysAgo / 7)}${t('time_weeks_ago')}`;
   return (
-    <a href={v.isRealShorts ? `https://www.youtube.com/shorts/${v.videoId}` : `https://www.youtube.com/watch?v=${v.videoId}`} target="_blank" rel="noopener noreferrer"
+    <a href={(v.duration ?? 0) <= 60 ? `https://www.youtube.com/shorts/${v.videoId}` : `https://www.youtube.com/watch?v=${v.videoId}`} target="_blank" rel="noopener noreferrer"
       className="group cursor-pointer block w-full">
       <div className="relative overflow-hidden rounded-xl bg-gray-100 dark:bg-white/10" style={{ aspectRatio: '9/16' }}>
         <img src={v.thumbnail} alt={v.title}
@@ -529,7 +529,7 @@ const HomePage = () => {
           category: normalizeCategory(v.category),
           country: v.country,
           isShorts: v.is_shorts ?? false,
-          isRealShorts: v.is_real_shorts ?? false,
+          duration: v.duration_seconds ?? 0,
           likes: v.likes ?? 0,
           comments: v.comments ?? 0,
         }));

@@ -11,8 +11,6 @@ export interface TrendingVideo {
   comments: number;
   duration_seconds: number;
   is_shorts: boolean;
-  is_real_shorts: boolean;
-  is_fake_shorts: boolean;
   thumbnail_url: string;
   reference_channel: boolean;
   style_tag: string | null;
@@ -22,5 +20,5 @@ export interface TrendingVideo {
 }
 
 export type CategoryFilter = 'all' | 'people_blogs' | 'entertainment' | 'news_politics' | 'howto_style' | 'science_tech' | 'reference';
-export type ShortsFilter = 'all' | 'real' | 'fake' | 'longform';
+export type ShortsFilter = 'all' | 'shorts' | 'longform';
 export type SortOrder = 'views' | 'recent';
