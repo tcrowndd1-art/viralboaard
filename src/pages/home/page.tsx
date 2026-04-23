@@ -61,6 +61,23 @@ function multiBadge(score: number | null) {
   return                  { text: t, cls: 'bg-gray-200 text-gray-600 dark:bg-white/15 dark:text-white/50' };
 }
 
+/* ── Channel avatar with initials fallback ── */
+const ChannelAvatar = ({ src, name }: { src: string; name: string }) => {
+  const [failed, setFailed] = useState(!src);
+  const initials = (name || '?').replace(/\s+/g, '').slice(0, 2).toUpperCase();
+  if (failed) {
+    return (
+      <div className="w-full h-full flex items-center justify-center bg-gray-200 dark:bg-white/15 text-gray-600 dark:text-white/70 font-bold text-[11px] uppercase">
+        {initials}
+      </div>
+    );
+  }
+  return (
+    <img src={src} alt={name} className="w-full h-full object-cover"
+      onError={() => setFailed(true)} />
+  );
+};
+
 /* ── Category tabs — English keys internally ── */
 const CATS = ['All', 'Entertainment', 'Gaming', 'Music', 'Education', 'Health', 'Sports', 'Science', 'Psychology', 'Self-Dev', 'Stories', 'Other'] as const;
 type Cat = typeof CATS[number];
@@ -75,7 +92,7 @@ const CAT_MAP: Record<Cat, string[]> = {
   'Sports':        ['Sports'],
   'Science':       ['Science'],
   'Psychology':    ['Psychology'],
-  'Self-Dev':      ['Self-help', 'Motivation'],
+  'Self-Dev':      ['Self-Dev', 'Self-help', 'Motivation'],
   'Stories':       ['Stories', 'News'],
   'Other':         ['Other', 'Comedy', 'News'],
 };
@@ -285,7 +302,7 @@ const SectionHeader = ({
 );
 
 /* ── Shorts section — category-aware, 2 preset rows or 1 dynamic row ── */
-const ShortsSection = ({ data, activeCat }: { data: ViralVideoItem[]; activeCat: Cat }) => {
+const ShortsSection = ({ data, activeCat, loaded }: { data: ViralVideoItem[]; activeCat: Cat; loaded: boolean }) => {
   const { t } = useTranslation();
   const [page1, setPage1] = useState(1);
   const [page2, setPage2] = useState(1);
@@ -306,6 +323,7 @@ const ShortsSection = ({ data, activeCat }: { data: ViralVideoItem[]; activeCat:
   }) => {
     const paged = items.slice((page - 1) * PER_PAGE, page * PER_PAGE);
     const isEmpty = paged.length === 0;
+    const noData = loaded && items.length === 0;
     const half1 = isEmpty ? Array.from({ length: 4 }) as (ViralVideoItem | undefined)[] : paged.slice(0, 4);
     const half2 = isEmpty ? Array.from({ length: 4 }) as (ViralVideoItem | undefined)[] : paged.slice(4, 8);
 
@@ -322,6 +340,12 @@ const ShortsSection = ({ data, activeCat }: { data: ViralVideoItem[]; activeCat:
           </span>
           <span className="text-[9px] text-gray-400 dark:text-white/40 font-mono">{items.length}</span>
         </div>
+        {noData ? (
+          <div className="px-4 sm:px-6 py-8 text-center text-[12px] text-gray-400 dark:text-white/40">
+            이 카테고리는 아직 수집된 데이터가 없습니다
+          </div>
+        ) : (
+        <>
         {/* Cards — mobile: 2-col, desktop: split 4+4 */}
         <div className="sm:hidden grid grid-cols-2 gap-2 px-4">
           {paged.map((v, i) =>
@@ -348,8 +372,10 @@ const ShortsSection = ({ data, activeCat }: { data: ViralVideoItem[]; activeCat:
             )}
           </div>
         </div>
+        </>
+        )}
         {/* Pagination at bottom */}
-        {items.length > PER_PAGE && (
+        {!noData && items.length > PER_PAGE && (
           <div className="flex justify-end px-6 mt-3">
             <Pagination page={page} total={items.length} perPage={PER_PAGE} onChange={onPage} />
           </div>
@@ -409,32 +435,39 @@ const ShortsSection = ({ data, activeCat }: { data: ViralVideoItem[]; activeCat:
 
 /* ── Video grid section (4 per row, pagination at bottom) ── */
 const VideoSection = ({
-  icon, iconColor, title, glowColor, badge, items, savedIds, onToggleSave,
+  icon, iconColor, title, glowColor, badge, items, savedIds, onToggleSave, loaded,
 }: {
   icon: string; iconColor: string; title: string; glowColor?: string; badge?: React.ReactNode;
-  items: ViralVideoItem[]; savedIds: Set<string>; onToggleSave: (id: string) => void;
+  items: ViralVideoItem[]; savedIds: Set<string>; onToggleSave: (id: string) => void; loaded: boolean;
 }) => {
   const [page, setPage] = useState(1);
   const PER_PAGE = 4;
   const paged = items.slice((page - 1) * PER_PAGE, page * PER_PAGE);
+  const noData = loaded && items.length === 0;
 
   return (
     <section>
       <SectionHeader icon={icon} iconColor={iconColor} title={title} glowColor={glowColor} badge={badge} />
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 px-4 sm:px-6">
-        {paged.length === 0
-          ? Array.from({ length: PER_PAGE }).map((_, i) => (
-              <div key={i} className="animate-pulse">
-                <div className="w-full bg-gray-100 dark:bg-white/8 rounded-xl mb-2" style={{ aspectRatio: '16/9' }} />
-                <div className="h-3 bg-gray-100 dark:bg-white/8 rounded w-full mb-1.5" />
-                <div className="h-3 bg-gray-100 dark:bg-white/8 rounded w-2/3" />
-              </div>
-            ))
-          : paged.map((v) => (
-              <VideoCard key={v.videoId} v={v} savedIds={savedIds} onToggleSave={onToggleSave} />
-            ))
-        }
-      </div>
+      {noData ? (
+        <div className="px-4 sm:px-6 py-8 text-center text-[12px] text-gray-400 dark:text-white/40">
+          이 카테고리는 아직 수집된 데이터가 없습니다
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 px-4 sm:px-6">
+          {paged.length === 0
+            ? Array.from({ length: PER_PAGE }).map((_, i) => (
+                <div key={i} className="animate-pulse">
+                  <div className="w-full bg-gray-100 dark:bg-white/8 rounded-xl mb-2" style={{ aspectRatio: '16/9' }} />
+                  <div className="h-3 bg-gray-100 dark:bg-white/8 rounded w-full mb-1.5" />
+                  <div className="h-3 bg-gray-100 dark:bg-white/8 rounded w-2/3" />
+                </div>
+              ))
+            : paged.map((v) => (
+                <VideoCard key={v.videoId} v={v} savedIds={savedIds} onToggleSave={onToggleSave} />
+              ))
+          }
+        </div>
+      )}
       {items.length > PER_PAGE && (
         <div className="flex justify-end px-6 mt-3">
           <Pagination page={page} total={items.length} perPage={PER_PAGE} onChange={setPage} />
@@ -619,7 +652,13 @@ const HomePage = () => {
     }
     try {
       const result = await searchChannel(query);
-      if (!result) { setSearchError(isKo ? '채널을 찾을 수 없습니다.' : 'Channel not found.'); return; }
+      if (!result) {
+        const n = new Set(liveVideos.map(v => v.channelId).filter(Boolean)).size;
+        setSearchError(isKo
+          ? `현재 ${n}개 채널 중 매칭 결과 없음. 다른 키워드를 시도하거나, DB 외 채널은 추후 업데이트 예정입니다.`
+          : `No match among ${n} channels. Try another keyword — non-DB channels will be added in future updates.`);
+        return;
+      }
       const recentVideos = await fetchRecentVideos(result.id);
       setChannel(result);
       setVideos(recentVideos);
@@ -726,9 +765,7 @@ const HomePage = () => {
                         >
                           <div className="relative">
                             <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-100 dark:bg-white/10 ring-2 ring-transparent group-hover:ring-red-400/50 transition-all">
-                              <img src={(ch as PopularChannelItem).avatar || undefined} alt={(ch as PopularChannelItem).name}
-                                className="w-full h-full object-cover"
-                                onError={(e) => { (e.target as HTMLImageElement).style.display = 'none'; }} />
+                              <ChannelAvatar src={(ch as PopularChannelItem).avatar || ''} name={(ch as PopularChannelItem).name} />
                             </div>
                             {/* Gold/Silver/Bronze rank badge — silver uses outline for white-bg visibility */}
                             <span className={`absolute -top-1 -left-1 w-4 h-4 flex items-center justify-center rounded-full text-[8px] font-black leading-none ${
@@ -872,7 +909,7 @@ const HomePage = () => {
           })()}
 
           {/* ── Shorts (category-aware) ── */}
-          <ShortsSection data={videoPool.filter(v => v.isShorts)} activeCat={activeCat} />
+          <ShortsSection data={videoPool.filter(v => v.isShorts)} activeCat={activeCat} loaded={homeDataLoaded} />
 
 
           {/* ── Rising Channels ── */}
@@ -880,14 +917,14 @@ const HomePage = () => {
             title={t('home_rising_channels')}
             glowColor="#10b981"
             badge={<span className="text-[10px] text-gray-400 dark:text-white/45">{t('home_views_vs_subs')}</span>}
-            items={risingVideos} savedIds={savedIds} onToggleSave={handleToggleSave} />
+            items={risingVideos} savedIds={savedIds} onToggleSave={handleToggleSave} loaded={homeDataLoaded} />
 
           {/* ── Top Views ── */}
           <VideoSection icon="ri-eye-line" iconColor="text-sky-500"
             title={t('home_top_views')}
             glowColor="#38bdf8"
             badge={<span className="text-[10px] text-gray-400 dark:text-white/45">{t('home_est_revenue')}</span>}
-            items={topViewVideos} savedIds={savedIds} onToggleSave={handleToggleSave} />
+            items={topViewVideos} savedIds={savedIds} onToggleSave={handleToggleSave} loaded={homeDataLoaded} />
 
           {/* ── Trending Live ── */}
           <TrendingSection items={trendingVideos} loaded={homeDataLoaded} />
@@ -905,6 +942,7 @@ const HomePage = () => {
             items={topViewsAll}
             savedIds={savedIds}
             onToggleSave={handleToggleSave}
+            loaded={homeDataLoaded}
           />
 
         </div>
