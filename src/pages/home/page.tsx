@@ -80,6 +80,16 @@ const CAT_MAP: Record<Cat, string[]> = {
   'Other':         ['Other', 'Comedy', 'News'],
 };
 
+const DB_CAT_MAP: Record<string, string> = {
+  entertainment: 'Entertainment',
+  news_politics: 'News',
+  science_tech:  'Science',
+  howto_style:   'Self-Dev',
+  people_blogs:  'Stories',
+  reference:     'Other',
+};
+const normalizeCategory = (c: string): string => DB_CAT_MAP[c] ?? c;
+
 /* ── Shorts rows config ── */
 const SHORTS_ROWS = [
   { key: 'entermusic', tKey: 'home_shorts_entermusic', cats: ['Entertainment', 'Music', 'Comedy', 'Kids'], accent: '#ef4444', accentBg: 'rgba(239,68,68,0.10)', accentBorder: 'rgba(239,68,68,0.22)' },
@@ -507,13 +517,14 @@ const HomePage = () => {
           channelName: v.channel,
           channelAvatar: '',
           channelId: v.channel_id,
-          subscribers: 0,
+          subscribers: v.subscriber_count ?? 0,
           views: v.views,
           viralScore: v.subscriber_count > 0 ? v.views / v.subscriber_count : null,
           uploadDate: v.fetched_at,
           thumbnail: v.thumbnail_url,
-          category: v.category,
+          category: normalizeCategory(v.category),
           country: v.country,
+          isShorts: v.is_shorts ?? false,
         }));
         if (!cancelled) setLiveVideos(viral);
 
@@ -536,13 +547,15 @@ const HomePage = () => {
         if (!cancelled) setTrendingVideos(trending);
 
         // 인기 채널 (popularChannels) — channel_id별 조회수 집계
-        const channelMap = new Map<string, { name: string; channelId: string; totalViews: number }>();
+        const channelMap = new Map<string, { name: string; channelId: string; totalViews: number; subscribers: number }>();
         for (const v of data) {
+          const subs = v.subscriber_count ?? 0;
           const existing = channelMap.get(v.channel_id);
           if (!existing) {
-            channelMap.set(v.channel_id, { name: v.channel, channelId: v.channel_id, totalViews: v.views });
+            channelMap.set(v.channel_id, { name: v.channel, channelId: v.channel_id, totalViews: v.views, subscribers: subs });
           } else {
             existing.totalViews += v.views;
+            if (subs > existing.subscribers) existing.subscribers = subs;
           }
         }
         const popular: PopularChannelItem[] = [...channelMap.values()]
@@ -556,7 +569,7 @@ const HomePage = () => {
               : `${(ch.totalViews / 1_000).toFixed(0)}K`,
             avatar: '',
             channelId: ch.channelId,
-            subscribers: 0,
+            subscribers: ch.subscribers,
             totalViews: ch.totalViews,
           }));
         if (!cancelled) setPopularChannels(popular);
@@ -848,7 +861,7 @@ const HomePage = () => {
           })()}
 
           {/* ── Shorts (category-aware) ── */}
-          <ShortsSection data={videoPool} activeCat={activeCat} />
+          <ShortsSection data={videoPool.filter(v => v.isShorts)} activeCat={activeCat} />
 
           {/* ── Saved Videos ── */}
           {savedIds.size > 0 && (() => {

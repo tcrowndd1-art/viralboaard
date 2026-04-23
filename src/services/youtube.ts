@@ -123,6 +123,7 @@ export interface ViralVideoItem {
   thumbnail: string;
   category: string;
   country: string;
+  isShorts?: boolean;
 }
 
 export interface RankingChannelItem {
