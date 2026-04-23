@@ -659,10 +659,9 @@ const HomePage = () => {
     try {
       const result = await searchChannel(query);
       if (!result) {
-        const n = new Set(liveVideos.map(v => v.channelId).filter(Boolean)).size;
         setSearchError(isKo
-          ? `현재 ${n}개 채널 중 매칭 결과 없음. 다른 키워드를 시도하거나, DB 외 채널은 추후 업데이트 예정입니다.`
-          : `No match among ${n} channels. Try another keyword — non-DB channels will be added in future updates.`);
+          ? '검색 결과가 없습니다. 다른 키워드를 시도해보세요.'
+          : 'No results. Try another keyword.');
         return;
       }
       const recentVideos = await fetchRecentVideos(result.id);

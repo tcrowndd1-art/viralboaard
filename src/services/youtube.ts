@@ -206,48 +206,33 @@ export async function searchVideos(query: string, maxResults = 10): Promise<Vide
 }
 
 export async function searchChannel(query: string): Promise<ChannelResult | null> {
-  const { data, error } = await supabase
-    .from('viralboard_data')
-    .select('channel_id, channel, channel_thumbnail_url, subscriber_count, views, country')
-    .ilike('channel', `%${query}%`)
-    .limit(200);
-  if (error || !data || data.length === 0) return null;
+  if (!query || query.length < 2) return null;
 
-  // Pick the channel (channel_id) with the highest subscriber_count among matches
-  const byChannel = new Map<string, { name: string; avatar: string; subscribers: number; totalViews: number; videoCount: number; country: string }>();
-  for (const v of data) {
-    const id = v.channel_id;
-    const existing = byChannel.get(id);
-    if (!existing) {
-      byChannel.set(id, {
-        name: v.channel,
-        avatar: v.channel_thumbnail_url ?? '',
-        subscribers: v.subscriber_count ?? 0,
-        totalViews: v.views ?? 0,
-        videoCount: 1,
-        country: v.country ?? '',
-      });
-    } else {
-      existing.totalViews += v.views ?? 0;
-      existing.videoCount += 1;
-      if ((v.subscriber_count ?? 0) > existing.subscribers) existing.subscribers = v.subscriber_count;
-      if (!existing.avatar && v.channel_thumbnail_url) existing.avatar = v.channel_thumbnail_url;
-    }
+  try {
+    const { data, error } = await supabase.functions.invoke('search-channel', {
+      body: { query },
+    });
+
+    if (error) throw error;
+    if (!data?.channels || data.channels.length === 0) return null;
+
+    const top = data.channels[0];
+    return {
+      id: top.channel_id,
+      name: top.channel_name,
+      handle: '',
+      avatar: top.avatar,
+      banner: '',
+      subscribers: top.subscriber_count,
+      totalViews: top.view_count,
+      videoCount: top.video_count,
+      country: top.country ?? '',
+      description: top.description,
+    };
+  } catch (e) {
+    console.error('[searchChannel]', e);
+    return null;
   }
-  const [bestId, best] = [...byChannel.entries()].sort((a, b) => b[1].subscribers - a[1].subscribers)[0];
-
-  return {
-    id: bestId,
-    name: best.name,
-    handle: `@${best.name}`,
-    avatar: best.avatar,
-    banner: '',
-    subscribers: best.subscribers,
-    totalViews: best.totalViews,
-    videoCount: best.videoCount,
-    country: best.country,
-    description: '',
-  };
 }
 
 export async function fetchRecentVideos(channelId: string): Promise<VideoResult[]> {
