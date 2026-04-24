@@ -140,7 +140,8 @@ def main():
                 for ch in channels:
                     all_records.append({
                         **ch,
-                        'keyword_niche':   niche,
+                        'niche':           niche,   # NOT NULL 컬럼 (기존 스키마)
+                        'keyword_niche':   niche,   # migration으로 추가된 PK 컬럼
                         'keyword':         keyword,
                         'country':         country,
                         'language':        language,
