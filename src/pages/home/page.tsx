@@ -545,6 +545,7 @@ const HomePage = () => {
         const { data, error } = await supabase
           .from('viralboard_data')
           .select('*')
+          .eq('country', activeCountry)
           .order('views', { ascending: false })
           .limit(100);
 
@@ -630,7 +631,7 @@ const HomePage = () => {
 
     loadHomeData();
     return () => { cancelled = true; };
-  }, []);
+  }, [activeCountry]);
 
   const handleToggleSave = useCallback((videoId: string) => {
     setSavedIds(prev => {
