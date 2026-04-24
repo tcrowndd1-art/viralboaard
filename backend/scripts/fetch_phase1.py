@@ -24,9 +24,8 @@ env_path = os.path.join(os.path.dirname(__file__), '..', '..', '.env')
 load_dotenv(env_path)
 
 API_KEYS = [k for k in [
-    os.getenv('YOUTUBE_API_KEY_1'),
-    os.getenv('YOUTUBE_API_KEY_2'),
-    os.getenv('YOUTUBE_API_KEY_3'),
+    os.getenv(f'YOUTUBE_API_KEY_{i}')
+    for i in range(1, 10)
 ] if k]
 
 SUPABASE_URL = os.getenv('VITE_SUPABASE_URL')
@@ -37,11 +36,18 @@ if not API_KEYS or not SUPABASE_URL or not SUPABASE_KEY:
     sys.exit(1)
 
 CATEGORIES = {
-    'people_blogs':  '22',
-    'entertainment': '24',
-    'news_politics': '25',
-    'howto_style':   '26',
-    'science_tech':  '28',
+    'people_blogs':   '22',
+    'entertainment':  '24',
+    'news_politics':  '25',
+    'howto_style':    '26',
+    'science_tech':   '28',
+    'music':          '10',
+    'gaming':         '20',
+    'sports':         '17',
+    'film_animation': '1',
+    'autos_vehicles': '2',
+    'pets_animals':   '15',
+    'comedy':         '23',
 }
 
 REFERENCE_CHANNELS = [
@@ -52,7 +58,7 @@ REFERENCE_CHANNELS = [
     {'id': 'UCU5Bngb-griCg_96ZXpXOgg', 'name': 'Kimhamzzi',          'style_tag': 'hybrid_vlog_series'},
 ]
 
-COUNTRIES = ['KR', 'US', 'JP', 'BR']
+COUNTRIES = ['KR', 'JP', 'TW', 'VN', 'IN', 'TH', 'ID', 'US', 'BR', 'MX', 'GB', 'DE', 'FR']
 PER_CATEGORY = 5
 PER_CHANNEL = 5
 
@@ -180,8 +186,18 @@ def to_record(item, category, country, ref=False, style=None, ch_details=None):
 def save(supabase, records):
     if not records:
         return 0
+    # Dedup by (video_id, country) — same video can appear in multiple categories
+    seen = set()
+    unique = []
+    for r in records:
+        key = (r['video_id'], r['country'])
+        if key in seen:
+            continue
+        seen.add(key)
+        unique.append(r)
+
     supabase.table('viralboard_data').upsert(
-        records, on_conflict='video_id,country'
+        unique, on_conflict='video_id,country'
     ).execute()
 
     today = str(date.today())
@@ -200,9 +216,9 @@ def save(supabase, records):
         'reference_channel':     r['reference_channel'],
         'style_tag':             r['style_tag'],
         'subscriber_count':      r.get('subscriber_count'),
-    } for r in records]
+    } for r in unique]
     supabase.table('viralboard_history').insert(history).execute()
-    return len(records)
+    return len(unique)
 
 
 def main():
