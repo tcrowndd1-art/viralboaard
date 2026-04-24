@@ -208,7 +208,31 @@ export async function searchVideos(query: string, maxResults = 10): Promise<Vide
 export async function searchChannel(query: string): Promise<ChannelResult | null> {
   if (!query || query.length < 2) return null;
 
-  // DB-only search (collected channels). Edge Function path removed — not deployed.
+  // 1차: Edge Function (YouTube 전체 검색)
+  try {
+    const { data, error } = await supabase.functions.invoke('search-channel', {
+      body: { query },
+    });
+    if (!error && data?.channels && data.channels.length > 0) {
+      const top = data.channels[0];
+      return {
+        id:          top.channel_id,
+        name:        top.channel_name,
+        handle:      '',
+        description: top.description       ?? '',
+        avatar:      top.avatar            ?? '',
+        banner:      '',
+        subscribers: top.subscriber_count  ?? 0,
+        videoCount:  top.video_count       ?? 0,
+        totalViews:  top.view_count        ?? 0,
+        country:     top.country           ?? '',
+      };
+    }
+  } catch (e) {
+    console.warn('[searchChannel] Edge Function failed, falling back to DB', e);
+  }
+
+  // 2차: DB 폴백 (Edge Function 실패 시)
   const { data: dbData, error: dbErr } = await supabase
     .from('viralboard_data')
     .select('channel_id, channel, channel_thumbnail_url, subscriber_count, views, country')
@@ -222,12 +246,12 @@ export async function searchChannel(query: string): Promise<ChannelResult | null
     const ex = byChannel.get(id);
     if (!ex) {
       byChannel.set(id, {
-        name: (v as any).channel,
-        avatar: (v as any).channel_thumbnail_url ?? '',
-        subscribers: (v as any).subscriber_count ?? 0,
-        totalViews: (v as any).views ?? 0,
-        videoCount: 1,
-        country: (v as any).country ?? '',
+        name:        (v as any).channel,
+        avatar:      (v as any).channel_thumbnail_url ?? '',
+        subscribers: (v as any).subscriber_count      ?? 0,
+        totalViews:  (v as any).views                 ?? 0,
+        videoCount:  1,
+        country:     (v as any).country               ?? '',
       });
     } else {
       ex.totalViews += (v as any).views ?? 0;
@@ -241,15 +265,15 @@ export async function searchChannel(query: string): Promise<ChannelResult | null
   if (sorted.length === 0) return null;
   const [bestId, best] = sorted[0];
   return {
-    id: bestId,
-    name: best.name,
-    handle: '',
-    avatar: best.avatar,
-    banner: '',
+    id:          bestId,
+    name:        best.name,
+    handle:      '',
+    avatar:      best.avatar,
+    banner:      '',
     subscribers: best.subscribers,
-    totalViews: best.totalViews,
-    videoCount: best.videoCount,
-    country: best.country,
+    totalViews:  best.totalViews,
+    videoCount:  best.videoCount,
+    country:     best.country,
     description: '',
   };
 }
