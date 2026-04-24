@@ -49,6 +49,14 @@ def parse_duration(s):
     return int(h or 0) * 3600 + int(mi or 0) * 60 + int(se or 0)
 
 
+_COUNTRY_LANG = {
+    'KR': 'ko', 'JP': 'ja', 'TW': 'zh', 'VN': 'vi', 'TH': 'th',
+    'ID': 'id', 'IN': 'hi', 'HK': 'zh', 'SG': 'en', 'US': 'en',
+    'CA': 'en', 'GB': 'en', 'AU': 'en', 'BR': 'pt', 'MX': 'es',
+    'AR': 'es', 'DE': 'de', 'FR': 'fr', 'ES': 'es', 'PT': 'pt',
+    'RU': 'ru',
+}
+
 def search_videos(keyword, country):
     """search.list → video_id 목록 (100 units)"""
     r = requests.get('https://www.googleapis.com/youtube/v3/search', params={
@@ -56,7 +64,7 @@ def search_videos(keyword, country):
         'type': 'video',
         'q': keyword,
         'regionCode': country,
-        'relevanceLanguage': country.lower() if len(country) == 2 else 'en',
+        'relevanceLanguage': _COUNTRY_LANG.get(country, 'en'),
         'maxResults': PER_KEYWORD,
         'order': 'viewCount',
         'key': next_key(),
