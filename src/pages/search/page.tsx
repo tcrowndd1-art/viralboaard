@@ -64,7 +64,14 @@ const SearchPage = () => {
                   {t('search_results_for')} &ldquo;<span className="text-red-500">{query}</span>&rdquo;
                 </h1>
                 <p className="text-gray-400 dark:text-gray-500 text-sm mt-1">
-                  {t('search_found')} {filteredChannels.length} {t('search_channels_count')} {filteredVideos.length} {t('search_videos_count')}
+                  {loading ? (
+                    <span className="inline-flex items-center gap-1.5">
+                      <span className="w-3 h-3 border border-gray-300 dark:border-gray-600 border-t-red-500 rounded-full animate-spin inline-block"></span>
+                      검색 중...
+                    </span>
+                  ) : (
+                    <>{t('search_found')} {filteredChannels.length} {t('search_channels_count')} {filteredVideos.length} {t('search_videos_count')}</>
+                  )}
                 </p>
               </div>
             ) : (

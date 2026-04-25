@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, createContext, useContext } from 'react';
+import { useState, useEffect, useCallback, useMemo, createContext, useContext } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { VideoModal } from '@/components/VideoModal';
@@ -227,7 +227,7 @@ const VideoCard = ({
 };
 
 /* ── Shorts card (9:16) ── */
-const ShortsCard = ({ v }: { v: ViralVideoItem }) => {
+const ShortsCard = ({ v, rank }: { v: ViralVideoItem; rank?: number }) => {
   const { t } = useTranslation();
   const multi = multiBadge(v.viralScore);
   const playVideo = usePlayVideo();
@@ -244,6 +244,15 @@ const ShortsCard = ({ v }: { v: ViralVideoItem }) => {
         <img src={v.thumbnail} alt={v.title}
           className="w-full h-full object-cover object-center group-hover:scale-[1.07] transition-transform duration-300"
           onError={(e) => { const img = e.target as HTMLImageElement; if (img.src.includes('maxresdefault')) { img.src = img.src.replace('maxresdefault', 'hqdefault'); } else if (img.src.includes('hqdefault')) { img.src = img.src.replace('hqdefault', 'mqdefault'); } else { img.style.opacity = '0'; } }} />
+        {rank !== undefined && (
+          <div className="absolute top-1.5 left-1.5 w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-black shadow-md"
+            style={{
+              background: rank === 1 ? '#f59e0b' : rank === 2 ? '#94a3b8' : rank === 3 ? '#f97316' : '#ef4444',
+              color: rank <= 3 ? '#000' : '#fff',
+            }}>
+            {rank}
+          </div>
+        )}
         {multi && (
           <div className="absolute top-1.5 right-1.5">
             <span className={`text-[7px] font-black px-1 rounded leading-none ${multi.cls}`} style={{ paddingTop: '2px', paddingBottom: '2px' }}>
@@ -316,6 +325,18 @@ const ShortsSection = ({ data, activeCat, loaded }: { data: ViralVideoItem[]; ac
   const [activeRow, setActiveRow] = useState(0);
   const PER_PAGE = 8;
 
+  /* Shuffle once when data first arrives — different order each page load */
+  const shuffledData = useMemo(() => {
+    if (data.length === 0) return data;
+    const arr = [...data];
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+    return arr;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data.length > 0]);
+
   const SkeletonCard = ({ k }: { k: number }) => (
     <div key={`sk-${k}`} className="w-full animate-pulse">
       <div className="w-full bg-gray-100 dark:bg-white/8 rounded-xl" style={{ aspectRatio: '9/16' }} />
@@ -355,17 +376,19 @@ const ShortsSection = ({ data, activeCat, loaded }: { data: ViralVideoItem[]; ac
         <>
         {/* Cards — mobile: 2-col, desktop: split 4+4 */}
         <div className="sm:hidden grid grid-cols-2 gap-2 px-4">
-          {paged.map((v, i) =>
-            v ? <ShortsCard key={v.videoId} v={v} />
-              : <SkeletonCard key={i} k={i} />
-          )}
+          {paged.map((v, i) => {
+            const rank = (page - 1) * PER_PAGE + i + 1;
+            return v ? <ShortsCard key={v.videoId} v={v} rank={rank} />
+              : <SkeletonCard key={i} k={i} />;
+          })}
         </div>
         <div className="hidden sm:flex gap-3 px-6 items-stretch">
           <div className="grid gap-3 flex-1" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
-            {half1.map((v, i) =>
-              v ? <ShortsCard key={v.videoId} v={v} />
-                : <SkeletonCard key={i} k={i} />
-            )}
+            {half1.map((v, i) => {
+              const rank = (page - 1) * PER_PAGE + i + 1;
+              return v ? <ShortsCard key={v.videoId} v={v} rank={rank} />
+                : <SkeletonCard key={i} k={i} />;
+            })}
           </div>
           <div className="flex flex-col items-center justify-center gap-1 flex-shrink-0 w-5">
             <div className="flex-1 w-px bg-gray-100 dark:bg-white/[0.06]" />
@@ -373,10 +396,11 @@ const ShortsSection = ({ data, activeCat, loaded }: { data: ViralVideoItem[]; ac
             <div className="flex-1 w-px bg-gray-100 dark:bg-white/[0.06]" />
           </div>
           <div className="grid gap-3 flex-1" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }}>
-            {half2.map((v, i) =>
-              v ? <ShortsCard key={v.videoId} v={v} />
-                : <SkeletonCard key={i + 4} k={i + 4} />
-            )}
+            {half2.map((v, i) => {
+              const rank = (page - 1) * PER_PAGE + i + 5;
+              return v ? <ShortsCard key={v.videoId} v={v} rank={rank} />
+                : <SkeletonCard key={i + 4} k={i + 4} />;
+            })}
           </div>
         </div>
         </>
@@ -394,8 +418,8 @@ const ShortsSection = ({ data, activeCat, loaded }: { data: ViralVideoItem[]; ac
   if (activeCat !== 'All') {
     const cats = CAT_MAP[activeCat];
     const filtered = cats.length > 0
-      ? data.filter(v => cats.some(c => c.toLowerCase() === v.category.toLowerCase()))
-      : data;
+      ? shuffledData.filter(v => cats.some(c => c.toLowerCase() === v.category.toLowerCase()))
+      : shuffledData;
     const accent = CAT_ACCENT[activeCat] ?? { accent: '#6b7280', accentBg: 'rgba(107,114,128,0.10)', accentBorder: 'rgba(107,114,128,0.22)' };
     const catKey = `cat_${activeCat.toLowerCase().replace('-', '')}` as never;
     const label = t(catKey, activeCat);
@@ -420,7 +444,7 @@ const ShortsSection = ({ data, activeCat, loaded }: { data: ViralVideoItem[]; ac
   }
 
   const rowItems = SHORTS_ROWS.map(row =>
-    data.filter(v => row.cats.some(c => c.toLowerCase() === v.category.toLowerCase()))
+    shuffledData.filter(v => row.cats.some(c => c.toLowerCase() === v.category.toLowerCase()))
   );
   const activeRowCfg = SHORTS_ROWS[activeRow];
   const activeItems = rowItems[activeRow];
@@ -439,10 +463,10 @@ const ShortsSection = ({ data, activeCat, loaded }: { data: ViralVideoItem[]; ac
             <button
               key={row.key}
               onClick={() => setActiveRow(idx)}
-              className={`text-[10px] font-bold px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+              className={`px-3 py-1 rounded-full text-[11px] font-semibold transition-all whitespace-nowrap cursor-pointer ${
                 activeRow === idx
-                  ? 'text-white'
-                  : 'bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-white/45 hover:bg-gray-200 dark:hover:bg-white/15'
+                  ? 'text-white shadow-sm'
+                  : 'bg-gray-100 dark:bg-white/10 text-gray-600 dark:text-white/60 hover:bg-gray-200 dark:hover:bg-white/20'
               }`}
               style={activeRow === idx ? { background: row.accent } : undefined}
             >
@@ -841,9 +865,10 @@ const HomePage = () => {
 
           {/* ── Filter bar ── */}
           <div className="px-4 sm:px-6 -mt-4 space-y-2">
-            <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide pb-1 flex-nowrap sm:flex-wrap">
+            <div className="flex items-center gap-2">
               <CountryPicker current={activeCountry} onSelect={setActiveCountry} variant="pill" isKo={isKo} />
               <div className="w-px h-5 bg-gray-200 dark:bg-white/10 flex-shrink-0" />
+              <div className="flex items-center gap-1.5 overflow-x-auto scrollbar-hide pb-1 flex-nowrap sm:flex-wrap flex-1 min-w-0">
               {/* Category pills */}
               {CATS.map(cat => (
                 <button key={cat} onClick={() => setActiveCat(cat)}
@@ -853,6 +878,7 @@ const HomePage = () => {
                       : 'bg-gray-100 dark:bg-white/10 text-gray-600 dark:text-white/60 hover:bg-gray-200 dark:hover:bg-white/20'
                   }`}>{CAT_LABELS[cat]}</button>
               ))}
+              </div>
             </div>
             {/* Viral legend */}
             <div className="flex items-center gap-2.5 text-[9px] text-gray-400 dark:text-white/45">

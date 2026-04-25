@@ -702,7 +702,7 @@ const VideoRankingsPage = () => {
                           <th className="px-4 py-3 text-xs font-semibold text-red-500 dark:text-red-400 uppercase tracking-wider text-left w-20">썸네일</th>
                           <th className="px-4 py-3 text-xs font-semibold text-red-500 dark:text-red-400 uppercase tracking-wider text-left">제목 / 채널</th>
                           <th className="px-4 py-3 text-xs font-semibold text-red-500 dark:text-red-400 uppercase tracking-wider text-right">🔥 떡상</th>
-                          <th className="px-4 py-3 text-xs font-semibold text-red-500 dark:text-red-400 uppercase tracking-wider text-right hidden md:table-cell">💰 수익 추정</th>
+                          <th className="px-4 py-3 text-xs font-semibold text-red-500 dark:text-red-400 uppercase tracking-wider text-right hidden md:table-cell">💰 수익 추정 (영상 누적, USD)</th>
                           <th className="px-4 py-3 text-xs font-semibold text-red-500 dark:text-red-400 uppercase tracking-wider text-right hidden lg:table-cell">⚡ VPH</th>
                           <th className="px-4 py-3 text-xs font-semibold text-red-500 dark:text-red-400 uppercase tracking-wider text-right">📊 점수</th>
                           <th className="px-4 py-3 text-xs font-semibold text-red-500 dark:text-red-400 uppercase tracking-wider text-right hidden xl:table-cell">구독자</th>
@@ -762,11 +762,11 @@ const VideoRankingsPage = () => {
                                 <p className="text-[10px] text-gray-400 dark:text-white/25 mt-0.5">구독자 대비</p>
                               </td>
 
-                              <td className="px-4 py-3 text-right hidden md:table-cell">
+                              <td className="px-4 py-3 text-right hidden md:table-cell" title="이 영상 1개의 누적 광고 수익 추정치 (CPM $1.5~$3.5, 광고 노출률 40~60% 가정). 채널 전체 수익이 아닙니다.">
                                 <p className="text-sm text-green-600 dark:text-green-400 font-semibold">
                                   {fmtMoney(rev.min)}–{fmtMoney(rev.max)}
                                 </p>
-                                <p className="text-[10px] text-gray-400 dark:text-white/25 mt-0.5">추정 수익</p>
+                                <p className="text-[10px] text-gray-400 dark:text-white/25 mt-0.5">영상 누적 광고수익</p>
                               </td>
 
                               <td className="px-4 py-3 text-right hidden lg:table-cell">
@@ -873,7 +873,7 @@ const VideoRankingsPage = () => {
                         <span className="flex flex-col w-3 h-3"><i className={`ri-arrow-up-s-line text-xs leading-none ${sortKey==='views'&&sortDir==='asc'?'text-gray-900 dark:text-white':'text-gray-300 dark:text-white/20'}`}></i><i className={`ri-arrow-down-s-line text-xs leading-none ${sortKey==='views'&&sortDir==='desc'?'text-gray-900 dark:text-white':'text-gray-300 dark:text-white/20'}`}></i></span>
                       </span>
                     </th>
-                    <th className="px-4 py-3 text-xs font-semibold text-gray-500 dark:text-white/30 uppercase tracking-wider text-right hidden md:table-cell">💰 수익 추정</th>
+                    <th className="px-4 py-3 text-xs font-semibold text-gray-500 dark:text-white/30 uppercase tracking-wider text-right hidden md:table-cell">💰 수익 추정 (영상 누적, USD)</th>
                     <th className="px-4 py-3 text-xs font-semibold text-gray-500 dark:text-white/30 uppercase tracking-wider text-right hidden lg:table-cell">⚡ VPH</th>
                     <Th label="업로드" colKey="uploadDate" sortKey={sortKey} sortDir={sortDir} onSort={handleSort} align="text-right" />
                     <th className="px-3 py-3 w-10"></th>
