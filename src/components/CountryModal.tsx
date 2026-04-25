@@ -24,7 +24,7 @@ export const loadCountry = (): string => {
 };
 
 export const saveCountry = (code: string) => {
-  try { localStorage.setItem(COUNTRY_STORAGE_KEY, code); } catch { /* ignore */ }
+  try { localStorage.setItem(COUNTRY_STORAGE_KEY, code); window.dispatchEvent(new Event('country-changed')); } catch { /* ignore */ }
 };
 
 /* ── Legacy CountryModal (fullscreen overlay) — kept for backward compat ── */

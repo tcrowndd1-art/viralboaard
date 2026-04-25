@@ -1,7 +1,8 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { searchChannels, searchVideos } from '@/services/youtube';
+import { searchChannel, searchVideos } from '@/services/youtube';
+import type { ChannelResult } from '@/services/youtube';
 import TopHeader from '@/pages/home/components/TopHeader';
 import GlobalSidebar from '@/components/feature/GlobalSidebar';
 import SearchFilterTabs from './components/SearchFilterTabs';
@@ -20,14 +21,13 @@ const SearchPage = () => {
   useEffect(() => {
     if (!query.trim()) return;
     setLoading(true);
-    Promise.all([searchChannels(query), searchVideos(query)])
+    Promise.all([
+      searchChannel(query).catch((): ChannelResult[] => []),
+      searchVideos(query).catch(() => []),
+    ])
       .then(([channels, videos]) => {
-        setResults({
-          channels: channels ?? [],
-          videos: videos ?? []
-        });
+        setResults({ channels, videos });
       })
-      .catch(console.error)
       .finally(() => setLoading(false));
   }, [query]);
 
@@ -50,7 +50,7 @@ const SearchPage = () => {
     <div className="min-h-screen bg-white dark:bg-dark-base transition-colors">
       <TopHeader onMobileMenuToggle={() => setSidebarOpen((v) => !v)} />
       <GlobalSidebar mobileOpen={sidebarOpen} onMobileClose={() => setSidebarOpen(false)} />
-      <div className="lg:ml-52 pt-12">
+      <div className="lg:ml-52 pt-12 pb-16 lg:pb-0">
         <div className="px-4 md:px-6 py-6 max-w-7xl">
           <div className="mb-6">
             <div className="flex items-center gap-2 text-sm text-gray-400 dark:text-gray-500 mb-3 flex-wrap">

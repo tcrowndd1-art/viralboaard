@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
+import { ViralBoardIcon } from '@/components/ViralBoardIcon';
 import { useTheme } from '@/hooks/useTheme';
 
 const testimonials = [
@@ -120,8 +121,9 @@ const ChromeExtensionPage = () => {
         }`}
       >
         <div className="max-w-6xl mx-auto px-4 lg:px-6 h-14 flex items-center justify-between">
-          <Link to="/" className="font-black text-lg tracking-widest text-gray-900 dark:text-white uppercase hover:text-red-500 transition-colors whitespace-nowrap">
-            ViralBoard
+          <Link to="/" className="flex items-center gap-2 hover:text-red-500 transition-colors whitespace-nowrap">
+            <ViralBoardIcon size={22} />
+            <span className="font-black text-lg tracking-widest text-gray-900 dark:text-white uppercase">ViralBoard</span>
           </Link>
 
           {/* Desktop nav */}

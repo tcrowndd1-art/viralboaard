@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, createContext, useContext } from 'react';
+import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { VideoModal } from '@/components/VideoModal';
 import { CountryPicker, loadCountry } from '@/components/CountryModal';
@@ -109,9 +110,9 @@ const normalizeCategory = (c: string): string => DB_CAT_MAP[c] ?? c;
 
 /* ── Shorts rows config ── */
 const SHORTS_ROWS = [
-  { key: 'entermusic', tKey: 'home_shorts_entermusic', cats: ['Entertainment', 'Stories', 'Other'], accent: '#ef4444', accentBg: 'rgba(239,68,68,0.10)', accentBorder: 'rgba(239,68,68,0.22)' },
-  { key: 'edtech',     tKey: 'home_shorts_edtech',     cats: ['Science', 'Self-Dev', 'News'],       accent: '#818cf8', accentBg: 'rgba(99,102,241,0.10)', accentBorder: 'rgba(99,102,241,0.22)' },
-] as const;
+  { key: 'entermusic', tKey: 'home_shorts_entermusic', cats: ['Entertainment', 'Music', 'Stories', 'Other', 'entertainment', 'music'], accent: '#ef4444', accentBg: 'rgba(239,68,68,0.10)', accentBorder: 'rgba(239,68,68,0.22)' },
+  { key: 'edtech',     tKey: 'home_shorts_edtech',     cats: ['Science', 'Education', 'Self-Dev', 'News', 'science', 'education', 'howto_style'], accent: '#818cf8', accentBg: 'rgba(99,102,241,0.10)', accentBorder: 'rgba(99,102,241,0.22)' },
+];
 
 /* ── Per-category accent colors for dynamic shorts rows ── */
 const CAT_ACCENT: Partial<Record<Cat, { accent: string; accentBg: string; accentBorder: string }>> = {
@@ -312,6 +313,7 @@ const ShortsSection = ({ data, activeCat, loaded }: { data: ViralVideoItem[]; ac
   const [page1, setPage1] = useState(1);
   const [page2, setPage2] = useState(1);
   const [dynPage, setDynPage] = useState(1);
+  const [activeRow, setActiveRow] = useState(0);
   const PER_PAGE = 8;
 
   const SkeletonCard = ({ k }: { k: number }) => (
@@ -391,7 +393,9 @@ const ShortsSection = ({ data, activeCat, loaded }: { data: ViralVideoItem[]; ac
 
   if (activeCat !== 'All') {
     const cats = CAT_MAP[activeCat];
-    const filtered = cats.length > 0 ? data.filter(v => cats.includes(v.category)) : data;
+    const filtered = cats.length > 0
+      ? data.filter(v => cats.some(c => c.toLowerCase() === v.category.toLowerCase()))
+      : data;
     const accent = CAT_ACCENT[activeCat] ?? { accent: '#6b7280', accentBg: 'rgba(107,114,128,0.10)', accentBorder: 'rgba(107,114,128,0.22)' };
     const catKey = `cat_${activeCat.toLowerCase().replace('-', '')}` as never;
     const label = t(catKey, activeCat);
@@ -415,24 +419,44 @@ const ShortsSection = ({ data, activeCat, loaded }: { data: ViralVideoItem[]; ac
     );
   }
 
+  const rowItems = SHORTS_ROWS.map(row =>
+    data.filter(v => row.cats.some(c => c.toLowerCase() === v.category.toLowerCase()))
+  );
+  const activeRowCfg = SHORTS_ROWS[activeRow];
+  const activeItems = rowItems[activeRow];
+  const activePage = activeRow === 0 ? page1 : page2;
+  const setActivePage = activeRow === 0 ? setPage1 : setPage2;
+
   return (
     <section>
-      <div className="flex items-center gap-2 mb-4 px-6">
-        <i className="ri-scissors-cut-line text-red-500 text-sm"></i>
-        <h2 className="text-[13px] font-black text-gray-900 dark:text-white tracking-tight">Shorts</h2>
-        <span className="text-[9px] text-gray-500 dark:text-white/50 font-mono ml-1 bg-gray-100 dark:bg-white/10 px-2 py-0.5 rounded">{t('home_viral_score_order')}</span>
+      <div className="flex items-center gap-3 mb-4 px-4 sm:px-6">
+        <div className="flex items-center gap-2">
+          <i className="ri-scissors-cut-line text-red-500 text-sm"></i>
+          <h2 className="text-[13px] font-black text-gray-900 dark:text-white tracking-tight">Shorts</h2>
+        </div>
+        <div className="flex items-center gap-1.5">
+          {SHORTS_ROWS.map((row, idx) => (
+            <button
+              key={row.key}
+              onClick={() => setActiveRow(idx)}
+              className={`text-[10px] font-bold px-2.5 py-1 rounded-lg transition-all cursor-pointer ${
+                activeRow === idx
+                  ? 'text-white'
+                  : 'bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-white/45 hover:bg-gray-200 dark:hover:bg-white/15'
+              }`}
+              style={activeRow === idx ? { background: row.accent } : undefined}
+            >
+              {t(row.tKey as never, row.key)}
+            </button>
+          ))}
+        </div>
+        <span className="text-[9px] text-gray-400 dark:text-white/40 font-mono ml-auto">{rowItems[activeRow].length}</span>
       </div>
       <ShortsRow
-        label={t('home_shorts_entermusic')}
-        items={data.filter(v => SHORTS_ROWS[0].cats.includes(v.category))}
-        page={page1} onPage={setPage1}
-        accent={SHORTS_ROWS[0].accent} accentBg={SHORTS_ROWS[0].accentBg} accentBorder={SHORTS_ROWS[0].accentBorder}
-      />
-      <ShortsRow
-        label={t('home_shorts_edtech')}
-        items={data.filter(v => SHORTS_ROWS[1].cats.includes(v.category))}
-        page={page2} onPage={setPage2}
-        accent={SHORTS_ROWS[1].accent} accentBg={SHORTS_ROWS[1].accentBg} accentBorder={SHORTS_ROWS[1].accentBorder}
+        label={t(activeRowCfg.tKey as never, activeRowCfg.key)}
+        items={activeItems}
+        page={activePage} onPage={setActivePage}
+        accent={activeRowCfg.accent} accentBg={activeRowCfg.accentBg} accentBorder={activeRowCfg.accentBorder}
       />
     </section>
   );
@@ -458,7 +482,7 @@ const VideoSection = ({
           이 카테고리는 아직 수집된 데이터가 없습니다
         </div>
       ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 px-4 sm:px-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 px-4 sm:px-6">
           {paged.length === 0
             ? Array.from({ length: PER_PAGE }).map((_, i) => (
                 <div key={i} className="animate-pulse">
@@ -522,6 +546,11 @@ const HomePage = () => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeCat, setActiveCat] = useState<Cat>('All');
   const [activeCountry, setActiveCountry] = useState(() => loadCountry());
+  useEffect(() => {
+    const onChange = () => setActiveCountry(loadCountry());
+    window.addEventListener('country-changed', onChange);
+    return () => window.removeEventListener('country-changed', onChange);
+  }, []);
   const [savedIds, setSavedIds] = useState<Set<string>>(() => loadSavedVideos());
   const [modalVideo, setModalVideo] = useState<{ videoId: string; isShorts: boolean } | null>(null);
   const playVideo = useCallback<PlayHandler>((videoId, isShorts) => setModalVideo({ videoId, isShorts }), []);
@@ -563,7 +592,7 @@ const HomePage = () => {
           subscribers: v.subscriber_count ?? 0,
           views: v.views,
           viralScore: v.subscriber_count > 0 ? v.views / v.subscriber_count : null,
-          uploadDate: v.fetched_at,
+          uploadDate: v.published_at ?? v.fetched_at,
           thumbnail: (v.thumbnail_url ?? '').replace(/\/(hq|mq|sd)default\.jpg/, '/maxresdefault.jpg'),
           category: normalizeCategory(v.category),
           country: v.country,
@@ -657,17 +686,18 @@ const HomePage = () => {
       return;
     }
     try {
-      const result = await searchChannel(query);
-      if (!result) {
+      const results = await searchChannel(query);
+      if (!results.length) {
         setSearchError(isKo
           ? '검색 결과가 없습니다. 다른 키워드를 시도해보세요.'
           : 'No results. Try another keyword.');
         return;
       }
-      const recentVideos = await fetchRecentVideos(result.id);
-      setChannel(result);
+      const top = results[0];
+      const recentVideos = await fetchRecentVideos(top.id);
+      setChannel(top);
       setVideos(recentVideos);
-      cacheSet(cacheKey, { channel: result, videos: recentVideos });
+      cacheSet(cacheKey, { channel: top, videos: recentVideos });
       addSearchHistory(query);
     } catch {
       setSearchError(isKo ? '검색 중 오류가 발생했습니다. API 키를 확인해주세요.' : 'Search error. Please check your API key.');
@@ -689,7 +719,7 @@ const HomePage = () => {
   /* API 데이터 우선, quota 소진 시 mock fallback */
   const videoPool = liveVideos.length > 0 ? liveVideos : viralMockData;
   const longformPool = videoPool.filter(v => !v.isShorts);
-  const risingVideos = filterByCat([...longformPool].sort((a, b) => b.viralScore - a.viralScore));
+  const risingVideos = filterByCat([...longformPool].sort((a, b) => new Date(b.uploadDate).getTime() - new Date(a.uploadDate).getTime()));
   const topViewVideos = filterByCat([...longformPool].sort((a, b) => b.views - a.views));
   const topViewsAll = topViewVideos;
   const chBySubs  = [...popularChannels].sort((a, b) => b.subscribers - a.subscribers);
@@ -717,7 +747,7 @@ const HomePage = () => {
       <TopHeader onMobileMenuToggle={() => setSidebarOpen(v => !v)} />
       <GlobalSidebar mobileOpen={sidebarOpen} onMobileClose={() => setSidebarOpen(false)} />
 
-      <div className="lg:ml-52 pt-12">
+      <div className="lg:ml-52 pt-12 pb-16 lg:pb-0">
         <SearchBanner onSearch={handleSearch} loading={searching} />
 
         {searchError && (
@@ -761,10 +791,9 @@ const HomePage = () => {
                   <div className="flex gap-2.5" style={{ width: 'max-content' }}>
                     {(isLoading ? Array.from({ length: 10 }) : chList).map((ch, i) =>
                       ch ? (
-                        <a
+                        <Link
                           key={(ch as PopularChannelItem).channelId + chTab}
-                          href={`https://www.youtube.com/channel/${(ch as PopularChannelItem).channelId}`}
-                          target="_blank" rel="noopener noreferrer"
+                          to={`/channel/${(ch as PopularChannelItem).channelId}`}
                           className="group flex flex-col items-center gap-1.5 w-[76px] flex-shrink-0 px-1.5 py-2.5 rounded-xl border border-gray-100 dark:border-white/[0.07] hover:border-red-200 dark:hover:border-red-500/30 hover:bg-red-50/40 dark:hover:bg-red-500/[0.05] transition-all"
                         >
                           <div className="relative">
@@ -793,7 +822,7 @@ const HomePage = () => {
                                     : `${((ch as PopularChannelItem).totalViews / 1_000_000).toFixed(0)}M`)
                                 : ''}
                           </p>
-                        </a>
+                        </Link>
                       ) : (
                         <div key={i} className="w-[76px] flex-shrink-0 flex flex-col items-center gap-1.5 px-1.5 py-2.5 rounded-xl border border-gray-100 dark:border-white/[0.07]">
                           <div className="w-10 h-10 rounded-full bg-gray-100 dark:bg-white/8 animate-pulse" />

@@ -28,7 +28,7 @@ serve(async (req) => {
       )
     }
 
-    const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=channel&q=${encodeURIComponent(query)}&maxResults=5&key=${YOUTUBE_KEY}`
+    const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&type=channel&q=${encodeURIComponent(query)}&maxResults=8&key=${YOUTUBE_KEY}`
     const searchRes = await fetch(searchUrl)
     const searchData = await searchRes.json()
 

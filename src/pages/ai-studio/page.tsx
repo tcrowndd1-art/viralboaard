@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
+import { ViralBoardIcon } from '@/components/ViralBoardIcon';
 import ScriptEditor from './components/ScriptEditor';
 import ScenePreviewGrid from './components/ScenePreviewGrid';
 import BottomActionBar from './components/BottomActionBar';
@@ -49,9 +50,10 @@ const AiStudioPage = () => {
         <div className="flex items-center gap-2 min-w-0 flex-shrink-0">
           <Link
             to="/"
-            className="font-black text-sm tracking-widest text-gray-900 dark:text-white uppercase hover:text-red-500 transition-colors whitespace-nowrap hidden sm:block"
+            className="flex items-center gap-1.5 hover:text-red-500 transition-colors whitespace-nowrap hidden sm:block"
           >
-            ViralBoard
+            <ViralBoardIcon size={18} />
+            <span className="font-black text-sm tracking-widest text-gray-900 dark:text-white uppercase">ViralBoard</span>
           </Link>
           <span className="text-gray-300 dark:text-white/20 text-sm hidden sm:block">/</span>
           <div className="flex items-center gap-1.5">

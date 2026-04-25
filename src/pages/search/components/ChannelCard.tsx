@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 
 interface ChannelCardProps {
@@ -38,6 +39,7 @@ const categoryColors: Record<string, string> = {
 const ChannelCard = ({ channel }: ChannelCardProps) => {
   const colorClass = categoryColors[channel.category ?? ''] ?? 'bg-gray-100 text-gray-500 dark:bg-off-white/8 dark:text-off-white/40';
   const growth = channel.growthPercent ?? 0;
+  const [imgErr, setImgErr] = useState(false);
 
   return (
     <Link
@@ -59,8 +61,12 @@ const ChannelCard = ({ channel }: ChannelCardProps) => {
 
       {/* Avatar + Name */}
       <div className="flex items-center gap-3 mb-4">
-        <div className="w-14 h-14 rounded-full overflow-hidden flex-shrink-0 border-2 border-gray-200 dark:border-dark-border group-hover:border-red-400 dark:group-hover:border-red-500 transition-colors">
-          <img src={channel.avatar} alt={channel.name} className="w-full h-full object-cover object-top" />
+        <div className="w-14 h-14 rounded-full overflow-hidden flex-shrink-0 border-2 border-gray-200 dark:border-dark-border group-hover:border-red-400 dark:group-hover:border-red-500 transition-colors bg-red-500 flex items-center justify-center">
+          {imgErr || !channel.avatar ? (
+            <span className="text-white font-bold text-lg">{channel.name.charAt(0).toUpperCase()}</span>
+          ) : (
+            <img src={channel.avatar} alt={channel.name} className="w-full h-full object-cover object-top" onError={() => setImgErr(true)} />
+          )}
         </div>
         <div className="min-w-0">
           <h3 className="text-gray-900 dark:text-off-white font-semibold text-base truncate group-hover:text-red-600 dark:group-hover:text-red-400 transition-colors">

@@ -36,6 +36,7 @@ if not API_KEYS or not SUPABASE_URL or not SUPABASE_KEY:
     sys.exit(1)
 
 CATEGORIES = {
+    # 기존 12
     'people_blogs':   '22',
     'entertainment':  '24',
     'news_politics':  '25',
@@ -48,6 +49,10 @@ CATEGORIES = {
     'autos_vehicles': '2',
     'pets_animals':   '15',
     'comedy':         '23',
+    # 추가 (mostPopular 지원 확인된 것만)
+    'nonprofits':     '29',
+    # shows/43, trailers/44, short_movies/18 → 400 (mostPopular 미지원 — 영구 제거)
+    # travel_events/19, education/27 → 404 전국가 (영구 제거)
 }
 
 REFERENCE_CHANNELS = [
@@ -58,7 +63,16 @@ REFERENCE_CHANNELS = [
     {'id': 'UCU5Bngb-griCg_96ZXpXOgg', 'name': 'Kimhamzzi',          'style_tag': 'hybrid_vlog_series'},
 ]
 
-COUNTRIES = ['KR', 'JP', 'TW', 'VN', 'IN', 'TH', 'ID', 'US', 'BR', 'MX', 'GB', 'DE', 'FR']
+COUNTRIES = [
+    # 아시아 (10)
+    'KR', 'JP', 'TW', 'VN', 'TH', 'ID', 'IN', 'HK', 'SG', 'LA',
+    # 북미 (2)
+    'US', 'CA',
+    # 남미 (6)
+    'BR', 'MX', 'AR', 'CL', 'PE', 'CO',
+    # 유럽 (6)
+    'GB', 'DE', 'FR', 'ES', 'PT', 'RU',
+]
 PER_CATEGORY = 5
 PER_CHANNEL = 5
 
@@ -216,6 +230,7 @@ def save(supabase, records):
         'reference_channel':     r['reference_channel'],
         'style_tag':             r['style_tag'],
         'subscriber_count':      r.get('subscriber_count'),
+        'thumbnail_url':         r.get('thumbnail_url'),
     } for r in unique]
     supabase.table('viralboard_history').insert(history).execute()
     return len(unique)

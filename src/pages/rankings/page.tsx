@@ -127,6 +127,11 @@ const RankingsPage = () => {
   const [apiError, setApiError] = useState<string | null>(null);
   const [viewTab, setViewTab] = useState<ViewTab>('all');
   const [country, setCountry] = useState(() => loadCountry());
+  useEffect(() => {
+    const onChange = () => setCountry(loadCountry());
+    window.addEventListener('country-changed', onChange);
+    return () => window.removeEventListener('country-changed', onChange);
+  }, []);
   const [category, setCategory] = useState('ALL');
   const [period, setPeriod] = useState('Daily');
   const [sortKey, setSortKey] = useState<SortKey>('rank');
@@ -201,7 +206,7 @@ const RankingsPage = () => {
       <TopHeader onMobileMenuToggle={() => setSidebarOpen((v) => !v)} />
       <GlobalSidebar mobileOpen={sidebarOpen} onMobileClose={() => setSidebarOpen(false)} />
 
-      <div className="lg:ml-52 pt-12 flex-1">
+      <div className="lg:ml-52 pt-12 pb-16 lg:pb-0 flex-1">
         <div className="px-4 lg:px-6 py-6 space-y-5">
 
           {/* Page title + view tabs */}

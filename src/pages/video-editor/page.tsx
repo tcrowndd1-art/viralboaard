@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import { ViralBoardIcon } from '@/components/ViralBoardIcon';
 import SceneTimeline from './components/SceneTimeline';
 import SceneEditor from './components/SceneEditor';
 import BottomToolbar from './components/BottomToolbar';
@@ -93,9 +94,10 @@ const VideoEditorPage = () => {
         <div className="flex items-center gap-3 min-w-0">
           <Link
             to="/"
-            className="font-black text-sm tracking-widest text-gray-900 dark:text-white uppercase hover:text-blue-600 dark:hover:text-blue-400 transition-colors whitespace-nowrap hidden sm:block"
+            className="flex items-center gap-1.5 hover:text-red-500 transition-colors whitespace-nowrap hidden sm:block"
           >
-            ViralBoard
+            <ViralBoardIcon size={18} />
+            <span className="font-black text-sm tracking-widest text-gray-900 dark:text-white uppercase">ViralBoard</span>
           </Link>
           <span className="text-gray-300 dark:text-white/20 text-sm hidden sm:block">/</span>
           <div className="flex items-center gap-1.5">

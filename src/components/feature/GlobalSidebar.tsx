@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useSavedChannels } from '@/hooks/useSavedChannels';
 import { useSavedVideos } from '@/hooks/useSavedVideos';
 import { VideoModal } from '@/components/VideoModal';
+import MobileBottomNav from './MobileBottomNav';
 
 interface GlobalSidebarProps {
   mobileOpen?: boolean;
@@ -251,6 +252,7 @@ const GlobalSidebar = ({
       {modalVideo && (
         <VideoModal videoId={modalVideo.videoId} isShorts={modalVideo.isShorts} onClose={() => setModalVideo(null)} />
       )}
+      <MobileBottomNav />
     </>
   );
 };

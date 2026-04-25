@@ -2,6 +2,13 @@
 # Windows 작업 스케줄러가 이 스크립트 호출
 
 $ErrorActionPreference = "Continue"
+
+# UTF-8 전역 통일 (한글 Mojibake 방지)
+$PSDefaultParameterValues['Add-Content:Encoding'] = 'UTF8'
+$PSDefaultParameterValues['Out-File:Encoding'] = 'UTF8'
+$OutputEncoding = [System.Text.Encoding]::UTF8
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+
 $ProjectPath = "C:\Ai_Wiki\viralboard"
 $LogDir = "$ProjectPath\backend\logs"
 $LogFile = "$LogDir\fetcher_$(Get-Date -Format 'yyyy-MM-dd').log"
