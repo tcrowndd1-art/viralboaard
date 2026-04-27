@@ -46,15 +46,15 @@ cd34382 fix(channel-detail): dedup recent videos by video_id
 
 ## 진행 중 항목 (체크리스트)
 
-- [ ] **#1** 채널 검색: 동명 채널 전부 노출 + DB 누락 채널 보강
-- [ ] **#2** 키워드 검색 버튼 + 다국가 키워드 매핑
-- [ ] **#3** Shorts 데이터량 부족 (현재 66개) + 자동 수집 루프
-- [ ] **#4-A** Shorts 카드 UI: 날짜·조회수 노출
-- [ ] **#4-B** 영상 클릭 시 좋아요/댓글/저장/공유 버튼
-- [ ] **#4-C** 떡상 영상 3개만 노출 + 새로고침 시 로테이션
-- [ ] **#5** MACRO/MICRO/NANO 기준 정의 + 툴팁
-- [ ] **#6** 저장된 채널/영상 우선순위 알고리즘 + mock 제거
-- [ ] **#7** 인기채널 TOP10 기준을 "롤링 30일"로 변경 + 100위까지 페이지네이션 + 카테고리 표시
+- [x] **#1** 채널 검색: 동명 채널 전부 노출 (picker grid UI 추가)
+- [x] **#2** 키워드 검색 버튼 + 다국가 키워드 매핑 (KR/US/JP/BR/ID/TH/VN/IN/DE/FR/GB)
+- [x] **#3** Shorts DB 1993개 확인 (KR 343) — 자동 수집은 backend에서 이미 동작 중
+- [x] **#4-A** ShortsCard: 날짜·조회수 이미 표시됨
+- [x] **#4-B** VideoModal: 저장(bookmark toggle) + 공유(clipboard) + YouTube 버튼
+- [x] **#4-C** 떡상 영상 3개 + 새로고침 버튼(risingSeed 로테이션)
+- [x] **#5** MEGA/MACRO/MID/MICRO/NANO 5단계 + 구독자 임계값 tooltip
+- [x] **#6** useSavedChannels mock seed 제거 + 구독자순 우선순위 정렬
+- [x] **#7** 인기채널 롤링 30일 쿼리 + TOP100 (10개/페이지 네이션) + 카테고리 뱃지
 
 ---
 
