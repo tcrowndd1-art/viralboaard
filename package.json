@@ -12,7 +12,8 @@
     "collect:1": "node scripts/collect.js --session=1 --region=KR",
     "collect:2": "node scripts/collect.js --session=2 --region=US",
     "collect:3": "node scripts/collect.js --session=3 --region=KR",
-    "aggregate": "node scripts/aggregate.js"
+    "aggregate": "node scripts/aggregate.js",
+    "verify": "node scripts/verify-deploy.js"
   },
   "dependencies": {
     "@stripe/react-stripe-js": "4.0.2",
@@ -40,6 +41,7 @@
     "globals": "^16.3.0",
     "jiti": "^2.6.1",
     "postcss": "^8.5.6",
+    "puppeteer": "^24.42.0",
     "source-map": "^0.7.6",
     "tailwindcss": "^3.4.17",
     "typescript": "~5.8.3",
