@@ -198,12 +198,13 @@ const ChannelDetailPage = () => {
 
         // 4. Recent videos
         if (!cancelled) {
+          // Fetch more than needed so dedup leaves us with 12 unique videos
           const { data: vidRows } = await supabase
             .from('viralboard_data')
             .select('video_id, title, views, likes, comments, published_at, thumbnail_url, duration_seconds')
             .eq('channel_id', channelId)
             .order('published_at', { ascending: false })
-            .limit(12);
+            .limit(60);
           if (!cancelled && vidRows) {
             const fmtDur = (sec: number) => {
               const h = Math.floor(sec / 3600);
@@ -213,7 +214,15 @@ const ChannelDetailPage = () => {
               const ss = String(s).padStart(2, '0');
               return h > 0 ? `${h}:${mm}:${ss}` : `${mm}:${ss}`;
             };
-            if (!cancelled) setVideos((vidRows as any[]).map((v) => ({
+            // Dedup by video_id — keep first occurrence (most recent published_at wins)
+            const seen = new Set<string>();
+            const unique = (vidRows as any[]).filter((v) => {
+              const id = v.video_id ?? '';
+              if (!id || seen.has(id)) return false;
+              seen.add(id);
+              return true;
+            }).slice(0, 12);
+            if (!cancelled) setVideos(unique.map((v) => ({
               videoId: v.video_id ?? '',
               title: v.title ?? '',
               views: v.views ?? 0,
