@@ -5,6 +5,8 @@ interface VideoModalProps {
   videoId: string;
   isShorts: boolean;
   onClose: () => void;
+  isSaved?: boolean;
+  onToggleSave?: (videoId: string) => void;
 }
 
 interface VideoMeta {
@@ -37,8 +39,9 @@ const timeAgo = (iso: string): string => {
   return `${Math.floor(days / 365)}년 전`;
 };
 
-export function VideoModal({ videoId, isShorts, onClose }: VideoModalProps) {
+export function VideoModal({ videoId, isShorts, onClose, isSaved = false, onToggleSave }: VideoModalProps) {
   const [meta, setMeta] = useState<VideoMeta | null>(null);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
@@ -70,9 +73,21 @@ export function VideoModal({ videoId, isShorts, onClose }: VideoModalProps) {
     return () => { cancelled = true; };
   }, [videoId]);
 
+  const ytUrl = `https://www.youtube.com/watch?v=${videoId}`;
   const embedUrl = `https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0`;
   const containerClass = isShorts ? 'max-w-sm' : 'max-w-4xl';
   const aspectClass = isShorts ? 'aspect-[9/16]' : 'aspect-video';
+
+  const handleShare = async () => {
+    try {
+      await navigator.clipboard.writeText(ytUrl);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // clipboard denied — open in new tab as fallback
+      window.open(ytUrl, '_blank', 'noopener');
+    }
+  };
 
   return (
     <div
@@ -115,6 +130,39 @@ export function VideoModal({ videoId, isShorts, onClose }: VideoModalProps) {
                     <p className="text-[11px] text-gray-500 dark:text-white/50">구독자 {fmt(meta.subscriberCount)}</p>
                   )}
                 </div>
+              </div>
+
+              {/* Action buttons */}
+              <div className="flex items-center gap-2 flex-shrink-0">
+                {onToggleSave && (
+                  <button
+                    onClick={() => onToggleSave(videoId)}
+                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-semibold transition-colors cursor-pointer ${
+                      isSaved
+                        ? 'bg-red-500 text-white'
+                        : 'bg-gray-100 dark:bg-white/10 text-gray-700 dark:text-white/70 hover:bg-gray-200 dark:hover:bg-white/15'
+                    }`}
+                  >
+                    <i className={isSaved ? 'ri-bookmark-fill' : 'ri-bookmark-line'}></i>
+                    {isSaved ? '저장됨' : '저장'}
+                  </button>
+                )}
+                <button
+                  onClick={handleShare}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-semibold bg-gray-100 dark:bg-white/10 text-gray-700 dark:text-white/70 hover:bg-gray-200 dark:hover:bg-white/15 transition-colors cursor-pointer"
+                >
+                  <i className={copied ? 'ri-check-line text-green-500' : 'ri-share-line'}></i>
+                  {copied ? '복사됨' : '공유'}
+                </button>
+                <a
+                  href={ytUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-semibold bg-red-600 text-white hover:bg-red-700 transition-colors"
+                >
+                  <i className="ri-youtube-line"></i>
+                  YouTube
+                </a>
               </div>
             </div>
 

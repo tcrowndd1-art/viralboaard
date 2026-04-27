@@ -52,12 +52,31 @@ const CreatorWall = ({ tickerText }: { tickerText: string }) => (
   </a>
 );
 
+const COUNTRY_KEYWORDS: Record<string, string[]> = {
+  KR: ['먹방', 'VLOG', '챌린지', '브이로그', '연예인'],
+  US: ['prank', 'challenge', 'vlog', 'gaming', 'cooking'],
+  JP: ['ゲーム', 'ASMR', 'VTuber', '料理', '日常'],
+  BR: ['futebol', 'culinária', 'vlogs', 'tecnologia', 'humor'],
+  ID: ['masak', 'gaming', 'vlog', 'musik', 'komedi'],
+  TH: ['กิน', 'เกม', 'วีล็อก', 'เพลง', 'ตลก'],
+  VN: ['nấu ăn', 'gaming', 'vlog', 'âm nhạc', 'hài'],
+  IN: ['cooking', 'cricket', 'vlog', 'comedy', 'gaming'],
+  DE: ['Gaming', 'Kochen', 'Vlog', 'Comedy', 'Sport'],
+  FR: ['cuisine', 'vlog', 'gaming', 'humour', 'musique'],
+  GB: ['football', 'gaming', 'vlog', 'comedy', 'music'],
+};
+
+function getKeywords(country: string): string[] {
+  return COUNTRY_KEYWORDS[country] ?? COUNTRY_KEYWORDS['US'];
+}
+
 interface Props {
   onSearch: (query: string) => void;
   loading: boolean;
+  activeCountry?: string;
 }
 
-const SearchBanner = ({ onSearch, loading }: Props) => {
+const SearchBanner = ({ onSearch, loading, activeCountry = 'KR' }: Props) => {
   const { t } = useTranslation();
   const [input, setInput] = useState('');
   const [history, setHistory] = useState<string[]>([]);
@@ -150,6 +169,19 @@ const SearchBanner = ({ onSearch, loading }: Props) => {
                 ))}
               </div>
             )}
+          </div>
+
+          {/* Keyword chips */}
+          <div className="flex flex-wrap gap-1.5 mb-3">
+            {getKeywords(activeCountry).map((kw) => (
+              <button
+                key={kw}
+                onClick={() => { setInput(kw); onSearch(kw); }}
+                className="px-2.5 py-1 text-[11px] font-medium rounded-full bg-gray-100 dark:bg-white/10 text-gray-600 dark:text-white/60 hover:bg-red-50 dark:hover:bg-red-500/15 hover:text-red-600 dark:hover:text-red-400 transition-colors cursor-pointer whitespace-nowrap border border-gray-200 dark:border-white/[0.08]"
+              >
+                {kw}
+              </button>
+            ))}
           </div>
 
           <div className="flex flex-wrap gap-3">

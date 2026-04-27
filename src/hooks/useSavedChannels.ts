@@ -1,5 +1,4 @@
 import { useState, useEffect, useCallback } from 'react';
-import { savedChannels as mockSavedChannels } from '@/mocks/userDashboard';
 import type { SavedChannel } from '@/mocks/userDashboard';
 
 const STORAGE_KEY = 'viralboard_saved_channels';
@@ -14,13 +13,15 @@ const dispatchSync = () => {
 const loadFromStorage = (): SavedChannel[] => {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw) as SavedChannel[];
+    if (raw) {
+      const parsed = JSON.parse(raw) as SavedChannel[];
+      // Priority sort: highest subscribers first, then alphabetical
+      return [...parsed].sort((a, b) => (b.subscribers ?? 0) - (a.subscribers ?? 0) || a.name.localeCompare(b.name));
+    }
   } catch {
     // ignore
   }
-  // First time: seed with mock data
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(mockSavedChannels));
-  return mockSavedChannels;
+  return [];
 };
 
 const saveToStorage = (channels: SavedChannel[]) => {

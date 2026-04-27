@@ -84,6 +84,7 @@ export interface PopularChannelItem {
   channelId: string;
   subscribers: number;
   totalViews: number;
+  category?: string;
 }
 
 export interface TrendingVideoItem {

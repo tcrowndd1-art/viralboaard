@@ -49,10 +49,11 @@ function fmtViews(n: number) {
   return String(n);
 }
 function channelTier(subs: number) {
-  if (subs >= 1_000_000) return { label: 'Macro', cls: 'bg-yellow-400/90 text-black' };
-  if (subs >= 100_000)   return { label: 'Mid',   cls: 'bg-sky-400/90 text-black' };
-  if (subs >= 10_000)    return { label: 'Micro', cls: 'bg-emerald-400/90 text-black' };
-  return                        { label: 'Nano',  cls: 'bg-gray-300/90 text-black' };
+  if (subs >= 10_000_000) return { label: 'MEGA',  cls: 'bg-purple-500/90 text-white', tip: 'MEGA: 1천만+ 구독자' };
+  if (subs >= 1_000_000)  return { label: 'MACRO', cls: 'bg-yellow-400/90 text-black', tip: 'MACRO: 100만~1천만 구독자' };
+  if (subs >= 100_000)    return { label: 'MID',   cls: 'bg-sky-400/90 text-black',    tip: 'MID: 10만~100만 구독자' };
+  if (subs >= 10_000)     return { label: 'MICRO', cls: 'bg-emerald-400/90 text-black',tip: 'MICRO: 1만~10만 구독자' };
+  return                         { label: 'NANO',  cls: 'bg-gray-300/90 text-black',   tip: 'NANO: 1만 미만 구독자' };
 }
 function multiBadge(score: number | null) {
   if (score === null) return null;
@@ -225,7 +226,7 @@ const VideoCard = ({
         <div className="absolute bottom-1.5 right-1.5 bg-black/75 backdrop-blur-sm rounded px-1.5 leading-none" style={{ paddingTop: '3px', paddingBottom: '3px' }}>
           <span className="text-emerald-400 text-[9px] font-black leading-none">{revMin}–{revMax}</span>
         </div>
-        <span className={`absolute top-1.5 left-1.5 text-[7px] font-black px-1 leading-none rounded uppercase ${tier.cls}`} style={{ paddingTop: '2px', paddingBottom: '2px' }}>{tier.label}</span>
+        <span title={tier.tip} className={`absolute top-1.5 left-1.5 text-[7px] font-black px-1 leading-none rounded uppercase cursor-help ${tier.cls}`} style={{ paddingTop: '2px', paddingBottom: '2px' }}>{tier.label}</span>
         <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black/20">
           <i className="ri-play-fill text-white text-2xl"></i>
         </div>
@@ -586,8 +587,10 @@ const HomePage = () => {
   const playVideo = useCallback<PlayHandler>((videoId, isShorts) => setModalVideo({ videoId, isShorts }), []);
 
   const [chTab, setChTab] = useState<'subs' | 'views'>('subs');
+  const [chPage, setChPage] = useState(1);
   const [searching, setSearching] = useState(false);
   const [channel, setChannel] = useState<ChannelResult | null>(null);
+  const [channelList, setChannelList] = useState<ChannelResult[]>([]);
   const [videos, setVideos] = useState<VideoResult[]>([]);
   const [searchError, setSearchError] = useState<string | null>(null);
 
@@ -596,6 +599,7 @@ const HomePage = () => {
   const [liveVideos, setLiveVideos] = useState<ViralVideoItem[]>([]);
   const [homeDataLoaded, setHomeDataLoaded] = useState(false);
   const [prevChRankings, setPrevChRankings] = useState<Map<string, number>>(new Map());
+  const [risingSeed, setRisingSeed] = useState(() => Math.random());
 
   useEffect(() => {
     let cancelled = false;
@@ -683,23 +687,34 @@ const HomePage = () => {
         }));
         if (!cancelled) setTrendingVideos(trending);
 
-        // 인기 채널 (popularChannels) — channel_id별 조회수 집계
-        const channelMap = new Map<string, { name: string; channelId: string; totalViews: number; subscribers: number; avatar: string }>();
-        for (const v of data) {
-          const subs = v.subscriber_count ?? 0;
-          const thumb = v.channel_thumbnail_url ?? '';
-          const existing = channelMap.get(v.channel_id);
+        // 인기 채널 — rolling 30일 기준, 최대 100위
+        const _thirtyDaysAgoIso = new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString();
+        const { data: rollingRows } = await supabase
+          .from('viralboard_data')
+          .select('channel_id, channel, channel_thumbnail_url, subscriber_count, views, category, fetched_at')
+          .eq('country', activeCountry)
+          .gte('fetched_at', _thirtyDaysAgoIso)
+          .limit(1000);
+
+        const rollingSource = rollingRows && rollingRows.length > 0 ? rollingRows : data;
+        const channelMap = new Map<string, { name: string; channelId: string; totalViews: number; subscribers: number; avatar: string; category: string }>();
+        for (const v of rollingSource) {
+          const subs = (v as any).subscriber_count ?? 0;
+          const thumb = (v as any).channel_thumbnail_url ?? '';
+          const cat = (v as any).category ?? '';
+          const existing = channelMap.get((v as any).channel_id);
           if (!existing) {
-            channelMap.set(v.channel_id, { name: v.channel, channelId: v.channel_id, totalViews: v.views, subscribers: subs, avatar: thumb });
+            channelMap.set((v as any).channel_id, { name: (v as any).channel, channelId: (v as any).channel_id, totalViews: (v as any).views ?? 0, subscribers: subs, avatar: thumb, category: cat });
           } else {
-            existing.totalViews += v.views;
+            existing.totalViews += (v as any).views ?? 0;
             if (subs > existing.subscribers) existing.subscribers = subs;
             if (!existing.avatar && thumb) existing.avatar = thumb;
+            if (!existing.category && cat) existing.category = cat;
           }
         }
         const popular: PopularChannelItem[] = [...channelMap.values()]
           .sort((a, b) => b.totalViews - a.totalViews)
-          .slice(0, 20)
+          .slice(0, 100)
           .map((ch, i) => ({
             rank: i + 1,
             name: ch.name,
@@ -710,6 +725,7 @@ const HomePage = () => {
             channelId: ch.channelId,
             subscribers: ch.subscribers,
             totalViews: ch.totalViews,
+            category: ch.category,
           }));
         if (!cancelled) {
           setPopularChannels(popular);
@@ -740,6 +756,7 @@ const HomePage = () => {
     setSearching(true);
     setSearchError(null);
     setChannel(null);
+    setChannelList([]);
     setVideos([]);
     const cacheKey = CACHE_KEY(query);
     const cached = cacheGet<{ channel: ChannelResult; videos: VideoResult[] }>(cacheKey);
@@ -758,14 +775,34 @@ const HomePage = () => {
           : 'No results. Try another keyword.');
         return;
       }
-      const top = results[0];
-      const recentVideos = await fetchRecentVideos(top.id);
-      setChannel(top);
-      setVideos(recentVideos);
-      cacheSet(cacheKey, { channel: top, videos: recentVideos });
       addSearchHistory(query);
+      if (results.length === 1) {
+        // Single match — load immediately
+        const top = results[0];
+        const recentVideos = await fetchRecentVideos(top.id);
+        setChannel(top);
+        setVideos(recentVideos);
+        cacheSet(cacheKey, { channel: top, videos: recentVideos });
+      } else {
+        // Multiple matches — show picker
+        setChannelList(results);
+      }
     } catch {
       setSearchError(isKo ? '검색 중 오류가 발생했습니다. API 키를 확인해주세요.' : 'Search error. Please check your API key.');
+    } finally {
+      setSearching(false);
+    }
+  };
+
+  const handleSelectChannel = async (picked: ChannelResult) => {
+    setSearching(true);
+    setChannelList([]);
+    try {
+      const recentVideos = await fetchRecentVideos(picked.id);
+      setChannel(picked);
+      setVideos(recentVideos);
+    } catch {
+      setSearchError(isKo ? '채널 로드 오류' : 'Failed to load channel.');
     } finally {
       setSearching(false);
     }
@@ -806,9 +843,20 @@ const HomePage = () => {
     .filter(v => v.viralScore !== null && v.viralScore > 0)
     .sort((a, b) => (b.viralScore ?? 0) - (a.viralScore ?? 0))
     .slice(0, 12);
-  const risingVideos = filterByCat(
+  const _risingPool = filterByCat(
     _rising100.length > 0 ? _rising100 : _rising10.length > 0 ? _rising10 : _risingAll
   );
+  // 3 videos picked deterministically from pool using risingSeed (changes on manual refresh)
+  const risingVideos = useMemo(() => {
+    if (_risingPool.length <= 3) return _risingPool;
+    const startIdx = Math.floor(risingSeed * (_risingPool.length - 2)) % _risingPool.length;
+    const picks: typeof _risingPool = [];
+    for (let i = 0; picks.length < 3; i++) {
+      picks.push(_risingPool[(startIdx + i) % _risingPool.length]);
+    }
+    return picks;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [_risingPool.length, risingSeed]);
   const topViewVideos = filterByCat([...longformPool].sort((a, b) => b.views - a.views));
   const topViewsAll = topViewVideos;
   const chBySubs  = [...popularChannels].sort((a, b) => b.subscribers - a.subscribers);
@@ -837,11 +885,48 @@ const HomePage = () => {
       <GlobalSidebar mobileOpen={sidebarOpen} onMobileClose={() => setSidebarOpen(false)} />
 
       <div className="lg:ml-52 pt-12 pb-16 lg:pb-0">
-        <SearchBanner onSearch={handleSearch} loading={searching} />
+        <SearchBanner onSearch={handleSearch} loading={searching} activeCountry={activeCountry} />
 
         {searchError && (
           <div className="mx-6 mt-4 px-4 py-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-500/30 rounded text-sm text-red-600 dark:text-red-400">{searchError}</div>
         )}
+
+        {/* ── Multi-result channel picker ── */}
+        {channelList.length > 0 && !channel && (
+          <div className="mx-6 mt-4 bg-white dark:bg-[#181818] border border-gray-200 dark:border-white/10 rounded-xl overflow-hidden shadow-sm">
+            <div className="flex items-center justify-between px-4 py-2.5 border-b border-gray-100 dark:border-white/[0.06]">
+              <span className="text-[11px] font-bold text-gray-700 dark:text-white/70">
+                {channelList.length}개 채널 검색됨 — 선택하세요
+              </span>
+              <button onClick={() => setChannelList([])} className="text-gray-400 hover:text-red-500 transition-colors cursor-pointer text-lg leading-none">✕</button>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-px bg-gray-100 dark:bg-white/[0.06]">
+              {channelList.map((ch) => (
+                <button
+                  key={ch.id}
+                  onClick={() => handleSelectChannel(ch)}
+                  className="flex items-center gap-3 px-4 py-3 bg-white dark:bg-[#181818] hover:bg-red-50/60 dark:hover:bg-red-500/[0.06] transition-colors text-left cursor-pointer"
+                >
+                  {ch.avatar ? (
+                    <img src={ch.avatar} alt={ch.name} className="w-9 h-9 rounded-full object-cover flex-shrink-0" />
+                  ) : (
+                    <div className="w-9 h-9 rounded-full bg-gray-200 dark:bg-white/10 flex-shrink-0 flex items-center justify-center text-[11px] font-bold text-gray-500 dark:text-white/50 uppercase">
+                      {ch.name.slice(0, 2)}
+                    </div>
+                  )}
+                  <div className="min-w-0">
+                    <p className="text-[12px] font-semibold text-gray-800 dark:text-white/85 truncate">{ch.name}</p>
+                    <p className="text-[10px] text-gray-400 dark:text-white/40 font-mono">
+                      {ch.subscribers >= 1_000_000 ? `${(ch.subscribers / 1_000_000).toFixed(1)}M` : `${Math.round(ch.subscribers / 1_000)}K`}
+                      {ch.country ? ` · ${ch.country}` : ''}
+                    </p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
         {channel && (
           <ChannelSearchResult channel={channel} videos={videos}
             onClose={() => { setChannel(null); setVideos([]); setSearchError(null); }} />
@@ -849,24 +934,30 @@ const HomePage = () => {
 
         <div className="pt-5 pb-12 space-y-8">
 
-          {/* ── Popular Channels TOP10 — horizontal scroll with tabs ── */}
+          {/* ── Popular Channels TOP100 (rolling 30d) — paginated 10/page ── */}
           {(() => {
-            const chList = (chTab === 'subs' ? chBySubs : chByViews).slice(0, 10);
+            const CH_PER_PAGE = 10;
+            const sorted = chTab === 'subs' ? chBySubs : chByViews;
+            const totalPages = Math.max(1, Math.ceil(sorted.length / CH_PER_PAGE));
+            const safePage = Math.min(chPage, totalPages);
+            const chList = sorted.slice((safePage - 1) * CH_PER_PAGE, safePage * CH_PER_PAGE);
             const isLoading = !homeDataLoaded && popularChannels.length === 0;
+            const globalOffset = (safePage - 1) * CH_PER_PAGE;
             return (
               <div>
                 <div className="flex items-center justify-between mb-3 px-4 sm:px-6">
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-[10px] font-black text-gray-400 dark:text-white/45 uppercase tracking-[0.15em]">{t('home_popular_channels')}</span>
-                    <span className="text-[9px] font-black px-2 py-0.5 rounded-full text-black" style={{ background: 'linear-gradient(135deg, #fbbf24, #f59e0b)' }}>TOP10</span>
-                    <div className="flex items-center gap-1 ml-2">
-                      <button onClick={() => setChTab('subs')}
+                    <span className="text-[9px] font-black px-2 py-0.5 rounded-full text-black" style={{ background: 'linear-gradient(135deg, #fbbf24, #f59e0b)' }}>TOP100</span>
+                    <span className="text-[8px] text-gray-400 dark:text-white/30 bg-gray-100 dark:bg-white/[0.07] px-1.5 py-0.5 rounded">롤링 30일</span>
+                    <div className="flex items-center gap-1">
+                      <button onClick={() => { setChTab('subs'); setChPage(1); }}
                         className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-[9px] font-bold transition-all cursor-pointer ${
                           chTab === 'subs' ? 'bg-amber-400/90 text-black' : 'bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-white/45 hover:bg-gray-200 dark:hover:bg-white/15'
                         }`}>
                         <i className="ri-user-star-line text-[9px]"></i> {t('home_by_subs')}
                       </button>
-                      <button onClick={() => setChTab('views')}
+                      <button onClick={() => { setChTab('views'); setChPage(1); }}
                         className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-[9px] font-bold transition-all cursor-pointer ${
                           chTab === 'views' ? 'bg-sky-400/90 text-black' : 'bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-white/45 hover:bg-gray-200 dark:hover:bg-white/15'
                         }`}>
@@ -874,32 +965,52 @@ const HomePage = () => {
                       </button>
                     </div>
                   </div>
-                  <a href="/rankings" className="text-[10px] text-gray-400 dark:text-white/45 hover:text-red-500 transition-colors mr-6">{t('home_view_all')}</a>
+                  <div className="flex items-center gap-2 mr-6">
+                    {totalPages > 1 && (
+                      <div className="flex items-center gap-1">
+                        <button onClick={() => setChPage(p => Math.max(1, p - 1))} disabled={safePage <= 1}
+                          className="w-6 h-6 rounded flex items-center justify-center text-[10px] bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-white/45 disabled:opacity-30 hover:bg-gray-200 dark:hover:bg-white/15 transition-colors cursor-pointer">
+                          ‹
+                        </button>
+                        <span className="text-[9px] text-gray-400 dark:text-white/40 font-mono px-1">{safePage}/{totalPages}</span>
+                        <button onClick={() => setChPage(p => Math.min(totalPages, p + 1))} disabled={safePage >= totalPages}
+                          className="w-6 h-6 rounded flex items-center justify-center text-[10px] bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-white/45 disabled:opacity-30 hover:bg-gray-200 dark:hover:bg-white/15 transition-colors cursor-pointer">
+                          ›
+                        </button>
+                      </div>
+                    )}
+                    <a href="/rankings" className="text-[10px] text-gray-400 dark:text-white/45 hover:text-red-500 transition-colors">{t('home_view_all')}</a>
+                  </div>
                 </div>
                 <div className="overflow-x-auto scrollbar-hide px-4 sm:px-6 pb-1">
                   <div className="flex gap-2.5" style={{ width: 'max-content' }}>
-                    {(isLoading ? Array.from({ length: 10 }) : chList).map((ch, i) =>
-                      ch ? (
+                    {(isLoading ? Array.from({ length: CH_PER_PAGE }) : chList).map((ch, i) => {
+                      const globalRank = globalOffset + i + 1;
+                      return ch ? (
                         <Link
-                          key={(ch as PopularChannelItem).channelId + chTab}
+                          key={(ch as PopularChannelItem).channelId + chTab + safePage}
                           to={`/channel/${(ch as PopularChannelItem).channelId}`}
-                          className="group flex flex-col items-center gap-1.5 w-[76px] flex-shrink-0 px-1.5 py-2.5 rounded-xl border border-gray-100 dark:border-white/[0.07] hover:border-red-200 dark:hover:border-red-500/30 hover:bg-red-50/40 dark:hover:bg-red-500/[0.05] transition-all"
+                          className="group flex flex-col items-center gap-1 w-[76px] flex-shrink-0 px-1.5 py-2.5 rounded-xl border border-gray-100 dark:border-white/[0.07] hover:border-red-200 dark:hover:border-red-500/30 hover:bg-red-50/40 dark:hover:bg-red-500/[0.05] transition-all"
                         >
                           <div className="relative">
                             <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-100 dark:bg-white/10 ring-2 ring-transparent group-hover:ring-red-400/50 transition-all">
                               <ChannelAvatar src={(ch as PopularChannelItem).avatar || ''} name={(ch as PopularChannelItem).name} />
                             </div>
-                            {/* Gold/Silver/Bronze rank badge — silver uses outline for white-bg visibility */}
                             <span className={`absolute -top-1 -left-1 w-4 h-4 flex items-center justify-center rounded-full text-[8px] font-black leading-none ${
-                              i === 0 ? 'bg-amber-400 text-black' :
-                              i === 1 ? 'bg-slate-400 text-white ring-1 ring-slate-500/30' :
-                              i === 2 ? 'bg-orange-400 text-black' :
+                              globalRank === 1 ? 'bg-amber-400 text-black' :
+                              globalRank === 2 ? 'bg-slate-400 text-white ring-1 ring-slate-500/30' :
+                              globalRank === 3 ? 'bg-orange-400 text-black' :
                               'bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-white/50'
-                            }`}>{i + 1}</span>
+                            }`}>{globalRank}</span>
                           </div>
                           <p className="text-[9px] font-semibold text-gray-700 dark:text-white/70 group-hover:text-red-600 dark:group-hover:text-red-400 truncate w-full text-center transition-colors leading-tight">
                             {(ch as PopularChannelItem).name}
                           </p>
+                          {(ch as PopularChannelItem).category && (
+                            <span className="text-[7px] text-gray-400 dark:text-white/30 bg-gray-100 dark:bg-white/[0.07] px-1 py-px rounded truncate max-w-full leading-none">
+                              {(ch as PopularChannelItem).category}
+                            </span>
+                          )}
                           <p className="text-[8px] text-gray-400 dark:text-white/45 font-mono leading-none">
                             {chTab === 'subs' && (ch as PopularChannelItem).subscribers != null
                               ? (((ch as PopularChannelItem).subscribers / 1_000_000) >= 1
@@ -915,7 +1026,7 @@ const HomePage = () => {
                           {(() => {
                             if (prevChRankings.size === 0) return null;
                             const prevRank = prevChRankings.get((ch as PopularChannelItem).channelId);
-                            const currRank = i + 1;
+                            const currRank = globalRank;
                             if (prevRank === undefined) return <span className="text-[7px] font-black px-1 py-px rounded bg-blue-500/15 text-blue-500 leading-none">NEW</span>;
                             const diff = prevRank - currRank;
                             if (diff > 0) return <span className="text-[8px] font-black text-red-500 leading-none">▲{diff}</span>;
@@ -929,8 +1040,8 @@ const HomePage = () => {
                           <div className="h-2 bg-gray-100 dark:bg-white/8 rounded animate-pulse w-4/5" />
                           <div className="h-2 bg-gray-100 dark:bg-white/8 rounded animate-pulse w-1/2" />
                         </div>
-                      )
-                    )}
+                      );
+                    })}
                   </div>
                 </div>
               </div>
@@ -973,11 +1084,22 @@ const HomePage = () => {
           />
 
 
-          {/* ── Rising Channels ── */}
+          {/* ── Rising Channels (떡상 영상) — 3개 + 새로고침 ── */}
           <VideoSection icon="ri-rocket-line" iconColor="text-emerald-500"
             title={t('home_rising_channels')}
             glowColor="#10b981"
-            badge={<span className="text-[10px] text-gray-400 dark:text-white/45">{t('home_views_vs_subs')}</span>}
+            badge={
+              <div className="flex items-center gap-1.5">
+                <span className="text-[10px] text-gray-400 dark:text-white/45">{t('home_views_vs_subs')}</span>
+                <button
+                  onClick={() => setRisingSeed(Math.random())}
+                  className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[8px] font-bold bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 transition-colors cursor-pointer"
+                  title="다른 떡상 영상 보기"
+                >
+                  <i className="ri-refresh-line text-[8px]"></i> 새로고침
+                </button>
+              </div>
+            }
             emptyMessage="이번 주는 검증된 떡상 영상이 없습니다. 곧 업데이트됩니다."
             items={risingVideos} savedIds={savedIds} onToggleSave={handleToggleSave} loaded={homeDataLoaded} />
 
@@ -1015,7 +1137,13 @@ const HomePage = () => {
         <HomeFooter />
       </div>
       {modalVideo && (
-        <VideoModal videoId={modalVideo.videoId} isShorts={modalVideo.isShorts} onClose={() => setModalVideo(null)} />
+        <VideoModal
+          videoId={modalVideo.videoId}
+          isShorts={modalVideo.isShorts}
+          onClose={() => setModalVideo(null)}
+          isSaved={savedIds.has(modalVideo.videoId)}
+          onToggleSave={handleToggleSave}
+        />
       )}
     </div>
     </VideoPlayContext.Provider>
