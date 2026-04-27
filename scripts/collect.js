@@ -33,6 +33,23 @@ if (!API_KEY) {
 
 const BASE = 'https://www.googleapis.com/youtube/v3';
 
+// ── Language → Country inference ──
+// Used when channel has no snippet.country set (common for smaller/older channels)
+const LANG_COUNTRY_MAP = {
+  'vi': 'VN', 'id': 'ID', 'ms': 'MY',
+  'ko': 'KR', 'ja': 'JP', 'zh': 'TW', 'zh-hans': 'CN', 'zh-hant': 'TW',
+  'hi': 'IN', 'bn': 'BD', 'ta': 'IN', 'te': 'IN',
+  'th': 'TH', 'ar': 'SA', 'tr': 'TR',
+  'ru': 'RU', 'de': 'DE', 'fr': 'FR',
+  'es': 'MX', 'pt': 'BR', 'pt-br': 'BR', 'pt-pt': 'PT',
+};
+
+function inferCountryFromLang(lang) {
+  if (!lang) return null;
+  const key = lang.toLowerCase();
+  return LANG_COUNTRY_MAP[key] ?? LANG_COUNTRY_MAP[key.split('-')[0]] ?? null;
+}
+
 // ── Hook classifier ──
 const HOOK_PATTERNS = [
   { type: 'secret_reveal',      regex: /숨겨진|비밀|몰랐던|알려지지|hidden|secret|untold/i },
@@ -96,6 +113,44 @@ async function collect() {
     (channelData.items ?? []).map(ch => [ch.id, ch])
   );
 
+  // ── Build dominant language map per channel (from video snippets) ──
+  // Fallback when channel.snippet.country is absent
+  const chLangVotes = {};
+  for (const v of videos) {
+    const chId = v.snippet?.channelId;
+    const lang = v.snippet?.defaultAudioLanguage ?? v.snippet?.defaultLanguage;
+    if (chId && lang) {
+      if (!chLangVotes[chId]) chLangVotes[chId] = {};
+      chLangVotes[chId][lang] = (chLangVotes[chId][lang] ?? 0) + 1;
+    }
+  }
+  function dominantLangFor(chId) {
+    const votes = chLangVotes[chId];
+    if (!votes) return null;
+    return Object.entries(votes).sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
+  }
+
+  // ── Build channel snapshots ──
+  // Country priority: 1) channel snippet.country  2) video language inference  3) REGION
+  const channelSnapshots = [...channelMap.values()].map(ch => {
+    const snippetCountry = ch.snippet?.country;
+    const inferredCountry = inferCountryFromLang(dominantLangFor(ch.id));
+    const country = snippetCountry || inferredCountry || REGION;
+    return {
+      channelId: ch.id,
+      name: ch.snippet?.title ?? '',
+      country,
+      date: today,
+      session: SESSION,
+      subscribers: parseInt(ch.statistics?.subscriberCount ?? '0'),
+      totalViews: parseInt(ch.statistics?.viewCount ?? '0'),
+      videoCount: parseInt(ch.statistics?.videoCount ?? '0'),
+    };
+  });
+
+  // ── Build channel → country lookup for video rows ──
+  const chCountryLookup = new Map(channelSnapshots.map(c => [c.channelId, c.country]));
+
   // ── Build video snapshots ──
   const videoSnapshots = videos.map(v => {
     const publishedAt = v.snippet?.publishedAt ?? '';
@@ -104,10 +159,13 @@ async function collect() {
       : 1;
     const views = parseInt(v.statistics?.viewCount ?? '0');
     const durationSec = parseDurationSec(v.contentDetails?.duration ?? '');
+    const chId = v.snippet?.channelId ?? '';
 
     return {
       videoId: v.id,
-      channelId: v.snippet?.channelId ?? '',
+      channelId: chId,
+      // Inherit channel's resolved country so filtering is accurate
+      country: chCountryLookup.get(chId) ?? REGION,
       date: today,
       session: SESSION,
       title: v.snippet?.title ?? '',
@@ -122,18 +180,6 @@ async function collect() {
       viralVelocity: Math.round(views / ageDays),
     };
   });
-
-  // ── Build channel snapshots ──
-  const channelSnapshots = [...channelMap.values()].map(ch => ({
-    channelId: ch.id,
-    name: ch.snippet?.title ?? '',
-    country: ch.snippet?.country ?? REGION,
-    date: today,
-    session: SESSION,
-    subscribers: parseInt(ch.statistics?.subscriberCount ?? '0'),
-    totalViews: parseInt(ch.statistics?.viewCount ?? '0'),
-    videoCount: parseInt(ch.statistics?.videoCount ?? '0'),
-  }));
 
   // ── Save ──
   const dataDir = path.join(__dirname, '../data');

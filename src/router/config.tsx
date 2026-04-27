@@ -49,6 +49,10 @@ const routes: RouteObject[] = [
     element: <Rankings />,
   },
   {
+    path: "/channel-rankings",
+    element: <Navigate to="/rankings" replace />,
+  },
+  {
     path: "/video-rankings",
     element: <VideoRankings />,
   },

@@ -92,6 +92,14 @@ const SearchPage = () => {
           </div>
           {loading ? (
             <div className="flex justify-center py-20"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-500"></div></div>
+          ) : !query.trim() ? (
+            <div className="flex flex-col items-center justify-center py-24 text-center">
+              <div className="w-16 h-16 flex items-center justify-center bg-gray-100 dark:bg-white/5 rounded-full mb-4">
+                <i className="ri-search-line text-gray-400 dark:text-gray-500 text-2xl"></i>
+              </div>
+              <h2 className="text-gray-800 dark:text-white font-semibold text-lg mb-2">채널명 또는 영상 제목을 검색하세요</h2>
+              <p className="text-gray-400 dark:text-gray-500 text-sm max-w-xs">검색창에 채널명이나 영상 제목을 입력하면 관련 결과를 보여드립니다.</p>
+            </div>
           ) : displayedResults.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-24 text-center">
               <div className="w-16 h-16 flex items-center justify-center bg-gray-100 dark:bg-white/5 rounded-full mb-4">

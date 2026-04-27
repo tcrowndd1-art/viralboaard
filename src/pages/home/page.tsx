@@ -15,6 +15,7 @@ import type { ChannelResult, VideoResult, PopularChannelItem, TrendingVideoItem,
 import { cacheGet, cacheSet, addSearchHistory } from '@/services/cache';
 import { viralMockData } from '@/mocks/viralData';
 import { supabase } from '@/services/supabase';
+import { AdStrip } from './components/AdBillboard';
 
 type PlayHandler = (videoId: string, isShorts: boolean) => void;
 const VideoPlayContext = createContext<PlayHandler | null>(null);
@@ -108,11 +109,36 @@ const DB_CAT_MAP: Record<string, string> = {
 };
 const normalizeCategory = (c: string): string => DB_CAT_MAP[c] ?? c;
 
-/* ── Shorts rows config ── */
-const SHORTS_ROWS = [
-  { key: 'entermusic', tKey: 'home_shorts_entermusic', cats: ['Entertainment', 'Music', 'Stories', 'Other', 'entertainment', 'music'], accent: '#ef4444', accentBg: 'rgba(239,68,68,0.10)', accentBorder: 'rgba(239,68,68,0.22)' },
-  { key: 'edtech',     tKey: 'home_shorts_edtech',     cats: ['Science', 'Education', 'Self-Dev', 'News', 'science', 'education', 'howto_style'], accent: '#818cf8', accentBg: 'rgba(99,102,241,0.10)', accentBorder: 'rgba(99,102,241,0.22)' },
-];
+/* ── Channel rank history (daily snapshot) ── */
+const CH_RANK_HIST_KEY = 'vb_ch_rank_hist';
+// Structure: { [country]: { date: "YYYY-MM-DD", prev: {chId:rank}, curr: {chId:rank} } }
+const loadPrevChRanks = (country: string): Map<string, number> => {
+  try {
+    const raw = JSON.parse(localStorage.getItem(CH_RANK_HIST_KEY) ?? '{}');
+    const entry = raw[country];
+    if (!entry) return new Map();
+    const today = new Date().toISOString().slice(0, 10);
+    // Same day → compare against day-before snapshot (entry.prev)
+    // Different day → entry.curr was saved yesterday, use it as "prev"
+    const src: Record<string, number> = entry.date === today ? (entry.prev ?? {}) : (entry.curr ?? {});
+    return new Map(Object.entries(src) as [string, number][]);
+  } catch { return new Map(); }
+};
+const saveCurrChRanks = (country: string, channels: PopularChannelItem[]) => {
+  try {
+    const raw = JSON.parse(localStorage.getItem(CH_RANK_HIST_KEY) ?? '{}');
+    const today = new Date().toISOString().slice(0, 10);
+    const existing = raw[country] ?? { date: '', prev: {}, curr: {} };
+    const newRanks: Record<string, number> = {};
+    channels.forEach((ch, i) => { newRanks[ch.channelId] = i + 1; });
+    // New day → rotate curr → prev, reset curr
+    raw[country] = existing.date !== today
+      ? { date: today, prev: existing.curr ?? {}, curr: newRanks }
+      : { ...existing, curr: newRanks };
+    localStorage.setItem(CH_RANK_HIST_KEY, JSON.stringify(raw));
+  } catch { /* ignore */ }
+};
+
 
 /* ── Per-category accent colors for dynamic shorts rows ── */
 const CAT_ACCENT: Partial<Record<Cat, { accent: string; accentBg: string; accentBorder: string }>> = {
@@ -182,6 +208,9 @@ const VideoCard = ({
   const tier = channelTier(v.subscribers);
   const saved = savedIds.has(v.videoId);
   const playVideo = usePlayVideo();
+  const { t } = useTranslation();
+  const _vcDaysAgo = Math.max(0, Math.floor((Date.now() - new Date(v.uploadDate).getTime()) / 86400000));
+  const ageText = _vcDaysAgo === 0 ? t('time_today') : _vcDaysAgo < 7 ? `${_vcDaysAgo}${t('time_days_ago')}` : _vcDaysAgo < 30 ? `${Math.floor(_vcDaysAgo / 7)}${t('time_weeks_ago')}` : _vcDaysAgo < 365 ? `${Math.floor(_vcDaysAgo / 30)}개월 전` : `${Math.floor(_vcDaysAgo / 365)}년 전`;
 
   return (
     <div className="group cursor-pointer relative w-full">
@@ -213,6 +242,8 @@ const VideoCard = ({
             <span className="text-[10px] text-gray-300 dark:text-white/15">·</span>
             <span className="text-[10px] text-gray-400 dark:text-white/30 font-mono inline-flex items-center gap-0.5"><i className="ri-chat-3-line text-[10px]"></i>{fmtViews(v.comments ?? 0)}</span>
             {multi && <span className={`text-[8px] font-black px-1 py-px rounded leading-none ${multi.cls}`}>{multi.text}</span>}
+            <span className="text-[10px] text-gray-300 dark:text-white/15">·</span>
+            <span className={`text-[10px] ${_vcDaysAgo <= 30 ? 'text-emerald-500 dark:text-emerald-400' : 'text-gray-400 dark:text-white/30'}`}>{ageText}</span>
           </div>
         </div>
         <button onClick={(e) => { e.stopPropagation(); onToggleSave(v.videoId); }}
@@ -319,10 +350,7 @@ const SectionHeader = ({
 /* ── Shorts section — category-aware, 2 preset rows or 1 dynamic row ── */
 const ShortsSection = ({ data, activeCat, loaded }: { data: ViralVideoItem[]; activeCat: Cat; loaded: boolean }) => {
   const { t } = useTranslation();
-  const [page1, setPage1] = useState(1);
-  const [page2, setPage2] = useState(1);
   const [dynPage, setDynPage] = useState(1);
-  const [activeRow, setActiveRow] = useState(0);
   const PER_PAGE = 8;
 
   /* Shuffle once when data first arrives — different order each page load */
@@ -443,44 +471,21 @@ const ShortsSection = ({ data, activeCat, loaded }: { data: ViralVideoItem[]; ac
     );
   }
 
-  const rowItems = SHORTS_ROWS.map(row =>
-    shuffledData.filter(v => row.cats.some(c => c.toLowerCase() === v.category.toLowerCase()))
-  );
-  const activeRowCfg = SHORTS_ROWS[activeRow];
-  const activeItems = rowItems[activeRow];
-  const activePage = activeRow === 0 ? page1 : page2;
-  const setActivePage = activeRow === 0 ? setPage1 : setPage2;
-
   return (
     <section>
-      <div className="flex items-center gap-3 mb-4 px-4 sm:px-6">
-        <div className="flex items-center gap-2">
-          <i className="ri-scissors-cut-line text-red-500 text-sm"></i>
-          <h2 className="text-[13px] font-black text-gray-900 dark:text-white tracking-tight">Shorts</h2>
-        </div>
-        <div className="flex items-center gap-1.5">
-          {SHORTS_ROWS.map((row, idx) => (
-            <button
-              key={row.key}
-              onClick={() => setActiveRow(idx)}
-              className={`px-3 py-1 rounded-full text-[11px] font-semibold transition-all whitespace-nowrap cursor-pointer ${
-                activeRow === idx
-                  ? 'text-white shadow-sm'
-                  : 'bg-gray-100 dark:bg-white/10 text-gray-600 dark:text-white/60 hover:bg-gray-200 dark:hover:bg-white/20'
-              }`}
-              style={activeRow === idx ? { background: row.accent } : undefined}
-            >
-              {t(row.tKey as never, row.key)}
-            </button>
-          ))}
-        </div>
-        <span className="text-[9px] text-gray-400 dark:text-white/40 font-mono ml-auto">{rowItems[activeRow].length}</span>
+      <div className="flex items-center gap-2 mb-4 px-4 sm:px-6">
+        <i className="ri-scissors-cut-line text-red-500 text-sm"></i>
+        <h2 className="text-[13px] font-black text-gray-900 dark:text-white tracking-tight">Shorts</h2>
+        <span className="text-[9px] text-gray-500 dark:text-white/50 font-mono ml-1 bg-gray-100 dark:bg-white/10 px-2 py-0.5 rounded">{t('home_viral_score_order')}</span>
       </div>
       <ShortsRow
-        label={t(activeRowCfg.tKey as never, activeRowCfg.key)}
-        items={activeItems}
-        page={activePage} onPage={setActivePage}
-        accent={activeRowCfg.accent} accentBg={activeRowCfg.accentBg} accentBorder={activeRowCfg.accentBorder}
+        label={t('cat_all', 'All')}
+        items={shuffledData}
+        page={dynPage}
+        onPage={setDynPage}
+        accent="#ef4444"
+        accentBg="rgba(239,68,68,0.10)"
+        accentBorder="rgba(239,68,68,0.22)"
       />
     </section>
   );
@@ -488,10 +493,11 @@ const ShortsSection = ({ data, activeCat, loaded }: { data: ViralVideoItem[]; ac
 
 /* ── Video grid section (4 per row, pagination at bottom) ── */
 const VideoSection = ({
-  icon, iconColor, title, glowColor, badge, items, savedIds, onToggleSave, loaded,
+  icon, iconColor, title, glowColor, badge, items, savedIds, onToggleSave, loaded, emptyMessage,
 }: {
   icon: string; iconColor: string; title: string; glowColor?: string; badge?: React.ReactNode;
   items: ViralVideoItem[]; savedIds: Set<string>; onToggleSave: (id: string) => void; loaded: boolean;
+  emptyMessage?: string;
 }) => {
   const [page, setPage] = useState(1);
   const PER_PAGE = 4;
@@ -503,7 +509,7 @@ const VideoSection = ({
       <SectionHeader icon={icon} iconColor={iconColor} title={title} glowColor={glowColor} badge={badge} />
       {noData ? (
         <div className="px-4 sm:px-6 py-8 text-center text-[12px] text-gray-400 dark:text-white/40">
-          이 카테고리는 아직 수집된 데이터가 없습니다
+          {emptyMessage ?? '이 카테고리는 아직 수집된 데이터가 없습니다'}
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 px-4 sm:px-6">
@@ -531,7 +537,7 @@ const VideoSection = ({
 };
 
 /* ── Trending section (API, pagination at bottom) ── */
-const TrendingSection = ({ items, loaded }: { items: TrendingVideoItem[]; loaded: boolean }) => {
+const TrendingSection = ({ items, loaded, country = 'KR' }: { items: TrendingVideoItem[]; loaded: boolean; country?: string }) => {
   const { t } = useTranslation();
   const [page, setPage] = useState(1);
   const PER_PAGE = 4;
@@ -540,7 +546,7 @@ const TrendingSection = ({ items, loaded }: { items: TrendingVideoItem[]; loaded
   return (
     <section>
       <SectionHeader icon="ri-fire-line" iconColor="text-orange-500" title={t('home_trending_live')}
-        badge={<span className="flex items-center gap-1 text-[9px] text-red-500"><span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse inline-block"></span>LIVE · KR</span>}
+        badge={<span className="flex items-center gap-1 text-[9px] text-red-500"><span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse inline-block"></span>LIVE · {country}</span>}
       />
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 px-4 sm:px-6">
         {!loaded && items.length === 0
@@ -589,9 +595,15 @@ const HomePage = () => {
   const [trendingVideos, setTrendingVideos] = useState<TrendingVideoItem[]>([]);
   const [liveVideos, setLiveVideos] = useState<ViralVideoItem[]>([]);
   const [homeDataLoaded, setHomeDataLoaded] = useState(false);
+  const [prevChRankings, setPrevChRankings] = useState<Map<string, number>>(new Map());
 
   useEffect(() => {
     let cancelled = false;
+    setLiveVideos([]);
+    setTrendingVideos([]);
+    setPopularChannels([]);
+    setHomeDataLoaded(false);
+    setPrevChRankings(loadPrevChRanks(activeCountry));
 
     async function loadHomeData() {
       try {
@@ -603,7 +615,8 @@ const HomePage = () => {
           .limit(100);
 
         if (error) throw error;
-        if (!data || data.length === 0 || cancelled) return;
+        if (cancelled) return;
+        if (!data || data.length === 0) return;
 
         // 바이럴 영상 (liveVideos)
         const viral: ViralVideoItem[] = data.map((v, i) => ({
@@ -627,17 +640,42 @@ const HomePage = () => {
         }));
         if (!cancelled) setLiveVideos(viral);
 
-        // 트렌딩 영상 (trendingVideos) — 최신 수집 16개
-        const recent16 = [...data]
-          .sort((a, b) => new Date(b.fetched_at).getTime() - new Date(a.fetched_at).getTime())
+        // 트렌딩 영상 — 최근 7일 업로드 + VPH(시간당 조회수) 순
+        const _sevenDaysAgo = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString();
+        const { data: trendRaw } = await supabase
+          .from('viralboard_data')
+          .select('video_id, title, channel, channel_id, thumbnail_url, views, published_at')
+          .eq('country', activeCountry)
+          .gte('published_at', _sevenDaysAgo)
+          .order('views', { ascending: false })
+          .limit(50);
+        if (cancelled) return;
+
+        const _nowMs = Date.now();
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const _trendSrc: any[] = (trendRaw && trendRaw.length >= 4) ? trendRaw : data;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const _withVph = _trendSrc.map((v: any) => ({
+          ...v,
+          _vph: v.published_at
+            ? v.views / Math.max(1, (_nowMs - new Date(v.published_at).getTime()) / 3_600_000)
+            : 0,
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        })).filter((v: any) => v._vph > 0)
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          .sort((a: any, b: any) => b._vph - a._vph)
           .slice(0, 16);
-        const trending: TrendingVideoItem[] = recent16.map((v, i) => ({
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const trending: TrendingVideoItem[] = _withVph.map((v: any, i: number) => ({
           rank: i + 1,
           title: v.title,
-          score: v.views >= 1_000_000
-            ? `${(v.views / 1_000_000).toFixed(1)}M`
-            : `${(v.views / 1_000).toFixed(0)}K`,
-          thumbnail: v.thumbnail_url,
+          score: v._vph >= 10_000
+            ? `${(v._vph / 1_000).toFixed(0)}K/h`
+            : v._vph >= 1_000
+              ? `${(v._vph / 1_000).toFixed(1)}K/h`
+              : `${Math.round(v._vph)}/h`,
+          thumbnail: v.thumbnail_url ?? '',
           channelName: v.channel,
           channelAvatar: '',
           videoId: v.video_id,
@@ -673,7 +711,10 @@ const HomePage = () => {
             subscribers: ch.subscribers,
             totalViews: ch.totalViews,
           }));
-        if (!cancelled) setPopularChannels(popular);
+        if (!cancelled) {
+          setPopularChannels(popular);
+          saveCurrChRanks(activeCountry, popular);
+        }
 
       } catch (e) {
         console.error('[home] loadHomeData FAIL:', e);
@@ -736,14 +777,38 @@ const HomePage = () => {
       const cats = CAT_MAP[activeCat];
       result = result.filter(v => cats.some(c => c.toLowerCase() === v.category.toLowerCase()));
     }
-    result = result.filter(v => v.country === activeCountry);
+    result = result.filter(v => (v.country ?? '').toUpperCase() === activeCountry.toUpperCase());
     return result;
   };
 
-  /* API 데이터 우선, quota 소진 시 mock fallback */
-  const videoPool = liveVideos.length > 0 ? liveVideos : viralMockData;
+  /* fetch 완료 후 실데이터 없으면 빈 배열, 로딩 중만 mock skeleton */
+  const videoPool = liveVideos.length > 0
+    ? liveVideos
+    : homeDataLoaded
+      ? []
+      : viralMockData;
   const longformPool = videoPool.filter(v => !v.isShorts);
-  const risingVideos = filterByCat([...longformPool].sort((a, b) => new Date(b.uploadDate).getTime() - new Date(a.uploadDate).getTime()));
+  const _thirtyDaysAgo  = Date.now() - 30 * 24 * 3600 * 1000;
+  const _ninetyDaysAgo  = Date.now() - 90 * 24 * 3600 * 1000;
+  const _uploadMs = (v: ViralVideoItem) => v.uploadDate ? new Date(v.uploadDate).getTime() : 0;
+  // Tier 1: spec 기준 — ×100 이상, 30일 이내
+  const _rising100 = [...longformPool]
+    .filter(v => v.viralScore !== null && v.viralScore >= 100 && _uploadMs(v) >= _thirtyDaysAgo)
+    .sort((a, b) => (b.viralScore ?? 0) - (a.viralScore ?? 0))
+    .slice(0, 12);
+  // Tier 2: relaxed — ×10 이상, 90일 이내
+  const _rising10 = [...longformPool]
+    .filter(v => v.viralScore !== null && v.viralScore >= 10 && _uploadMs(v) >= _ninetyDaysAgo)
+    .sort((a, b) => (b.viralScore ?? 0) - (a.viralScore ?? 0))
+    .slice(0, 12);
+  // Tier 3: Video Rankings 떡상 탐지 fallback — viralScore > 0 전체
+  const _risingAll = [...longformPool]
+    .filter(v => v.viralScore !== null && v.viralScore > 0)
+    .sort((a, b) => (b.viralScore ?? 0) - (a.viralScore ?? 0))
+    .slice(0, 12);
+  const risingVideos = filterByCat(
+    _rising100.length > 0 ? _rising100 : _rising10.length > 0 ? _rising10 : _risingAll
+  );
   const topViewVideos = filterByCat([...longformPool].sort((a, b) => b.views - a.views));
   const topViewsAll = topViewVideos;
   const chBySubs  = [...popularChannels].sort((a, b) => b.subscribers - a.subscribers);
@@ -846,6 +911,17 @@ const HomePage = () => {
                                     : `${((ch as PopularChannelItem).totalViews / 1_000_000).toFixed(0)}M`)
                                 : ''}
                           </p>
+                          {/* Rank change badge */}
+                          {(() => {
+                            if (prevChRankings.size === 0) return null;
+                            const prevRank = prevChRankings.get((ch as PopularChannelItem).channelId);
+                            const currRank = i + 1;
+                            if (prevRank === undefined) return <span className="text-[7px] font-black px-1 py-px rounded bg-blue-500/15 text-blue-500 leading-none">NEW</span>;
+                            const diff = prevRank - currRank;
+                            if (diff > 0) return <span className="text-[8px] font-black text-red-500 leading-none">▲{diff}</span>;
+                            if (diff < 0) return <span className="text-[8px] font-black text-gray-400 dark:text-white/30 leading-none">▼{Math.abs(diff)}</span>;
+                            return <span className="text-[8px] text-gray-300 dark:text-white/20 leading-none">—</span>;
+                          })()}
                         </Link>
                       ) : (
                         <div key={i} className="w-[76px] flex-shrink-0 flex flex-col items-center gap-1.5 px-1.5 py-2.5 rounded-xl border border-gray-100 dark:border-white/[0.07]">
@@ -874,7 +950,7 @@ const HomePage = () => {
                 <button key={cat} onClick={() => setActiveCat(cat)}
                   className={`px-3 py-1 rounded-full text-[11px] font-semibold transition-all whitespace-nowrap cursor-pointer ${
                     activeCat === cat
-                      ? 'bg-gray-900 dark:bg-white text-white dark:text-black shadow-sm'
+                      ? 'bg-red-600 text-white shadow-sm'
                       : 'bg-gray-100 dark:bg-white/10 text-gray-600 dark:text-white/60 hover:bg-gray-200 dark:hover:bg-white/20'
                   }`}>{CAT_LABELS[cat]}</button>
               ))}
@@ -890,7 +966,11 @@ const HomePage = () => {
           </div>
 
           {/* ── Shorts (category-aware) ── */}
-          <ShortsSection data={videoPool.filter(v => v.isShorts)} activeCat={activeCat} loaded={homeDataLoaded} />
+          <ShortsSection
+            data={videoPool.filter(v => v.isShorts && (v.country ?? '').toUpperCase() === activeCountry.toUpperCase())}
+            activeCat={activeCat}
+            loaded={homeDataLoaded}
+          />
 
 
           {/* ── Rising Channels ── */}
@@ -898,6 +978,7 @@ const HomePage = () => {
             title={t('home_rising_channels')}
             glowColor="#10b981"
             badge={<span className="text-[10px] text-gray-400 dark:text-white/45">{t('home_views_vs_subs')}</span>}
+            emptyMessage="이번 주는 검증된 떡상 영상이 없습니다. 곧 업데이트됩니다."
             items={risingVideos} savedIds={savedIds} onToggleSave={handleToggleSave} loaded={homeDataLoaded} />
 
           {/* ── Top Views ── */}
@@ -907,8 +988,11 @@ const HomePage = () => {
             badge={<span className="text-[10px] text-gray-400 dark:text-white/45">{t('home_est_revenue')}</span>}
             items={topViewVideos} savedIds={savedIds} onToggleSave={handleToggleSave} loaded={homeDataLoaded} />
 
+          {/* ── Ad strip — between Top Views and Trending sections ── */}
+          <AdStrip offset={2} />
+
           {/* ── Trending Live ── */}
-          <TrendingSection items={trendingVideos} loaded={homeDataLoaded} />
+          <TrendingSection items={trendingVideos} loaded={homeDataLoaded} country={activeCountry} />
 
           {/* ── Total Views TOP ── */}
           <VideoSection
