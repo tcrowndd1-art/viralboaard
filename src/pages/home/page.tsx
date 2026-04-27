@@ -292,13 +292,16 @@ const ShortsCard = ({ v, rank }: { v: ViralVideoItem; rank?: number }) => {
             </span>
           </div>
         )}
-        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/92 via-black/45 to-transparent px-2 pb-2 pt-10">
-          <p className="text-white text-[10px] font-semibold line-clamp-2 leading-tight mb-1.5">{v.title}</p>
-          <div className="flex items-center justify-between gap-1">
-            <span className="text-white/50 text-[8px] truncate">{v.channelName}</span>
-            <span className="text-white/75 text-[8px] font-mono font-bold flex-shrink-0">{fmtViews(v.views)}</span>
+        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/95 via-black/60 to-transparent px-2.5 pb-2.5 pt-12">
+          <p className="text-white text-[10px] font-semibold line-clamp-2 leading-tight mb-2">{v.title}</p>
+          <div className="flex items-end justify-between gap-1">
+            <span className="text-white/55 text-[8px] truncate">{v.channelName}</span>
+            <span className="text-white font-black flex-shrink-0" style={{ fontSize: '15px', lineHeight: '1', textShadow: '0 1px 4px rgba(0,0,0,0.8)' }}>{fmtViews(v.views)}</span>
           </div>
-          <span className="text-white/30 text-[7px] mt-0.5 block">{ago}</span>
+          <div className="flex items-center gap-1 mt-1">
+            <i className="ri-calendar-line text-white/40" style={{ fontSize: '8px' }}></i>
+            <span className="text-white/55 font-mono" style={{ fontSize: '8px' }}>{ago}</span>
+          </div>
         </div>
         <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
           <div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center shadow-lg">
@@ -494,14 +497,14 @@ const ShortsSection = ({ data, activeCat, loaded }: { data: ViralVideoItem[]; ac
 
 /* ── Video grid section (4 per row, pagination at bottom) ── */
 const VideoSection = ({
-  icon, iconColor, title, glowColor, badge, items, savedIds, onToggleSave, loaded, emptyMessage,
+  icon, iconColor, title, glowColor, badge, items, savedIds, onToggleSave, loaded, emptyMessage, perPage: _perPage,
 }: {
   icon: string; iconColor: string; title: string; glowColor?: string; badge?: React.ReactNode;
   items: ViralVideoItem[]; savedIds: Set<string>; onToggleSave: (id: string) => void; loaded: boolean;
-  emptyMessage?: string;
+  emptyMessage?: string; perPage?: number;
 }) => {
   const [page, setPage] = useState(1);
-  const PER_PAGE = 4;
+  const PER_PAGE = _perPage ?? 4;
   const paged = items.slice((page - 1) * PER_PAGE, page * PER_PAGE);
   const noData = loaded && items.length === 0;
 
@@ -599,7 +602,21 @@ const HomePage = () => {
   const [liveVideos, setLiveVideos] = useState<ViralVideoItem[]>([]);
   const [homeDataLoaded, setHomeDataLoaded] = useState(false);
   const [prevChRankings, setPrevChRankings] = useState<Map<string, number>>(new Map());
-  const [risingSeed, setRisingSeed] = useState(() => Math.random());
+  const [risingSeed, setRisingSeed] = useState(() => {
+    const RISING_SEED_KEY = 'vb_rising_seed';
+    const RISING_SEED_TS = 'vb_rising_seed_ts';
+    try {
+      const saved = sessionStorage.getItem(RISING_SEED_KEY);
+      const ts = parseInt(sessionStorage.getItem(RISING_SEED_TS) ?? '0');
+      if (saved && Date.now() - ts < 30 * 60 * 1000) return parseFloat(saved);
+    } catch { /* ignore */ }
+    const seed = Math.random();
+    try {
+      sessionStorage.setItem('vb_rising_seed', String(seed));
+      sessionStorage.setItem('vb_rising_seed_ts', String(Date.now()));
+    } catch { /* ignore */ }
+    return seed;
+  });
 
   useEffect(() => {
     let cancelled = false;
@@ -697,36 +714,45 @@ const HomePage = () => {
           .limit(1000);
 
         const rollingSource = rollingRows && rollingRows.length > 0 ? rollingRows : data;
-        const channelMap = new Map<string, { name: string; channelId: string; totalViews: number; subscribers: number; avatar: string; category: string }>();
+        const channelMap = new Map<string, { name: string; channelId: string; totalViews: number; subscribers: number; avatar: string; category: string; earliestSubs: number; latestSubs: number; earliestFetched: string; latestFetched: string }>();
         for (const v of rollingSource) {
           const subs = (v as any).subscriber_count ?? 0;
           const thumb = (v as any).channel_thumbnail_url ?? '';
           const cat = (v as any).category ?? '';
+          const fetched = (v as any).fetched_at ?? '';
           const existing = channelMap.get((v as any).channel_id);
           if (!existing) {
-            channelMap.set((v as any).channel_id, { name: (v as any).channel, channelId: (v as any).channel_id, totalViews: (v as any).views ?? 0, subscribers: subs, avatar: thumb, category: cat });
+            channelMap.set((v as any).channel_id, { name: (v as any).channel, channelId: (v as any).channel_id, totalViews: (v as any).views ?? 0, subscribers: subs, avatar: thumb, category: cat, earliestSubs: subs, latestSubs: subs, earliestFetched: fetched, latestFetched: fetched });
           } else {
             existing.totalViews += (v as any).views ?? 0;
             if (subs > existing.subscribers) existing.subscribers = subs;
             if (!existing.avatar && thumb) existing.avatar = thumb;
             if (!existing.category && cat) existing.category = cat;
+            if (fetched && fetched < existing.earliestFetched) { existing.earliestFetched = fetched; existing.earliestSubs = subs; }
+            if (fetched && fetched > existing.latestFetched) { existing.latestFetched = fetched; existing.latestSubs = subs; }
           }
         }
         const popular: PopularChannelItem[] = [...channelMap.values()]
           .sort((a, b) => b.totalViews - a.totalViews)
           .slice(0, 100)
-          .map((ch, i) => ({
-            rank: i + 1,
-            name: ch.name,
-            score: ch.totalViews >= 1_000_000
-              ? `${(ch.totalViews / 1_000_000).toFixed(1)}M`
-              : `${(ch.totalViews / 1_000).toFixed(0)}K`,
-            avatar: ch.avatar,
-            channelId: ch.channelId,
-            subscribers: ch.subscribers,
-            totalViews: ch.totalViews,
-            category: ch.category,
-          }));
+          .map((ch, i) => {
+            const delta = ch.latestSubs > 0 && ch.earliestSubs > 0 && ch.latestFetched !== ch.earliestFetched
+              ? ch.latestSubs - ch.earliestSubs
+              : 0;
+            return {
+              rank: i + 1,
+              name: ch.name,
+              score: ch.totalViews >= 1_000_000
+                ? `${(ch.totalViews / 1_000_000).toFixed(1)}M`
+                : `${(ch.totalViews / 1_000).toFixed(0)}K`,
+              avatar: ch.avatar,
+              channelId: ch.channelId,
+              subscribers: ch.subscribers,
+              totalViews: ch.totalViews,
+              category: ch.category,
+              subsDelta: delta,
+            };
+          });
         if (!cancelled) {
           setPopularChannels(popular);
           saveCurrChRanks(activeCountry, popular);
@@ -828,33 +854,34 @@ const HomePage = () => {
   const _thirtyDaysAgo  = Date.now() - 30 * 24 * 3600 * 1000;
   const _ninetyDaysAgo  = Date.now() - 90 * 24 * 3600 * 1000;
   const _uploadMs = (v: ViralVideoItem) => v.uploadDate ? new Date(v.uploadDate).getTime() : 0;
-  // Tier 1: spec 기준 — ×100 이상, 30일 이내
+  // Tier 1: ×100 이상, 90일 이내
   const _rising100 = [...longformPool]
-    .filter(v => v.viralScore !== null && v.viralScore >= 100 && _uploadMs(v) >= _thirtyDaysAgo)
-    .sort((a, b) => (b.viralScore ?? 0) - (a.viralScore ?? 0))
-    .slice(0, 12);
-  // Tier 2: relaxed — ×10 이상, 90일 이내
-  const _rising10 = [...longformPool]
-    .filter(v => v.viralScore !== null && v.viralScore >= 10 && _uploadMs(v) >= _ninetyDaysAgo)
-    .sort((a, b) => (b.viralScore ?? 0) - (a.viralScore ?? 0))
-    .slice(0, 12);
-  // Tier 3: Video Rankings 떡상 탐지 fallback — viralScore > 0 전체
+    .filter(v => v.viralScore !== null && v.viralScore >= 100 && _uploadMs(v) >= _ninetyDaysAgo)
+    .sort((a, b) => (b.viralScore ?? 0) - (a.viralScore ?? 0));
+  // Tier 2: ×5 이상, 90일 이내
+  const _rising5 = [...longformPool]
+    .filter(v => v.viralScore !== null && v.viralScore >= 5 && _uploadMs(v) >= _ninetyDaysAgo)
+    .sort((a, b) => (b.viralScore ?? 0) - (a.viralScore ?? 0));
+  // Tier 3: fallback — viralScore > 0 전체
   const _risingAll = [...longformPool]
     .filter(v => v.viralScore !== null && v.viralScore > 0)
-    .sort((a, b) => (b.viralScore ?? 0) - (a.viralScore ?? 0))
-    .slice(0, 12);
+    .sort((a, b) => (b.viralScore ?? 0) - (a.viralScore ?? 0));
   const _risingPool = filterByCat(
-    _rising100.length > 0 ? _rising100 : _rising10.length > 0 ? _rising10 : _risingAll
-  );
-  // 3 videos picked deterministically from pool using risingSeed (changes on manual refresh)
+    _rising100.length >= 8 ? _rising100 : _rising5.length >= 4 ? _rising5 : _risingAll
+  ).slice(0, 24);
+  // 8 videos picked randomly from pool using risingSeed; paginated 8/page
   const risingVideos = useMemo(() => {
-    if (_risingPool.length <= 3) return _risingPool;
-    const startIdx = Math.floor(risingSeed * (_risingPool.length - 2)) % _risingPool.length;
-    const picks: typeof _risingPool = [];
-    for (let i = 0; picks.length < 3; i++) {
-      picks.push(_risingPool[(startIdx + i) % _risingPool.length]);
+    if (_risingPool.length === 0) return [];
+    if (_risingPool.length <= 8) return _risingPool;
+    // Shuffle pool with risingSeed
+    const arr = [..._risingPool];
+    let s = risingSeed;
+    for (let i = arr.length - 1; i > 0; i--) {
+      s = (s * 9301 + 49297) % 233280;
+      const j = Math.floor((s / 233280) * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
     }
-    return picks;
+    return arr;
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [_risingPool.length, risingSeed]);
   const topViewVideos = filterByCat([...longformPool].sort((a, b) => b.views - a.views));
@@ -1022,6 +1049,14 @@ const HomePage = () => {
                                     : `${((ch as PopularChannelItem).totalViews / 1_000_000).toFixed(0)}M`)
                                 : ''}
                           </p>
+                          {(() => {
+                            const d = (ch as PopularChannelItem).subsDelta ?? 0;
+                            if (!d || Math.abs(d) < 1000) return null;
+                            const pos = d > 0;
+                            const abs = Math.abs(d);
+                            const txt = abs >= 1_000_000 ? `${pos ? '+' : '-'}${(abs / 1_000_000).toFixed(1)}M` : `${pos ? '+' : '-'}${(abs / 1_000).toFixed(0)}K`;
+                            return <span className={`text-[7px] font-bold leading-none ${pos ? 'text-emerald-500' : 'text-red-400'}`}>{txt}</span>;
+                          })()}
                           {/* Rank change badge */}
                           {(() => {
                             if (prevChRankings.size === 0) return null;
@@ -1092,7 +1127,14 @@ const HomePage = () => {
               <div className="flex items-center gap-1.5">
                 <span className="text-[10px] text-gray-400 dark:text-white/45">{t('home_views_vs_subs')}</span>
                 <button
-                  onClick={() => setRisingSeed(Math.random())}
+                  onClick={() => {
+                    const seed = Math.random();
+                    try {
+                      sessionStorage.setItem('vb_rising_seed', String(seed));
+                      sessionStorage.setItem('vb_rising_seed_ts', String(Date.now()));
+                    } catch { /* ignore */ }
+                    setRisingSeed(seed);
+                  }}
                   className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[8px] font-bold bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 transition-colors cursor-pointer"
                   title="다른 떡상 영상 보기"
                 >
@@ -1101,7 +1143,7 @@ const HomePage = () => {
               </div>
             }
             emptyMessage="이번 주는 검증된 떡상 영상이 없습니다. 곧 업데이트됩니다."
-            items={risingVideos} savedIds={savedIds} onToggleSave={handleToggleSave} loaded={homeDataLoaded} />
+            items={risingVideos} savedIds={savedIds} onToggleSave={handleToggleSave} loaded={homeDataLoaded} perPage={8} />
 
           {/* ── Top Views ── */}
           <VideoSection icon="ri-eye-line" iconColor="text-sky-500"

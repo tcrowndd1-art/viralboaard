@@ -53,7 +53,7 @@ serve(async (req) => {
       video_count: parseInt(item.statistics?.videoCount || '0'),
       view_count: parseInt(item.statistics?.viewCount || '0'),
       country: item.snippet.country || null,
-    }))
+    })).sort((a: any, b: any) => b.subscriber_count - a.subscriber_count)
 
     return new Response(
       JSON.stringify({ channels }),

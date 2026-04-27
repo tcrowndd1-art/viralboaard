@@ -10,13 +10,19 @@ const dispatchSync = () => {
   window.dispatchEvent(new CustomEvent(SYNC_EVENT));
 };
 
+// Mock IDs seeded during early dev — strip them so they don't leak into production UI
+const MOCK_IDS = new Set(['sc1', 'sc2', 'sc3', 'sc4', 'sc5']);
+
 const loadFromStorage = (): SavedChannel[] => {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw) as SavedChannel[];
-      // Priority sort: highest subscribers first, then alphabetical
-      return [...parsed].sort((a, b) => (b.subscribers ?? 0) - (a.subscribers ?? 0) || a.name.localeCompare(b.name));
+      const cleaned = parsed.filter((c) => !MOCK_IDS.has(c.id));
+      if (cleaned.length !== parsed.length) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(cleaned));
+      }
+      return [...cleaned].sort((a, b) => (b.subscribers ?? 0) - (a.subscribers ?? 0) || a.name.localeCompare(b.name));
     }
   } catch {
     // ignore
