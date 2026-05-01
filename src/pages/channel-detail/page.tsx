@@ -12,6 +12,8 @@ import CompetitorComparison from './components/CompetitorComparison';
 import { useTheme } from '@/hooks/useTheme';
 import i18n from '@/i18n';
 import { useTranslation } from 'react-i18next';
+import TopHeader from '@/pages/home/components/TopHeader';
+import GlobalSidebar from '@/components/feature/GlobalSidebar';
 
 const AUTH_KEY = 'viralboard_auth';
 
@@ -61,13 +63,6 @@ interface SimilarChItem {
   country: string;
 }
 
-const navItems = [
-  { icon: 'ri-home-4-line', label: 'nav_home', path: '/' },
-  { icon: 'ri-bar-chart-line', label: 'nav_charts', path: '/rankings' },
-  { icon: 'ri-lightbulb-line', label: 'nav_insights', path: '/insights' },
-  { icon: 'ri-live-line', label: 'nav_trending_live', path: '/trending-live' },
-  { icon: 'ri-calculator-line', label: 'nav_revenue_calc', path: '/revenue-calculator' },
-];
 
 const ChannelDetailPage = () => {
   const navigate = useNavigate();
@@ -391,39 +386,29 @@ const ChannelDetailPage = () => {
         </div>
       </header>
 
-      {/* Sidebar */}
-      <nav className={`fixed left-0 top-12 bottom-0 w-48 bg-white dark:bg-[#181818] border-r border-gray-200 dark:border-white/10 flex-col overflow-y-auto z-40 transition-all lg:translate-x-0 ${mobileNavOpen ? 'flex translate-x-0' : 'hidden lg:flex -translate-x-full'}`}>
-        <ul className="py-2">
-          {navItems.map((item) => (
-            <li key={item.label}>
-              <Link
-                to={item.path}
-                onClick={() => setMobileNavOpen(false)}
-                className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-600 dark:text-white/50 hover:text-gray-900 dark:hover:text-white hover:bg-gray-50 dark:hover:bg-white/5 cursor-pointer transition-colors"
-              >
-                <i className={`${item.icon} w-5 h-5 flex items-center justify-center`}></i>
-                <span>{t(item.label)}</span>
-              </Link>
-            </li>
-          ))}
-        </ul>
-        <div className="mt-auto px-4 py-4 border-t border-gray-200 dark:border-white/10">
-          <p className="text-xs text-gray-400 dark:text-white/20">© 2026 DIFF., Inc.</p>
-        </div>
-      </nav>
+      <GlobalSidebar mobileOpen={mobileNavOpen} onMobileClose={() => setMobileNavOpen(false)} />
 
       {/* Main */}
-      <div className="lg:ml-48 pt-12 flex-1">
+      <div className="lg:ml-52 pt-12 flex-1">
         {loading ? (
           <div className="flex items-center justify-center h-96">
             <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-red-500"></div>
           </div>
         ) : !chData ? (
           <div className="flex flex-col items-center justify-center h-96 text-center px-4">
-            <i className="ri-error-warning-line text-4xl text-gray-300 dark:text-white/20 mb-3"></i>
-            <h2 className="text-lg font-semibold text-gray-700 dark:text-white/70">Channel not found</h2>
-            <p className="text-sm text-gray-400 dark:text-white/30 mt-1">No data available for this channel in the database.</p>
-            <Link to="/" className="mt-4 text-sm text-red-500 hover:underline">← Back to Home</Link>
+            <i className="ri-youtube-line text-4xl text-gray-300 dark:text-white/20 mb-3"></i>
+            <h2 className="text-lg font-semibold text-gray-700 dark:text-white/70">아직 분석 데이터가 없습니다</h2>
+            <p className="text-sm text-gray-400 dark:text-white/30 mt-1 max-w-sm">이 채널은 ViralBoard 데이터베이스에 아직 수집되지 않았습니다. 다음 시드 업데이트 시 추가됩니다.</p>
+            <div className="flex items-center gap-3 mt-5">
+              <a
+                href={`https://youtube.com/channel/${channelId}`}
+                target="_blank" rel="noopener noreferrer"
+                className="flex items-center gap-1.5 text-sm px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg cursor-pointer transition-colors"
+              >
+                <i className="ri-youtube-line"></i> YouTube에서 보기
+              </a>
+              <Link to="/" className="text-sm text-gray-400 dark:text-white/40 hover:text-gray-700 dark:hover:text-white/70 transition-colors">← 홈으로</Link>
+            </div>
           </div>
         ) : (
           <>

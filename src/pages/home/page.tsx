@@ -601,6 +601,10 @@ const HomePage = () => {
   const [trendingVideos, setTrendingVideos] = useState<TrendingVideoItem[]>([]);
   const [liveVideos, setLiveVideos] = useState<ViralVideoItem[]>([]);
   const [homeDataLoaded, setHomeDataLoaded] = useState(false);
+  const [risingRaw, setRisingRaw] = useState<ViralVideoItem[]>([]);
+  const [risingLoaded, setRisingLoaded] = useState(false);
+  const [risingError, setRisingError] = useState<string | null>(null);
+  const [risingFetchKey, setRisingFetchKey] = useState(0);
   const [prevChRankings, setPrevChRankings] = useState<Map<string, number>>(new Map());
   const [risingSeed, setRisingSeed] = useState(() => {
     const RISING_SEED_KEY = 'vb_rising_seed';
@@ -769,6 +773,64 @@ const HomePage = () => {
     return () => { cancelled = true; };
   }, [activeCountry]);
 
+  useEffect(() => {
+    let cancelled = false;
+    setRisingRaw([]);
+    setRisingLoaded(false);
+    setRisingError(null);
+    const _cutoff = new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString();
+    (async () => {
+      try {
+        const { data, error } = await supabase
+          .from('viralboard_data')
+          .select('*')
+          .eq('country', activeCountry)
+          .gte('fetched_at', _cutoff)
+          .gt('subscriber_count', 0)
+          .order('views', { ascending: false })
+          .limit(200);
+        if (cancelled) return;
+        if (error) throw error;
+        const _publishCutoff = Date.now() - 30 * 24 * 3600 * 1000;
+        const risingFiltered = (data ?? []).filter((v: any) =>
+          (v.subscriber_count ?? 0) > 0 &&
+          v.views / v.subscriber_count >= 100 &&
+          !(v.is_shorts ?? false) &&
+          v.published_at &&
+          new Date(v.published_at).getTime() >= _publishCutoff
+        );
+        console.log(`[rising] fetched=${data?.length ?? 0} risingFiltered count=${risingFiltered.length} publishCutoff=${new Date(_publishCutoff).toISOString()}`);
+        const mapped: ViralVideoItem[] = risingFiltered
+          .map((v: any, i: number) => ({
+            rank: i + 1,
+            videoId: v.video_id,
+            title: v.title,
+            channelName: v.channel,
+            channelAvatar: '',
+            channelId: v.channel_id,
+            subscribers: v.subscriber_count ?? 0,
+            views: v.views,
+            viralScore: v.views / v.subscriber_count,
+            uploadDate: v.published_at,
+            thumbnail: (v.thumbnail_url ?? '').replace(/\/(hq|mq|sd)default\.jpg/, '/maxresdefault.jpg'),
+            category: normalizeCategory(v.category),
+            country: v.country,
+            isShorts: v.is_shorts ?? false,
+            duration: v.duration_seconds ?? 0,
+            likes: v.likes ?? 0,
+            comments: v.comments ?? 0,
+          }))
+          .sort((a: ViralVideoItem, b: ViralVideoItem) => (b.viralScore ?? 0) - (a.viralScore ?? 0))
+          .slice(0, 12);
+        if (!cancelled) { setRisingRaw(mapped); setRisingLoaded(true); }
+      } catch (e: unknown) {
+        if (!cancelled) { setRisingError((e as Error).message ?? '로드 실패'); setRisingLoaded(true); }
+      }
+    })();
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeCountry, risingFetchKey]);
+
   const handleToggleSave = useCallback((videoId: string) => {
     setSavedIds(prev => {
       const next = new Set(prev);
@@ -851,30 +913,13 @@ const HomePage = () => {
       ? []
       : viralMockData;
   const longformPool = videoPool.filter(v => !v.isShorts);
-  const _thirtyDaysAgo  = Date.now() - 30 * 24 * 3600 * 1000;
-  const _ninetyDaysAgo  = Date.now() - 90 * 24 * 3600 * 1000;
-  const _uploadMs = (v: ViralVideoItem) => v.uploadDate ? new Date(v.uploadDate).getTime() : 0;
-  // Tier 1: ×100 이상, 90일 이내
-  const _rising100 = [...longformPool]
-    .filter(v => v.viralScore !== null && v.viralScore >= 100 && _uploadMs(v) >= _ninetyDaysAgo)
-    .sort((a, b) => (b.viralScore ?? 0) - (a.viralScore ?? 0));
-  // Tier 2: ×5 이상, 90일 이내
-  const _rising5 = [...longformPool]
-    .filter(v => v.viralScore !== null && v.viralScore >= 5 && _uploadMs(v) >= _ninetyDaysAgo)
-    .sort((a, b) => (b.viralScore ?? 0) - (a.viralScore ?? 0));
-  // Tier 3: fallback — viralScore > 0 전체
-  const _risingAll = [...longformPool]
-    .filter(v => v.viralScore !== null && v.viralScore > 0)
-    .sort((a, b) => (b.viralScore ?? 0) - (a.viralScore ?? 0));
-  const _risingPool = filterByCat(
-    _rising100.length >= 8 ? _rising100 : _rising5.length >= 4 ? _rising5 : _risingAll
-  ).slice(0, 24);
-  // 8 videos picked randomly from pool using risingSeed; paginated 8/page
+  // risingVideos: dedicated Supabase fetch (no mock fallback) — see useEffect above
   const risingVideos = useMemo(() => {
-    if (_risingPool.length === 0) return [];
-    if (_risingPool.length <= 8) return _risingPool;
-    // Shuffle pool with risingSeed
-    const arr = [..._risingPool];
+    const base = activeCat === 'All'
+      ? risingRaw
+      : risingRaw.filter(v => CAT_MAP[activeCat as Cat]?.some(c => c.toLowerCase() === v.category.toLowerCase()));
+    if (base.length <= 8) return base;
+    const arr = [...base];
     let s = risingSeed;
     for (let i = arr.length - 1; i > 0; i--) {
       s = (s * 9301 + 49297) % 233280;
@@ -882,8 +927,7 @@ const HomePage = () => {
       [arr[i], arr[j]] = [arr[j], arr[i]];
     }
     return arr;
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [_risingPool.length, risingSeed]);
+  }, [risingRaw, activeCat, risingSeed]);
   const topViewVideos = filterByCat([...longformPool].sort((a, b) => b.views - a.views));
   const topViewsAll = topViewVideos;
   const chBySubs  = [...popularChannels].sort((a, b) => b.subscribers - a.subscribers);
@@ -1134,6 +1178,7 @@ const HomePage = () => {
                       sessionStorage.setItem('vb_rising_seed_ts', String(Date.now()));
                     } catch { /* ignore */ }
                     setRisingSeed(seed);
+                    setRisingFetchKey(k => k + 1);
                   }}
                   className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[8px] font-bold bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 transition-colors cursor-pointer"
                   title="다른 떡상 영상 보기"
@@ -1142,8 +1187,8 @@ const HomePage = () => {
                 </button>
               </div>
             }
-            emptyMessage="이번 주는 검증된 떡상 영상이 없습니다. 곧 업데이트됩니다."
-            items={risingVideos} savedIds={savedIds} onToggleSave={handleToggleSave} loaded={homeDataLoaded} perPage={8} />
+            emptyMessage={risingError ? '데이터 로드 실패 — 잠시 후 새로고침 해주세요.' : '이번 주는 검증된 떡상 영상이 없습니다. 곧 업데이트됩니다.'}
+            items={risingVideos} savedIds={savedIds} onToggleSave={handleToggleSave} loaded={risingLoaded} perPage={8} />
 
           {/* ── Top Views ── */}
           <VideoSection icon="ri-eye-line" iconColor="text-sky-500"

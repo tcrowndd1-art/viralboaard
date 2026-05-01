@@ -281,6 +281,32 @@ const RankingsPage = () => {
             </div>
           )}
 
+          {/* Sort criteria tabs */}
+          <div className="flex flex-wrap gap-1.5">
+            {([
+              { key: 'rank',          label: '인기순위',       icon: 'ri-trophy-line'      },
+              { key: 'subscribers',   label: '구독자순',       icon: 'ri-user-line'        },
+              { key: 'views',         label: '조회수순',       icon: 'ri-eye-line'         },
+              { key: 'growthPercent', label: '구독자 급상승',  icon: 'ri-arrow-up-line'    },
+            ] as const).map(tab => (
+              <button
+                key={tab.key}
+                onClick={() => handleSort(tab.key)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-semibold transition-all cursor-pointer whitespace-nowrap ${
+                  sortKey === tab.key
+                    ? 'bg-red-600 text-white shadow-sm'
+                    : 'bg-gray-100 dark:bg-white/10 text-gray-600 dark:text-white/55 hover:bg-gray-200 dark:hover:bg-white/18'
+                }`}
+              >
+                <i className={`${tab.icon} text-[10px]`}></i>
+                {tab.label}
+                {sortKey === tab.key && (
+                  <i className={`${sortDir === 'asc' ? 'ri-arrow-up-s-line' : 'ri-arrow-down-s-line'} text-[10px]`}></i>
+                )}
+              </button>
+            ))}
+          </div>
+
           {/* Filter bar — only show when there are results */}
           {(viewTab === 'all' || filtered.length > 0) && (
             <div className="bg-gray-50 dark:bg-dark-card border border-gray-200 dark:border-dark-border rounded-lg px-4 py-3">

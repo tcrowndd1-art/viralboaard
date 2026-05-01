@@ -229,7 +229,7 @@ const translations = {
   home_shorts_1m: '숏츠 1달',
   home_longform_3m: '롱폼 3달',
   home_rising_channels: '🚀 떡상 영상',
-  home_views_vs_subs: '최근 30일 · 구독자 ×100 이상',
+  home_views_vs_subs: '최근 수집 · 구독자 ×100 이상',
   home_top_views: '조회수 TOP',
   home_est_revenue: '수익 추정 포함',
   home_viral_100: '×100+ 초바이럴',
