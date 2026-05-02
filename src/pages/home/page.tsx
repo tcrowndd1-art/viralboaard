@@ -352,7 +352,7 @@ const SectionHeader = ({
 );
 
 /* ── Shorts section — category-aware, 2 preset rows or 1 dynamic row ── */
-const ShortsSection = ({ data, activeCat, loaded }: { data: ViralVideoItem[]; activeCat: Cat; loaded: boolean }) => {
+const ShortsSection = ({ data, activeCat, loaded, loading = false, onRefresh }: { data: ViralVideoItem[]; activeCat: Cat; loaded: boolean; loading?: boolean; onRefresh?: () => void }) => {
   const { t } = useTranslation();
   const [dynPage, setDynPage] = useState(1);
   const PER_PAGE = 8;
@@ -456,7 +456,7 @@ const ShortsSection = ({ data, activeCat, loaded }: { data: ViralVideoItem[]; ac
     const catKey = `cat_${activeCat.toLowerCase().replace('-', '')}` as never;
     const label = t(catKey, activeCat);
     return (
-      <section>
+      <section className={`transition-opacity duration-300 ${loading ? 'opacity-60' : 'opacity-100'}`}>
         <div className="flex items-center gap-2 mb-4 px-4 sm:px-6">
           <i className="ri-scissors-cut-line text-red-500 text-sm"></i>
           <h2 className="text-[13px] font-black text-gray-900 dark:text-white tracking-tight">Shorts</h2>
@@ -476,11 +476,21 @@ const ShortsSection = ({ data, activeCat, loaded }: { data: ViralVideoItem[]; ac
   }
 
   return (
-    <section>
+    <section className={`transition-opacity duration-300 ${loading ? 'opacity-60' : 'opacity-100'}`}>
       <div className="flex items-center gap-2 mb-4 px-4 sm:px-6">
         <i className="ri-scissors-cut-line text-red-500 text-sm"></i>
         <h2 className="text-[13px] font-black text-gray-900 dark:text-white tracking-tight">Shorts</h2>
         <span className="text-[9px] text-gray-500 dark:text-white/50 font-mono ml-1 bg-gray-100 dark:bg-white/10 px-2 py-0.5 rounded">{t('home_viral_score_order')}</span>
+        <div className="ml-auto flex items-center gap-1.5">
+          {loading && <i className="ri-refresh-line text-[9px] text-red-400 animate-spin"></i>}
+          {onRefresh && (
+            <button onClick={onRefresh} disabled={loading}
+              className="flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[8px] font-bold bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-white/50 hover:bg-gray-200 dark:hover:bg-white/15 transition-colors disabled:opacity-40 cursor-pointer"
+              title="새로고침">
+              🔄
+            </button>
+          )}
+        </div>
       </div>
       <ShortsRow
         label={t('cat_all', 'All')}
@@ -497,11 +507,11 @@ const ShortsSection = ({ data, activeCat, loaded }: { data: ViralVideoItem[]; ac
 
 /* ── Video grid section (4 per row, pagination at bottom) ── */
 const VideoSection = ({
-  icon, iconColor, title, glowColor, badge, items, savedIds, onToggleSave, loaded, emptyMessage, perPage: _perPage,
+  icon, iconColor, title, glowColor, badge, items, savedIds, onToggleSave, loaded, emptyMessage, perPage: _perPage, loading,
 }: {
   icon: string; iconColor: string; title: string; glowColor?: string; badge?: React.ReactNode;
   items: ViralVideoItem[]; savedIds: Set<string>; onToggleSave: (id: string) => void; loaded: boolean;
-  emptyMessage?: string; perPage?: number;
+  emptyMessage?: string; perPage?: number; loading?: boolean;
 }) => {
   const [page, setPage] = useState(1);
   const PER_PAGE = _perPage ?? 4;
@@ -509,7 +519,7 @@ const VideoSection = ({
   const noData = loaded && items.length === 0;
 
   return (
-    <section>
+    <section className={`transition-opacity duration-300 ${loading ? 'opacity-60' : 'opacity-100'}`}>
       <SectionHeader icon={icon} iconColor={iconColor} title={title} glowColor={glowColor} badge={badge} />
       {noData ? (
         <div className="px-4 sm:px-6 py-8 text-center text-[12px] text-gray-400 dark:text-white/40">
@@ -541,16 +551,28 @@ const VideoSection = ({
 };
 
 /* ── Trending section (API, pagination at bottom) ── */
-const TrendingSection = ({ items, loaded, country = 'KR' }: { items: TrendingVideoItem[]; loaded: boolean; country?: string }) => {
+const TrendingSection = ({ items, loaded, country = 'KR', loading = false, onRefresh }: { items: TrendingVideoItem[]; loaded: boolean; country?: string; loading?: boolean; onRefresh?: () => void }) => {
   const { t } = useTranslation();
   const [page, setPage] = useState(1);
   const PER_PAGE = 4;
   const paged = items.slice((page - 1) * PER_PAGE, page * PER_PAGE);
 
   return (
-    <section>
+    <section className={`transition-opacity duration-300 ${loading ? 'opacity-60' : 'opacity-100'}`}>
       <SectionHeader icon="ri-fire-line" iconColor="text-orange-500" title={t('home_trending_live')}
-        badge={<span className="flex items-center gap-1 text-[9px] text-red-500"><span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse inline-block"></span>LIVE · {country}</span>}
+        badge={
+          <div className="flex items-center gap-2">
+            <span className="flex items-center gap-1 text-[9px] text-red-500"><span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse inline-block"></span>LIVE · {country}</span>
+            {loading && <i className="ri-refresh-line text-[9px] text-orange-400 animate-spin"></i>}
+            {onRefresh && (
+              <button onClick={onRefresh} disabled={loading}
+                className="flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[8px] font-bold bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-white/50 hover:bg-gray-200 dark:hover:bg-white/15 transition-colors disabled:opacity-40 cursor-pointer"
+                title="새로고침">
+                🔄
+              </button>
+            )}
+          </div>
+        }
       />
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 px-4 sm:px-6">
         {!loaded && items.length === 0
@@ -605,6 +627,16 @@ const HomePage = () => {
   const [risingLoaded, setRisingLoaded] = useState(false);
   const [risingError, setRisingError] = useState<string | null>(null);
   const [risingFetchKey, setRisingFetchKey] = useState(0);
+  const [shortsRefreshKey, setShortsRefreshKey] = useState(0);
+  const [trendingRefreshKey, setTrendingRefreshKey] = useState(0);
+  const [shortsLoaded, setShortsLoaded] = useState(false);
+  const [trendingLoaded, setTrendingLoaded] = useState(false);
+  const [shortsLoading, setShortsLoading] = useState(false);
+  const [trendingLoading, setTrendingLoading] = useState(false);
+  const [risingLoading, setRisingLoading] = useState(false);
+  const [pageVisible, setPageVisible] = useState(() => !document.hidden);
+  const [risingLastUpdated, setRisingLastUpdated] = useState(Date.now());
+  const [risingSecondsAgo, setRisingSecondsAgo] = useState(0);
   const [prevChRankings, setPrevChRankings] = useState<Map<string, number>>(new Map());
   const [risingSeed, setRisingSeed] = useState(() => {
     const RISING_SEED_KEY = 'vb_rising_seed';
@@ -622,15 +654,24 @@ const HomePage = () => {
     return seed;
   });
 
+  // Country change → clear data so skeleton shows for new country
+  useEffect(() => {
+    setLiveVideos([]);
+    setShortsLoaded(false);
+    setShortsLoading(false);
+    setTrendingVideos([]);
+    setTrendingLoaded(false);
+    setTrendingLoading(false);
+    setRisingRaw([]);
+    setRisingLoaded(false);
+    setRisingLoading(false);
+  }, [activeCountry]);
+
+  // Effect A: liveVideos (Shorts + Top Views) — auto-refreshes every 30s
   useEffect(() => {
     let cancelled = false;
-    setLiveVideos([]);
-    setTrendingVideos([]);
-    setPopularChannels([]);
-    setHomeDataLoaded(false);
-    setPrevChRankings(loadPrevChRanks(activeCountry));
-
-    async function loadHomeData() {
+    setShortsLoading(true);
+    (async () => {
       try {
         const { data, error } = await supabase
           .from('viralboard_data')
@@ -638,12 +679,9 @@ const HomePage = () => {
           .eq('country', activeCountry)
           .order('views', { ascending: false })
           .limit(100);
-
-        if (error) throw error;
         if (cancelled) return;
+        if (error) throw error;
         if (!data || data.length === 0) return;
-
-        // 바이럴 영상 (liveVideos)
         const viral: ViralVideoItem[] = data.map((v, i) => ({
           rank: i + 1,
           videoId: v.video_id,
@@ -664,8 +702,22 @@ const HomePage = () => {
           comments: v.comments ?? 0,
         }));
         if (!cancelled) setLiveVideos(viral);
+      } catch (e) {
+        console.error('[home] loadLiveVideos FAIL:', e);
+      } finally {
+        if (!cancelled) { setShortsLoaded(true); setShortsLoading(false); }
+      }
+    })();
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeCountry, shortsRefreshKey]);
 
-        // 트렌딩 영상 — 최근 7일 업로드 + VPH(시간당 조회수) 순
+  // Effect B: trendingVideos — auto-refreshes every 45s
+  useEffect(() => {
+    let cancelled = false;
+    setTrendingLoading(true);
+    (async () => {
+      try {
         const _sevenDaysAgo = new Date(Date.now() - 7 * 24 * 3600 * 1000).toISOString();
         const { data: trendRaw } = await supabase
           .from('viralboard_data')
@@ -675,10 +727,19 @@ const HomePage = () => {
           .order('views', { ascending: false })
           .limit(50);
         if (cancelled) return;
-
-        const _nowMs = Date.now();
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const _trendSrc: any[] = (trendRaw && trendRaw.length >= 4) ? trendRaw : data;
+        let _trendSrc: any[] = trendRaw ?? [];
+        if (_trendSrc.length < 4) {
+          const { data: fallback } = await supabase
+            .from('viralboard_data')
+            .select('video_id, title, channel, channel_id, thumbnail_url, views, published_at')
+            .eq('country', activeCountry)
+            .order('views', { ascending: false })
+            .limit(50);
+          if (cancelled) return;
+          _trendSrc = fallback ?? [];
+        }
+        const _nowMs = Date.now();
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const _withVph = _trendSrc.map((v: any) => ({
           ...v,
@@ -690,7 +751,6 @@ const HomePage = () => {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           .sort((a: any, b: any) => b._vph - a._vph)
           .slice(0, 16);
-
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const trending: TrendingVideoItem[] = _withVph.map((v: any, i: number) => ({
           rank: i + 1,
@@ -707,8 +767,24 @@ const HomePage = () => {
           channelId: v.channel_id,
         }));
         if (!cancelled) setTrendingVideos(trending);
+      } catch (e) {
+        console.error('[home] loadTrending FAIL:', e);
+      } finally {
+        if (!cancelled) { setTrendingLoaded(true); setTrendingLoading(false); }
+      }
+    })();
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeCountry, trendingRefreshKey]);
 
-        // 인기 채널 — rolling 30일 기준, 최대 100위
+  // Effect C: popularChannels — country-change only (no auto-refresh)
+  useEffect(() => {
+    let cancelled = false;
+    setPopularChannels([]);
+    setHomeDataLoaded(false);
+    setPrevChRankings(loadPrevChRanks(activeCountry));
+    (async () => {
+      try {
         const _thirtyDaysAgoIso = new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString();
         const { data: rollingRows } = await supabase
           .from('viralboard_data')
@@ -716,8 +792,9 @@ const HomePage = () => {
           .eq('country', activeCountry)
           .gte('fetched_at', _thirtyDaysAgoIso)
           .limit(1000);
-
-        const rollingSource = rollingRows && rollingRows.length > 0 ? rollingRows : data;
+        if (cancelled) return;
+        const rollingSource = rollingRows && rollingRows.length > 0 ? rollingRows : [];
+        if (rollingSource.length === 0) return;
         const channelMap = new Map<string, { name: string; channelId: string; totalViews: number; subscribers: number; avatar: string; category: string; earliestSubs: number; latestSubs: number; earliestFetched: string; latestFetched: string }>();
         for (const v of rollingSource) {
           const subs = (v as any).subscriber_count ?? 0;
@@ -761,21 +838,18 @@ const HomePage = () => {
           setPopularChannels(popular);
           saveCurrChRanks(activeCountry, popular);
         }
-
       } catch (e) {
-        console.error('[home] loadHomeData FAIL:', e);
+        console.error('[home] loadChannels FAIL:', e);
       } finally {
         if (!cancelled) setHomeDataLoaded(true);
       }
-    }
-
-    loadHomeData();
+    })();
     return () => { cancelled = true; };
   }, [activeCountry]);
 
   useEffect(() => {
     let cancelled = false;
-    setRisingRaw([]);
+    if (risingFetchKey > 0) setRisingLoading(true);
     setRisingLoaded(false);
     setRisingError(null);
     const _cutoff = new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString();
@@ -822,14 +896,51 @@ const HomePage = () => {
           }))
           .sort((a: ViralVideoItem, b: ViralVideoItem) => (b.viralScore ?? 0) - (a.viralScore ?? 0))
           .slice(0, 12);
-        if (!cancelled) { setRisingRaw(mapped); setRisingLoaded(true); }
+        if (!cancelled) { setRisingRaw(mapped); setRisingLoaded(true); setRisingLoading(false); }
       } catch (e: unknown) {
-        if (!cancelled) { setRisingError((e as Error).message ?? '로드 실패'); setRisingLoaded(true); }
+        if (!cancelled) { setRisingError((e as Error).message ?? '로드 실패'); setRisingLoaded(true); setRisingLoading(false); }
       }
     })();
     return () => { cancelled = true; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeCountry, risingFetchKey]);
+
+  // Page Visibility API — pause intervals when tab is hidden
+  useEffect(() => {
+    const handler = () => setPageVisible(!document.hidden);
+    document.addEventListener('visibilitychange', handler);
+    return () => document.removeEventListener('visibilitychange', handler);
+  }, []);
+
+  // Shorts: 30s auto-refresh
+  useEffect(() => {
+    if (!pageVisible) return;
+    const id = setInterval(() => setShortsRefreshKey(k => k + 1), 30_000);
+    return () => clearInterval(id);
+  }, [pageVisible]);
+
+  // Trending: 45s auto-refresh
+  useEffect(() => {
+    if (!pageVisible) return;
+    const id = setInterval(() => setTrendingRefreshKey(k => k + 1), 45_000);
+    return () => clearInterval(id);
+  }, [pageVisible]);
+
+  // Rising: 1min auto-refresh
+  useEffect(() => {
+    if (!pageVisible) return;
+    const id = setInterval(() => {
+      setRisingFetchKey(k => k + 1);
+      setRisingLastUpdated(Date.now());
+    }, 60_000);
+    return () => clearInterval(id);
+  }, [pageVisible]);
+
+  // Rising countdown timer (1s tick)
+  useEffect(() => {
+    const id = setInterval(() => setRisingSecondsAgo(Math.floor((Date.now() - risingLastUpdated) / 1000)), 1000);
+    return () => clearInterval(id);
+  }, [risingLastUpdated]);
 
   const handleToggleSave = useCallback((videoId: string) => {
     setSavedIds(prev => {
@@ -1159,7 +1270,9 @@ const HomePage = () => {
           <ShortsSection
             data={videoPool.filter(v => v.isShorts && (v.country ?? '').toUpperCase() === activeCountry.toUpperCase())}
             activeCat={activeCat}
-            loaded={homeDataLoaded}
+            loaded={shortsLoaded}
+            loading={shortsLoading}
+            onRefresh={() => setShortsRefreshKey(k => k + 1)}
           />
 
 
@@ -1170,6 +1283,11 @@ const HomePage = () => {
             badge={
               <div className="flex items-center gap-1.5">
                 <span className="text-[10px] text-gray-400 dark:text-white/45">{t('home_views_vs_subs')}</span>
+                {risingSecondsAgo > 0 && (
+                  <span className="text-[8px] text-gray-400 dark:text-white/30 font-mono hidden sm:inline">
+                    {risingSecondsAgo < 60 ? `${risingSecondsAgo}초 전` : `${Math.floor(risingSecondsAgo / 60)}분 전`} 업데이트
+                  </span>
+                )}
                 <button
                   onClick={() => {
                     const seed = Math.random();
@@ -1179,14 +1297,18 @@ const HomePage = () => {
                     } catch { /* ignore */ }
                     setRisingSeed(seed);
                     setRisingFetchKey(k => k + 1);
+                    setRisingLastUpdated(Date.now());
+                    setRisingSecondsAgo(0);
                   }}
-                  className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[8px] font-bold bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 transition-colors cursor-pointer"
+                  disabled={risingLoading}
+                  className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[8px] font-bold bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 transition-colors disabled:opacity-40 cursor-pointer"
                   title="다른 떡상 영상 보기"
                 >
-                  <i className="ri-refresh-line text-[8px]"></i> 새로고침
+                  <i className={`ri-refresh-line text-[8px] ${risingLoading ? 'animate-spin' : ''}`}></i> 🔄
                 </button>
               </div>
             }
+            loading={risingLoading}
             emptyMessage={risingError ? '데이터 로드 실패 — 잠시 후 새로고침 해주세요.' : '이번 주는 검증된 떡상 영상이 없습니다. 곧 업데이트됩니다.'}
             items={risingVideos} savedIds={savedIds} onToggleSave={handleToggleSave} loaded={risingLoaded} perPage={8} />
 
@@ -1195,13 +1317,14 @@ const HomePage = () => {
             title={t('home_top_views')}
             glowColor="#38bdf8"
             badge={<span className="text-[10px] text-gray-400 dark:text-white/45">{t('home_est_revenue')}</span>}
-            items={topViewVideos} savedIds={savedIds} onToggleSave={handleToggleSave} loaded={homeDataLoaded} />
+            items={topViewVideos} savedIds={savedIds} onToggleSave={handleToggleSave} loaded={shortsLoaded} />
 
           {/* ── Ad strip — between Top Views and Trending sections ── */}
           <AdStrip offset={2} />
 
           {/* ── Trending Live ── */}
-          <TrendingSection items={trendingVideos} loaded={homeDataLoaded} country={activeCountry} />
+          <TrendingSection items={trendingVideos} loaded={trendingLoaded} country={activeCountry}
+            loading={trendingLoading} onRefresh={() => setTrendingRefreshKey(k => k + 1)} />
 
           {/* ── Total Views TOP ── */}
           <VideoSection
@@ -1216,7 +1339,7 @@ const HomePage = () => {
             items={topViewsAll}
             savedIds={savedIds}
             onToggleSave={handleToggleSave}
-            loaded={homeDataLoaded}
+            loaded={shortsLoaded}
           />
 
         </div>
