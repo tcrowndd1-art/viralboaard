@@ -111,7 +111,7 @@ const ChromeExtensionPage = () => {
   const strokeDashoffset = circumference - (viralScore / 100) * circumference;
 
   return (
-    <div className="min-h-screen bg-white dark:bg-[#0f0f0f] text-gray-900 dark:text-white transition-colors">
+    <div className="min-h-screen bg-white dark:bg-dark-base text-gray-900 dark:text-white transition-colors">
       {/* Navbar */}
       <header
         className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
@@ -381,7 +381,7 @@ const ChromeExtensionPage = () => {
             {benefits.map((b) => (
               <div
                 key={b.title}
-                className="bg-white dark:bg-[#0f0f0f] border border-gray-200 dark:border-white/10 rounded-xl p-6 hover:border-red-300 dark:hover:border-red-600/30 transition-colors group"
+                className="bg-white dark:bg-dark-base border border-gray-200 dark:border-white/10 rounded-xl p-6 hover:border-red-300 dark:hover:border-red-600/30 transition-colors group"
               >
                 <div className={`w-12 h-12 ${b.bg} rounded-xl flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
                   <i className={`${b.icon} ${b.color} text-xl`}></i>
@@ -404,7 +404,7 @@ const ChromeExtensionPage = () => {
               { icon: 'ri-refresh-line', label: 'Real-time Updates' },
               { icon: 'ri-lock-line', label: 'Privacy First' },
             ].map((f) => (
-              <div key={f.label} className="flex items-center gap-2 bg-white dark:bg-[#0f0f0f] border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2.5">
+              <div key={f.label} className="flex items-center gap-2 bg-white dark:bg-dark-base border border-gray-200 dark:border-white/10 rounded-lg px-3 py-2.5">
                 <div className="w-4 h-4 flex items-center justify-center">
                   <i className={`${f.icon} text-red-500 text-sm`}></i>
                 </div>
@@ -480,7 +480,7 @@ const ChromeExtensionPage = () => {
             {testimonials.map((t) => (
               <div
                 key={t.id}
-                className="bg-white dark:bg-[#0f0f0f] border border-gray-200 dark:border-white/10 rounded-xl p-6 hover:border-red-200 dark:hover:border-red-600/20 transition-colors"
+                className="bg-white dark:bg-dark-base border border-gray-200 dark:border-white/10 rounded-xl p-6 hover:border-red-200 dark:hover:border-red-600/20 transition-colors"
               >
                 {/* Stars */}
                 <div className="flex gap-0.5 mb-4">
@@ -514,7 +514,7 @@ const ChromeExtensionPage = () => {
       </section>
 
       {/* Footer */}
-      <footer className="bg-gray-100 dark:bg-[#0a0a0a] border-t border-gray-200 dark:border-white/10 py-10 px-4 lg:px-6">
+      <footer className="bg-gray-100 dark:bg-dark-base border-t border-gray-200 dark:border-white/10 py-10 px-4 lg:px-6">
         <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <Link to="/" className="font-black text-base tracking-widest text-gray-900 dark:text-white uppercase hover:text-red-500 transition-colors">
             ViralBoard

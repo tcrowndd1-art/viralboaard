@@ -41,19 +41,22 @@ const TYPES = [
   { value: 'SHORTS',  label: '⚡ Shorts' },
 ];
 
-function fmtViews(n: number) {
+function fmtViews(n: number | null | undefined) {
+  if (n == null) return '0';
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
   if (n >= 1_000)     return `${(n / 1_000).toFixed(0)}K`;
   return String(n);
 }
 
-function fmtVph(n: number) {
+function fmtVph(n: number | null | undefined) {
+  if (n == null) return '0/h';
   if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M/h`;
   if (n >= 1_000)     return `${(n / 1_000).toFixed(1)}K/h`;
   return `${Math.round(n)}/h`;
 }
 
-function timeAgo(iso: string) {
+function timeAgo(iso: string | null | undefined) {
+  if (!iso) return '-';
   const diff = Date.now() - new Date(iso).getTime();
   const h = Math.floor(diff / 3_600_000);
   const m = Math.floor((diff % 3_600_000) / 60_000);
@@ -62,7 +65,7 @@ function timeAgo(iso: string) {
 }
 
 export default function RisingPage() {
-  const { t } = useTranslation();
+  useTranslation();
   const [videos, setVideos]       = useState<RisingVideo[]>([]);
   const [loading, setLoading]     = useState(true);
   const [country, setCountry]     = useState('ALL');
@@ -102,7 +105,7 @@ export default function RisingPage() {
     <div className="min-h-screen bg-gray-50 dark:bg-dark-base">
       <TopHeader />
       <GlobalSidebar />
-      <main className="lg:ml-48 pt-12">
+      <main className="lg:ml-52 pt-12">
         <div className="max-w-7xl mx-auto px-4 py-6">
 
           {/* 헤더 */}
@@ -161,7 +164,7 @@ export default function RisingPage() {
 
           {/* 카드 그리드 */}
           {loading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {Array.from({ length: 9 }).map((_, i) => (
                 <div key={i} className="rounded-xl bg-gray-100 dark:bg-gray-800 animate-pulse h-48" />
               ))}
@@ -172,7 +175,7 @@ export default function RisingPage() {
               <p className="text-gray-500 text-sm">급상승 영상이 없어요. 잠시 후 다시 확인해주세요.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               {videos.map((v, idx) => (
                 <div
                   key={`${v.video_id}-${v.country}`}

@@ -1062,7 +1062,7 @@ const HomePage = () => {
 
   return (
     <VideoPlayContext.Provider value={playVideo}>
-    <div className="min-h-screen bg-white dark:bg-[#0a0a0a] transition-colors">
+    <div className="min-h-screen bg-white dark:bg-dark-base transition-colors">
       <TopHeader onMobileMenuToggle={() => setSidebarOpen(v => !v)} />
       <GlobalSidebar mobileOpen={sidebarOpen} onMobileClose={() => setSidebarOpen(false)} />
 

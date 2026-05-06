@@ -498,7 +498,7 @@ const VideoRankingsPage = () => {
       <GlobalSidebar mobileOpen={sidebarOpen} onMobileClose={() => setSidebarOpen(false)} />
 
       <div className="lg:ml-52 pt-12 pb-16 lg:pb-0 flex-1">
-        <div className="px-4 lg:px-6 py-6 space-y-5">
+        <div className="max-w-7xl mx-auto px-4 lg:px-6 py-6 space-y-5">
 
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
