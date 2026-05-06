@@ -92,10 +92,12 @@ const formatSubs = (n: number) => {
 };
 
 const formatRevenue = (views: number) => {
-  const low = views / 1000 * 1;
-  const high = views / 1000 * 5;
-  const fmt = (n: number) => n >= 1000 ? `$${(n / 1000).toFixed(1)}K` : `$${n.toFixed(0)}`;
-  return `${fmt(low)}~${fmt(high)}`;
+  const monetized = views * 0.45;
+  const low = (monetized / 1000) * 1;
+  const high = (monetized / 1000) * 5;
+  const fmt = (n: number) =>
+    n >= 1000 ? `$${(n / 1000).toFixed(1)}K` : `$${n.toFixed(0)}`;
+  return `${fmt(low)} ~ ${fmt(high)}`;
 };
 
 const getThumbnail = (video: ViralTitle) =>
@@ -430,7 +432,7 @@ const CreatorInsightsPage = () => {
                       <th className="px-4 py-3 text-xs font-semibold text-gray-500 dark:text-white/30 uppercase tracking-wider text-center w-10">#</th>
                       <th className="px-3 py-3 text-xs font-semibold text-gray-500 dark:text-white/30 uppercase tracking-wider text-left w-16">썸네일</th>
                       <th className="px-4 py-3 text-xs font-semibold text-gray-500 dark:text-white/30 uppercase tracking-wider text-left">제목 / 채널</th>
-                      <th className="px-4 py-3 text-xs font-semibold text-gray-500 dark:text-white/30 uppercase tracking-wider text-right hidden sm:table-cell">예상수입</th>
+                      <th className="px-4 py-3 text-xs font-semibold text-gray-500 dark:text-white/30 uppercase tracking-wider text-right hidden sm:table-cell">이 영상 1편 추정 수익</th>
                       <th className="px-4 py-3 text-xs font-semibold text-gray-500 dark:text-white/30 uppercase tracking-wider text-right">조회수</th>
                       <th className="px-4 py-3 text-xs font-semibold text-gray-500 dark:text-white/30 uppercase tracking-wider text-right">구독자</th>
                       <th className="px-4 py-3 text-xs font-semibold text-gray-500 dark:text-white/30 uppercase tracking-wider text-right">배수</th>
@@ -621,7 +623,7 @@ const CreatorInsightsPage = () => {
                       </div>
 
                       <div className="bg-green-50 dark:bg-green-900/10 border border-green-200 dark:border-green-500/20 rounded-lg p-3">
-                        <p className="text-xs text-green-600 dark:text-green-400 font-semibold mb-1">💰 예상 수입 (CPM $1~$5 기준)</p>
+                        <p className="text-xs text-green-600 dark:text-green-400 font-semibold mb-1">💰 이 영상 1편 추정 수익</p>
                         <p className="text-lg font-bold text-green-700 dark:text-green-400">{formatRevenue(selectedVideo.views)}</p>
                         <p className="text-xs text-green-500/70 dark:text-green-500/50 mt-0.5">낮은 CPM~높은 CPM 범위 추산</p>
                       </div>
