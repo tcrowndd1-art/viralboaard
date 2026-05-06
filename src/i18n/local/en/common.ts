@@ -1,9 +1,16 @@
 const translations = {
-  // Brand
   brand: 'ViralBoard',
-
-  // Nav
   nav_home: 'Home',
+  nav_video_rankings: 'Video Rankings',
+  nav_rising: 'Rising',
+  nav_creator_insights: 'Creator Insights',
+  nav_channel_rankings: 'Channel Rankings',
+  nav_search: 'Search',
+  nav_ai_studio: 'AI Studio',
+  nav_video_editor: 'Video Editor',
+  nav_my_dashboard: 'My Dashboard',
+  nav_comment_manager: 'Comment Manager',
+  nav_chrome_extension: 'Chrome Extension',
   nav_charts: 'Charts',
   nav_insights: 'Insights',
   nav_trending_live: 'Trending Live',
@@ -11,8 +18,6 @@ const translations = {
   nav_more: 'MORE',
   nav_sign_in: 'Sign in',
   nav_sign_up: 'Sign up',
-
-  // Sidebar
   sidebar_favorite_channels: 'Favorite channels',
   sidebar_no_favorite_channels: 'No favorite channels.',
   sidebar_sign_in: 'Sign in',
@@ -21,29 +26,22 @@ const translations = {
   sidebar_terms: 'Terms of Service',
   sidebar_privacy: 'Privacy Policy',
   sidebar_about: 'About ViralBoard',
-
-  // Language
+  dash_saved_channels_nav: 'Saved Channels',
   lang_english: 'English',
   lang_portuguese: 'Português',
   lang_korean: '한국어',
-
-  // Search
   search_placeholder: 'Search by channel/video link or keyword',
   search_recent: 'Recent Searches',
-
-  // SearchBanner
+  search_channel_placeholder: 'Search by channel name...',
+  search_btn: 'Search',
   banner_title: 'Search and analyze',
   banner_title2: 'YouTube channels',
   banner_title3: 'worldwide with professional filters.',
   banner_cta: 'Channel Search',
-
-  // Footer
   footer_about: 'About ViralBoard',
   footer_terms: 'Terms of Service',
   footer_privacy: 'Privacy Policy',
   footer_copyright: '© 2026 DIFF., Inc. All Rights Reserved',
-
-  // Login
   login_title: 'Sign in to ViralBoard',
   login_subtitle: 'Access your YouTube analytics dashboard',
   login_google: 'Continue with Google',
@@ -53,14 +51,12 @@ const translations = {
   login_forgot: 'Forgot password?',
   login_submit: 'Sign in',
   login_submitting: 'Signing in...',
-  login_no_account: "Don't have an account?",
+  login_no_account: 'Don\'t have an account?',
   login_signup_link: 'Sign up',
   login_new_to: 'New to ViralBoard?',
   login_create: 'Create an account',
   login_error_fill: 'Please fill in all fields.',
   login_error_email: 'Please enter a valid email address.',
-
-  // Signup
   signup_title: 'Create your account',
   signup_subtitle: 'Start analyzing YouTube channels for free',
   signup_google: 'Continue with Google',
@@ -85,8 +81,6 @@ const translations = {
   signup_fair: 'Fair',
   signup_good: 'Good',
   signup_strong: 'Strong',
-
-  // Rankings page
   rankings_title: 'Channel Rankings',
   rankings_desc: 'Explore top YouTube channels worldwide by subscribers, views, and growth.',
   rankings_channels: 'channels',
@@ -105,8 +99,6 @@ const translations = {
   rankings_no_results: 'No channels found for the selected filters.',
   rankings_showing: 'Showing',
   rankings_of: 'of',
-
-  // Video Rankings page
   video_rankings_title: 'Video Rankings',
   video_rankings_desc: 'Top YouTube videos ranked by views, upload date, and engagement.',
   video_rankings_videos: 'videos',
@@ -116,8 +108,6 @@ const translations = {
   video_rankings_col_views: 'Views',
   video_rankings_col_date: 'Upload Date',
   video_rankings_no_results: 'No videos found for the selected filters.',
-
-  // Chart widgets (home)
   chart_most_super_chatted: 'Most Super Chatted',
   chart_most_live_viewers: 'Most Live Viewers',
   chart_most_popular: 'Most Popular',
@@ -128,115 +118,32 @@ const translations = {
   chart_topic_desc: 'Popular charts selected by channel topics classified by AI.',
   chart_period_daily: 'Daily',
   chart_period_weekly: 'Weekly',
-
-  // Trending Live
   trending_live_count: 'live streams',
   trending_no_live: 'No live streams right now.',
   trending_reset_filter: 'Reset filters',
-
-  // Search page
+  live_analyzing: 'Analyzing live...',
   search_results_for: 'Results for',
   search_found: 'Found',
   search_channels_count: 'channels and',
   search_videos_count: 'videos',
   search_explore_all: 'Explore All',
-  search_browse_all: 'Browse all channels and videos — use the search bar to filter',
-  search_no_results: 'No results found',
-  search_no_results_desc: 'Try different keywords or browse all channels and videos without a filter.',
-  search_show_all: 'Show All Results',
-  search_home: 'Home',
-  search_results_label: 'Search Results',
-
-  // Favorite channels sidebar
-  fav_channels: 'Favorite channels',
-  fav_no_channels: 'No favorite channels.',
-
-  // Dashboard
-  dashboard_welcome: 'Welcome back',
-  dashboard_saved: 'Saved Channels',
-  dashboard_recent: 'Recent Searches',
-  dashboard_trending: 'Trending Alerts',
-  dashboard_recommendations: 'Recommendations',
-
-  // Dashboard page
-  dash_new_alerts: 'new alerts',
-  dash_channels_live: 'channels live',
-  dash_right_now: 'right now',
-  dash_browse_rankings: 'Browse Rankings',
-  dash_search_channels: 'Search Channels',
-  dash_stat_saved: 'Saved Channels',
-  dash_stat_live: 'Live Right Now',
-  dash_stat_alerts: 'New Alerts',
-  dash_stat_growth: 'Avg. Weekly Growth',
-  dash_stat_saved_sub: '+2 this week',
-  dash_stat_live_sub: 'of your channels',
-  dash_stat_alerts_sub: 'since yesterday',
-  dash_stat_growth_sub: 'across saved channels',
-  dash_browse_more: 'Browse more →',
-  dash_col_channel: 'Channel',
-  dash_col_category: 'Category',
-  dash_col_subscribers: 'Subscribers',
-  dash_col_growth: 'Growth',
-  dash_col_latest: 'Latest Video',
-  dash_col_subs: 'subs',
-  dash_col_7d: '7d',
-  dash_col_views: 'views',
-  dash_no_saved: 'No saved channels yet',
-  dash_browse_rankings_link: 'Browse Channel Rankings →',
-  dash_clear_all: 'Clear all',
-  dash_no_searches: 'No recent searches',
-  dash_results: 'results',
-  dash_no_alerts: 'No alerts right now',
-  dash_new_badge: 'new',
-  dash_recommended: 'Recommended for You',
-  dash_based_on: 'Based on your saved channels',
-  dash_subscribers: 'subscribers',
-  dash_monthly_growth: 'monthly growth',
-  dash_save_channel: 'Save Channel',
-  dash_saved_btn: 'Saved',
-  dash_quick_rankings: 'Channel Rankings',
-  dash_quick_rankings_desc: 'Explore top channels worldwide by subscribers and growth.',
-  dash_quick_video: 'Video Rankings',
-  dash_quick_video_desc: 'Discover trending videos across all categories.',
-  dash_quick_search: 'Search',
-  dash_quick_search_desc: 'Find any channel or video with advanced filters.',
-  dash_my_dashboard: 'My Dashboard',
-  dash_channel_rankings: 'Channel Rankings',
-  dash_video_rankings: 'Video Rankings',
-  dash_home: 'Home',
-  dash_saved_channels_nav: 'Saved Channels',
-  dash_pro_member: 'Pro Member',
-  dash_sign_out: 'Sign out',
-  dash_search_placeholder: 'Search channels, videos...',
-  dash_you_have: 'You have',
-  dash_and: 'and',
-  dash_ai_studio: 'AI Studio',
-  dash_comment_manager: 'Comment Manager',
-  dash_video_editor: 'Video Editor',
-  dash_chrome_extension: 'Chrome Extension',
-  dash_revenue_calculator: 'Revenue Calculator',
-
-  // Home page sections
+  search_browse_all: 'Browse all channels and videos →',
+  home_rising_channels: 'Rising Channels',
+  home_views_vs_subs: 'Views vs Subs',
+  home_top_views: 'Top Views',
+  home_est_revenue: 'Est. Revenue',
+  home_total_views_top: 'Total Views Top',
+  home_shorts_1m: 'Shorts 1M',
+  home_longform_3m: 'Longform 3M',
   home_popular_channels: 'Popular Channels',
   home_by_subs: 'By Subscribers',
   home_by_views: 'By Views',
-  home_view_all: 'View All →',
-  home_viral_score_order: 'By Viral Score',
-  home_shorts_entermusic: '🎵 Entertainment·Music',
-  home_shorts_edtech: '📚 Education·Tech',
+  home_view_all: 'View All',
+  home_viral_100: 'Viral ×100',
+  home_viral_30: 'Viral ×30',
+  home_viral_10: 'Viral ×10',
+  home_viral_score_order: 'Sorted by viral score',
   home_trending_live: 'Trending Live',
-  home_total_views_top: 'Total Views TOP',
-  home_shorts_1m: 'Shorts 1mo',
-  home_longform_3m: 'Longform 3mo',
-  home_rising_channels: '🚀 Viral Videos',
-  home_views_vs_subs: 'Last 30 days · 100× subs',
-  home_top_views: 'Top Views',
-  home_est_revenue: 'Est. revenue',
-  home_viral_100: '×100+ Viral',
-  home_viral_30: '×30+ Rising',
-  home_viral_10: '×10+ Growing',
-
-  // Categories
   cat_all: 'All',
   cat_entertainment: 'Entertainment',
   cat_gaming: 'Gaming',
@@ -246,23 +153,24 @@ const translations = {
   cat_sports: 'Sports',
   cat_science: 'Science',
   cat_psychology: 'Psychology',
-  cat_selfdev: 'Self-Dev',
+  cat_selfdev: 'Self Dev',
   cat_stories: 'Stories',
   cat_other: 'Other',
-
-  // Time strings
-  time_today: 'Today',
-  time_days_ago: 'd ago',
-  time_weeks_ago: 'w ago',
-
-  // Search banner
-  search_channel_placeholder: 'Search by channel name...',
-  search_btn: 'Search',
-  search_loading: 'Searching...',
-  search_recent_label: 'Recent',
-
-  // Live creators
-  live_analyzing: 'Analyzing creators...',
+  trending_count: 'videos',
+  trending_no_data: 'No trending data.',
+  trending_refresh: 'Refresh',
+  time_weeks_ago: 'weeks ago',
+  time_days_ago: 'days ago',
+  time_hours_ago: 'hours ago',
+  time_minutes_ago: 'minutes ago',
+  time_just_now: 'just now',
+  rising_title: 'Rising',
+  rising_subtitle: 'Sorted by views per hour',
+  rising_country_all: '🌍 All',
+  rising_type_all: 'All',
+  rising_type_long: '🎬 Longform',
+  rising_type_shorts: '⚡ Shorts',
+  rising_no_data: 'No rising videos. Check back soon.',
+  rising_refresh: 'Refresh',
 };
-
 export default translations;

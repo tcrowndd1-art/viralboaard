@@ -14,22 +14,23 @@ interface GlobalSidebarProps {
   userInitial?: string;
 }
 
-/* ── Primary 7-item nav (spec) ── */
+/* â”€â”€ Primary 7-item nav (spec) â”€â”€ */
 const NAV_ITEMS = [
-  { href: '/',                   icon: 'ri-home-4-line',        label: 'Home',            exact: true  },
-  { href: '/video-rankings',     icon: 'ri-video-line',         label: 'Video Rankings',  exact: false },
-  { href: '/rankings',           icon: 'ri-bar-chart-line',     label: 'Channel Rankings', exact: false },
-  { href: '/search',             icon: 'ri-search-line',        label: 'Search',          exact: false },
-  { href: '/ai-studio',          icon: 'ri-film-ai-line',       label: 'AI Studio',       exact: false },
-  { href: '/video-editor',       icon: 'ri-scissors-cut-line',  label: 'Video Editor',    exact: false },
-  // { href: '/revenue-calculator', icon: 'ri-calculator-line', label: 'Revenue Calc', exact: false },
+  { href: '/',                   icon: 'ri-home-4-line',          labelKey: 'nav_home',             exact: true  },
+  { href: '/video-rankings',     icon: 'ri-video-line',           labelKey: 'nav_video_rankings',   exact: false },
+  { href: '/rising',             icon: 'ri-rocket-line',          labelKey: 'nav_rising',           exact: false },
+  { href: '/creator-insights',   icon: 'ri-lightbulb-flash-line', labelKey: 'nav_creator_insights', exact: false },
+  { href: '/rankings',           icon: 'ri-bar-chart-line',       labelKey: 'nav_channel_rankings', exact: false },
+  { href: '/search',             icon: 'ri-search-line',          labelKey: 'nav_search',           exact: false },
+  { href: '/ai-studio',          icon: 'ri-film-ai-line',         labelKey: 'nav_ai_studio',        exact: false },
+  { href: '/video-editor',       icon: 'ri-scissors-cut-line',    labelKey: 'nav_video_editor',     exact: false },
 ];
 
-/* ── Extra items below divider ── */
+/* â”€â”€ Extra items below divider â”€â”€ */
 const EXTRA_ITEMS = [
-  { href: '/dashboard',        icon: 'ri-dashboard-line',     label: 'My Dashboard',    exact: true  },
-  { href: '/comment-manager',  icon: 'ri-chat-settings-line', label: 'Comment Manager', exact: false },
-  { href: '/chrome-extension', icon: 'ri-chrome-line',        label: 'Chrome Extension',exact: false },
+  { href: '/dashboard',        icon: 'ri-dashboard-line',     labelKey: 'nav_my_dashboard',    exact: true  },
+  { href: '/comment-manager',  icon: 'ri-chat-settings-line', labelKey: 'nav_comment_manager', exact: false },
+  { href: '/chrome-extension', icon: 'ri-chrome-line',        labelKey: 'nav_chrome_extension',exact: false },
 ];
 
 const GlobalSidebar = ({
@@ -49,7 +50,7 @@ const GlobalSidebar = ({
   const isActive = (href: string, exact: boolean) =>
     exact ? path === href : path.startsWith(href);
 
-  const NavLink = ({ href, icon, label, exact }: typeof NAV_ITEMS[0]) => {
+  const NavLink = ({ href, icon, labelKey, exact }: typeof NAV_ITEMS[0]) => {
     const active = isActive(href, exact);
     return (
       <li>
@@ -70,14 +71,14 @@ const GlobalSidebar = ({
             <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-5 bg-red-500 dark:bg-red-400 rounded-full -ml-2"></span>
           )}
 
-          {/* Icon — fixed 20px, never shifts */}
+          {/* Icon â€” fixed 20px, never shifts */}
           <span className={`w-5 h-5 flex items-center justify-center flex-shrink-0 ${
             active ? 'text-red-500 dark:text-red-400' : 'text-gray-400 dark:text-white/40'
           }`}>
             <i className={`${icon} text-[15px]`}></i>
           </span>
 
-          <span className="truncate flex-1">{label}</span>
+          <span className="truncate flex-1">{t(labelKey)}</span>
 
           {/* Active dot */}
           {active && (
@@ -98,7 +99,7 @@ const GlobalSidebar = ({
         />
       )}
 
-      {/* ── Sidebar nav — starts at top-12 (below global header) ── */}
+      {/* â”€â”€ Sidebar nav â€” starts at top-12 (below global header) â”€â”€ */}
       <nav
         className={`
           sidebar-nav
@@ -110,7 +111,7 @@ const GlobalSidebar = ({
           ${mobileOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
         `}
       >
-        {/* ── User info (dashboard context) ── */}
+        {/* â”€â”€ User info (dashboard context) â”€â”€ */}
         {showUserInfo && (
           <div className="px-4 py-3.5 border-b border-gray-200 dark:border-dark-border flex-shrink-0">
             <div className="flex items-center gap-3">
@@ -125,7 +126,7 @@ const GlobalSidebar = ({
           </div>
         )}
 
-        {/* ── Scrollable nav area (no logo here — logo is in TopHeader) ── */}
+        {/* â”€â”€ Scrollable nav area (no logo here â€” logo is in TopHeader) â”€â”€ */}
         <div className="flex-1 overflow-y-auto sidebar-scroll">
 
           {/* Primary nav */}
@@ -199,12 +200,12 @@ const GlobalSidebar = ({
           {/* Saved videos */}
           <div className="px-4 pt-3 pb-2 border-t border-gray-200 dark:border-dark-border mt-1">
             <p className="text-[10px] font-bold text-gray-400 dark:text-white/30 uppercase tracking-widest mb-2 px-1">
-              즐겨찾기 영상
+              ì¦ê²¨ì°¾ê¸° ì˜ìƒ
             </p>
             {savedVideosList.length === 0 ? (
               <div className="text-center py-3">
                 <i className="ri-bookmark-line text-xl text-gray-300 dark:text-white/20 w-6 h-6 flex items-center justify-center mx-auto mb-1"></i>
-                <p className="text-xs text-gray-400 dark:text-white/30">저장한 영상이 없습니다</p>
+                <p className="text-xs text-gray-400 dark:text-white/30">ì €ìž¥í•œ ì˜ìƒì´ ì—†ìŠµë‹ˆë‹¤</p>
               </div>
             ) : (
               savedVideosList.slice(0, 4).map((v) => (
@@ -245,7 +246,7 @@ const GlobalSidebar = ({
               <a href="#" className="text-xs text-gray-400 dark:text-white/30 hover:text-gray-600 dark:hover:text-white/60 cursor-pointer transition-colors">{t('sidebar_privacy')}</a>
               <a href="#" className="text-xs text-gray-400 dark:text-white/30 hover:text-gray-600 dark:hover:text-white/60 cursor-pointer transition-colors">{t('sidebar_about')}</a>
             </div>
-            <p className="text-xs text-gray-400 dark:text-white/20">© 2026 DIFF., Inc.</p>
+            <p className="text-xs text-gray-400 dark:text-white/20">Â© 2026 DIFF., Inc.</p>
           </div>
         </div>
       </nav>

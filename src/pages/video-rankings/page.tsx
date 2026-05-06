@@ -937,8 +937,13 @@ const VideoRankingsPage = () => {
                           <span className="text-sm text-gray-800 dark:text-white/80 font-mono">{formatViews(video.views)}</span>
                           {video.channelSubscribers > 0 && (() => {
                             const ratio = video.views / video.channelSubscribers;
-                            const text = ratio>=100?`×${Math.round(ratio)}`:ratio>=10?`×${ratio.toFixed(1)}`:`×${ratio.toFixed(2)}`;
-                            const cls = ratio>=100?'bg-amber-400 text-black':ratio>=30?'bg-green-400/90 text-black':ratio>=10?'bg-sky-400/90 text-black':'bg-gray-100 dark:bg-white/10 text-gray-500 dark:text-white/50';
+                            if (ratio < 20) return null;
+                            const text = ratio >= 100 ? `${Math.round(ratio)}x` : ratio >= 50 ? '50x+' : '20x+';
+                            const cls = ratio >= 100
+                              ? 'bg-red-100 dark:bg-red-500/20 text-red-600 dark:text-red-400'
+                              : ratio >= 50
+                              ? 'bg-orange-100 dark:bg-orange-500/20 text-orange-600 dark:text-orange-400'
+                              : 'bg-yellow-100 dark:bg-yellow-500/20 text-yellow-600 dark:text-yellow-400';
                             return <span className={`ml-1.5 text-[9px] font-black px-1.5 py-0.5 rounded leading-none ${cls}`}>{text}</span>;
                           })()}
                         </td>
