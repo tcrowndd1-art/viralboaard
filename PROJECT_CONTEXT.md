@@ -74,3 +74,8 @@ video_id, title, channel, category, country, is_shorts, current_views, previous_
 ### 작업 후 검증 필수
 1. 파일 저장 후 → 브라우저 새로고침 → 스크린샷
 2. 깨짐 확인되면 즉시 롤백, 다음 작업 X
+
+## 데일리 인계 규칙
+- 작업 종료 시 docs/daily/DAILY-YYYY-MM-DD.md 작성
+- 새 세션 시작 시 가장 최근 DAILY 1개만 첨부 (다른 파일 첨부 금지)
+- 자동 생성: powershell ./scripts/daily-handoff.ps1
