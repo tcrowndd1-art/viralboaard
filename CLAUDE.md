@@ -1,4 +1,5 @@
 [트리거] "디자인/UI/화면/복원/되돌려" → "어느 URL?" 먼저 질문. 조사 금지.
+[트리거] BACKLOG 항목 사용자 안내·수동 작업 지시 전 → .env/실제 상태 사실 확인 필수 (사용자 시간 낭비 방지) [2026-05-07]
 [컨텍스트] 신규 기능 작업 시 → docs/analysis/ 최신 플랜 + docs/BACKLOG.md 우선 확인
 [워크플로우] 플랜/구현 → .claude/workflows/adversarial-review.md (Gemini 교차검수 포함)
 
