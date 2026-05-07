@@ -6,15 +6,7 @@ import { RankingVideoItem, ViralVideoItem } from '@/services/youtube';
 import { viralMockData } from '@/mocks/viralData';
 import { supabase } from '@/services/supabase';
 import { CountryPicker, loadCountry } from '@/components/CountryModal';
-
-const DB_CAT_MAP: Record<string, string> = {
-  entertainment: 'Entertainment',
-  news_politics: 'News',
-  science_tech:  'Science',
-  howto_style:   'Self-Dev',
-  people_blogs:  'Stories',
-  reference:     'Other',
-};
+import { DB_CAT_MAP } from '@/utils/categoryMap';
 import TopHeader from '@/pages/home/components/TopHeader';
 import GlobalSidebar from '@/components/feature/GlobalSidebar';
 import HoverPopup from '@/components/feature/HoverPopup';

@@ -16,6 +16,8 @@ import { cacheGet, cacheSet, addSearchHistory } from '@/services/cache';
 import { viralMockData } from '@/mocks/viralData';
 import { supabase } from '@/services/supabase';
 import { AdStrip } from './components/AdBillboard';
+import { CAT_MAP, DB_CAT_MAP, CATS, normalizeCategory } from '@/utils/categoryMap';
+import type { Cat } from '@/utils/categoryMap';
 
 type PlayHandler = (videoId: string, isShorts: boolean) => void;
 const VideoPlayContext = createContext<PlayHandler | null>(null);
@@ -80,35 +82,6 @@ const ChannelAvatar = ({ src, name }: { src: string; name: string }) => {
       onError={() => setFailed(true)} />
   );
 };
-
-/* ── Category tabs — English keys internally ── */
-const CATS = ['All', 'Entertainment', 'Gaming', 'Music', 'Education', 'Health', 'Sports', 'Science', 'Psychology', 'Self-Dev', 'Stories', 'Other'] as const;
-type Cat = typeof CATS[number];
-
-const CAT_MAP: Record<Cat, string[]> = {
-  'All':           [],
-  'Entertainment': ['Entertainment', 'Comedy', 'Kids'],
-  'Gaming':        ['Gaming'],
-  'Music':         ['Music'],
-  'Education':     ['Education', 'Technology'],
-  'Health':        ['Health', 'Fitness'],
-  'Sports':        ['Sports'],
-  'Science':       ['Science'],
-  'Psychology':    ['Psychology'],
-  'Self-Dev':      ['Self-Dev', 'Self-help', 'Motivation'],
-  'Stories':       ['Stories', 'News'],
-  'Other':         ['Other', 'Comedy', 'News'],
-};
-
-const DB_CAT_MAP: Record<string, string> = {
-  entertainment: 'Entertainment',
-  news_politics: 'News',
-  science_tech:  'Science',
-  howto_style:   'Self-Dev',
-  people_blogs:  'Stories',
-  reference:     'Other',
-};
-const normalizeCategory = (c: string): string => DB_CAT_MAP[c] ?? c;
 
 /* ── Channel rank history (daily snapshot) ── */
 const CH_RANK_HIST_KEY = 'vb_ch_rank_hist';
@@ -1050,13 +1023,10 @@ const HomePage = () => {
     'Entertainment': t('cat_entertainment'),
     'Gaming':        t('cat_gaming'),
     'Music':         t('cat_music'),
-    'Education':     t('cat_education'),
-    'Health':        t('cat_health'),
     'Sports':        t('cat_sports'),
     'Science':       t('cat_science'),
     'Psychology':    t('cat_psychology'),
     'Self-Dev':      t('cat_selfdev'),
-    'Stories':       t('cat_stories'),
     'Other':         t('cat_other'),
   };
 

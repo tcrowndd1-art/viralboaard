@@ -11,15 +11,7 @@ import Pagination from './components/Pagination';
 import { useSavedChannels } from '@/hooks/useSavedChannels';
 import { supabase } from '@/services/supabase';
 import { CountryPicker, loadCountry } from '@/components/CountryModal';
-
-const DB_CAT_MAP: Record<string, string> = {
-  entertainment: 'Entertainment',
-  news_politics: 'News',
-  science_tech:  'Science',
-  howto_style:   'Self-Dev',
-  people_blogs:  'Stories',
-  reference:     'Other',
-};
+import { DB_CAT_MAP } from '@/utils/categoryMap';
 
 async function fetchChannelRankingsSupabase(regionCode: string, periodName: string): Promise<RankingChannelItem[]> {
   const targetCountry = regionCode === 'ALL' ? 'KR' : regionCode;
