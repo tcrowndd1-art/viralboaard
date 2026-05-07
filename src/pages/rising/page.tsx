@@ -164,7 +164,7 @@ export default function RisingPage() {
 
           {/* 카드 그리드 */}
           {loading ? (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               {Array.from({ length: 9 }).map((_, i) => (
                 <div key={i} className="rounded-xl bg-gray-100 dark:bg-gray-800 animate-pulse h-48" />
               ))}
@@ -175,7 +175,7 @@ export default function RisingPage() {
               <p className="text-gray-500 text-sm">급상승 영상이 없어요. 잠시 후 다시 확인해주세요.</p>
             </div>
           ) : (
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               {videos.map((v, idx) => (
                 <div
                   key={`${v.video_id}-${v.country}`}
@@ -203,7 +203,7 @@ export default function RisingPage() {
                     )}
                     {/* Shorts 뱃지 */}
                     {v.is_shorts && (
-                      <div className="absolute top-2 right-2 bg-red-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded">
+                      <div className="absolute top-2 right-2 bg-red-500 text-white text-xs md:text-[10px] font-bold px-1.5 py-0.5 rounded">
                         Shorts
                       </div>
                     )}
@@ -215,16 +215,16 @@ export default function RisingPage() {
 
                   {/* 정보 */}
                   <div className="p-3">
-                    <p className="text-sm font-semibold text-gray-900 dark:text-white line-clamp-2 mb-1">{v.title}</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">{v.channel}</p>
+                    <p className="text-sm font-semibold text-gray-900 dark:text-white line-clamp-3 mb-1">{v.title}</p>
+                    <p className="text-sm md:text-xs text-gray-500 dark:text-gray-400 mb-2 font-medium md:font-normal">{v.channel}</p>
                     <div className="flex items-center justify-between text-xs text-gray-400">
                       <span>👁 {fmtViews(v.current_views)}</span>
                       <span className="text-emerald-500 font-semibold">+{fmtViews(v.view_delta)}</span>
                       <span>{timeAgo(v.fetched_at)}</span>
                     </div>
                     <div className="mt-1.5 flex items-center gap-1.5">
-                      <span className="text-[10px] bg-gray-100 dark:bg-gray-800 text-gray-500 px-1.5 py-0.5 rounded">{v.category}</span>
-                      <span className="text-[10px] bg-gray-100 dark:bg-gray-800 text-gray-500 px-1.5 py-0.5 rounded">{v.country}</span>
+                      <span className="text-xs md:text-[10px] bg-gray-100 dark:bg-gray-800 text-gray-500 px-1.5 py-0.5 rounded">{v.category}</span>
+                      <span className="text-xs md:text-[10px] bg-gray-100 dark:bg-gray-800 text-gray-500 px-1.5 py-0.5 rounded">{v.country}</span>
                     </div>
                   </div>
                 </div>
