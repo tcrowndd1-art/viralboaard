@@ -19,6 +19,12 @@
 
 방지: 작업 제안 → BACKLOG 인용 (해당 줄 번호 + 상태) → 사용자 컨펌
 
+## rejected-patterns 동기화
+- 마스터: c:\Ai_Wiki\.claude\learnings\rejected-patterns.md
+- 복사본: viralboard/.claude/learnings/rejected-patterns.md
+- 신규 패턴 등재 시: 마스터에 먼저, 그 다음 복사본 업데이트
+- 마스터 변경 시: 1주일 내 복사본 동기화 (last_synced 갱신)
+
 ## 자동 검수 워크플로우 (Self-Review Loop)
 
 ### 트리거 (정정)
