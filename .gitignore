@@ -23,3 +23,15 @@ Thumbs.db
 npm-debug.log*
 
 .vercel
+
+# Python
+__pycache__/
+*.pyc
+*.bak
+
+# Supabase CLI temp
+supabase/.temp/
+
+# Obsidian (workspace state only, keep plugin configs)
+.obsidian/workspace*
+.obsidian/cache/
