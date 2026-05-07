@@ -1,4 +1,6 @@
 [트리거] "디자인/UI/화면/복원/되돌려" → "어느 URL?" 먼저 질문. 조사 금지.
+[컨텍스트] 신규 기능 작업 시 → docs/analysis/ 최신 플랜 + docs/BACKLOG.md 우선 확인
+[워크플로우] 플랜/구현 → .claude/workflows/adversarial-review.md (Gemini 교차검수 포함)
 
 # ViralBoard Project Execution History & Error Log
 ## [Anti-Pattern: The 'False Completion' Loop]
