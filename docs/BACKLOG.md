@@ -7,16 +7,16 @@
 
 ## 🔴 HIGH — 즉시 필요
 
-- [ ] [상] GitHub Secrets 5개 등록 — YOUTUBE_API_KEY_1~3, VITE_SUPABASE_URL, SUPABASE_SERVICE_KEY (출처: 2026-04-27-pre-phase1-audit)
-- [ ] [상] supabase functions deploy search-channel — b841dbd 정렬 수정 반영 안 됨 (출처: 2026-04-27-pre-phase1-audit)
-- [ ] [상] Gemini CLI shim 복구 — npm install -g @google/gemini-cli 재실행 (shim 파일 temp 이름으로 중단됨)
+- [x] [상] GitHub Secrets 등록 — YOUTUBE_API_KEY_1~7, VITE_SUPABASE_URL, SUPABASE_SERVICE_KEY 모두 .env 보유 + GitHub Actions 등록 사용자 확인됨 (2026-05-07)
+- [x] [상] supabase functions deploy search-channel — b841dbd 정렬 수정 반영 (2026-05-07 배포 완료, project icbomjwcateeyjgoujjq)
+- [x] [상] Gemini CLI shim 복구 — npm install -g @google/gemini-cli 재실행 (2026-05-07 완료, gemini 0.41.2)
 
 ---
 
 ## 🟡 MEDIUM — 다음 세션
 
 - [ ] [중] - Topic 채널 필터 — fetch_phase1.py 수집 시 또는 home/page.tsx 표시 시 필터링 (출처: 2026-04-27-pre-phase1-audit)
-- [ ] [중] GitHub Actions 알림 — 성공/실패 시 텔레그램 알림 step 추가 (출처: 2026-04-27-pre-phase1-audit)
+- [ ] [중] GitHub Actions 알림 — 성공/실패 시 텔레그램 알림 step 추가 (자료 OK: TELEGRAM_BOT_TOKEN/CHAT_ID .env 보유. workflow yaml 추가만 필요) (출처: 2026-04-27-pre-phase1-audit)
 - [ ] [중] viralScore DB 저장 — 런타임 계산 대신 수집 시 저장 (쿼리 성능 개선)
 - [ ] [중] rate limit 구현 — YouTube API 403 시 key rotation + sleep
 - [ ] [중] git remote URL 오타 수정 — viralboaard → viralboard (현재: tcrowndd1-art/viralboaard.git)
