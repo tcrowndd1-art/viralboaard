@@ -3,6 +3,68 @@
 [컨텍스트] 신규 기능 작업 시 → docs/analysis/ 최신 플랜 + docs/BACKLOG.md 우선 확인
 [워크플로우] 플랜/구현 → .claude/workflows/adversarial-review.md (Gemini 교차검수 포함)
 
+## 절대 규칙 — 작업 제안 전 필수
+사용자에게 "다음 작업 뭐할까요?" 묻기 전 반드시:
+1. docs/BACKLOG.md 전체 읽기
+2. 해당 항목 status 확인:
+   - [ ] = open (아직 해야 함)
+   - [x] = closed (이미 완료)
+3. closed 항목을 open처럼 제안 시 = 시스템 위반
+4. 불확실하면 사용자에게 "BACKLOG status 확인 먼저 할까요?" 질문
+
+위반 사례 (2026-05-07 발생):
+- AI가 "GitHub Secrets 5개 등록" 제안
+- 실제로는 .env에 7개 키 이미 존재 + Secrets 일부 처리됨
+- BACKLOG 미확인이 원인
+
+방지: 작업 제안 → BACKLOG 인용 (해당 줄 번호 + 상태) → 사용자 컨펌
+
+## 자동 검수 워크플로우 (Self-Review Loop)
+
+### 트리거 (정정)
+"커밋 컨펌 직전"에 자동 발동 (편집 1번마다 아님).
+- 같은 파일 여러 번 수정 = 1번만 호출
+- 사용자에게 "커밋할까요?" 묻기 직전 자동 실행
+
+### 검수 항목 (3-Tier)
+
+**Tier 1 — 보편 체크 (모든 src/, backend/scripts/ 제외):**
+- 빈 catch 블록 (`catch {}` 또는 `catch (e) {}`)
+- VITE_ 접두사로 secret 노출 (VITE_*_KEY, VITE_*_SECRET, VITE_*_TOKEN)
+- 옵셔널 체이닝(?.) 누락 (data 접근 시)
+
+**Tier 2 — 페이지 체크 (src/pages/**/*.tsx 수정 시):**
+- dark:bg-dark-base 적용 여부
+- max-w-7xl 적용 여부
+
+**Tier 3 — 페이지별 특화 (해당 파일 수정 시만):**
+- src/pages/rising/page.tsx → lg:ml-52 사이드바 오프셋
+
+### 명령어 패턴
+gemini -p "다음 파일 검수: [파일경로]
+Tier 1: 빈 catch, VITE_ secret, 옵셔널 체이닝 누락
+[Tier 2 적용 시: dark:bg-dark-base, max-w-7xl]
+[Tier 3 적용 시: lg:ml-52]
+결과 200자 이내. ✅ 통과 또는 ❌ [문제]"
+
+### 응답 처리
+- ✅ 통과 → 사용자에게 "커밋 OK?" 단답 질문
+- ❌ 실패 → 자동 재수정 max 2회
+  - 1차 재수정 → 재검수
+  - 2차 재수정 → 재검수
+  - 3차 실패 → 사용자 보고 + 작업 중단
+
+### 절대 금지
+- 무한 루프 (max retry 2 강제)
+- gemini 응답 200자 초과 시 무시
+- 사용자 컨펌 없이 자동 커밋
+- 편집 1번마다 호출 (작업 단위 마감 시만)
+
+### 적용 제외
+- backend/scripts/ (cron 작업 영향)
+- docs/ (마크다운, 검수 불필요)
+- *.test.tsx, *.spec.ts (테스트 코드)
+
 # ViralBoard Project Execution History & Error Log
 ## [Anti-Pattern: The 'False Completion' Loop]
 

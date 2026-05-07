@@ -166,7 +166,7 @@ export default function RisingPage() {
           {loading ? (
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
               {Array.from({ length: 9 }).map((_, i) => (
-                <div key={i} className="rounded-xl bg-gray-100 dark:bg-gray-800 animate-pulse h-48" />
+                <div key={i} className="rounded-xl bg-gray-100 dark:bg-gray-800 animate-pulse h-80 md:h-48" />
               ))}
             </div>
           ) : videos.length === 0 ? (
