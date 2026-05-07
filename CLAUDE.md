@@ -41,7 +41,7 @@
 - src/pages/rising/page.tsx → lg:ml-52 사이드바 오프셋
 
 ### 명령어 패턴
-gemini -p "다음 파일 검수: [파일경로]
+gemini --skip-trust -p "다음 파일 검수: [파일경로]
 Tier 1: 빈 catch, VITE_ secret, 옵셔널 체이닝 누락
 [Tier 2 적용 시: dark:bg-dark-base, max-w-7xl]
 [Tier 3 적용 시: lg:ml-52]
