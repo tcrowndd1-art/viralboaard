@@ -179,13 +179,22 @@ const CreatorInsightsPage = () => {
       setLoading(true);
       setError(null);
       try {
-        const { data: rows, error: err } = await supabase
+        const cat = CATEGORIES.find(c => c.value === category);
+        const dbValues = cat?.dbValues ?? [];
+        const hasCategory = category !== 'all' && dbValues.length > 0;
+
+        const base = supabase
           .from('viral_title_archive')
           .select('video_id,title,channel,views,subscriber_count,viral_ratio,published_at,days_since_published,category,thumbnail_url,is_shorts')
           .eq('country', 'KR')
           .gte('viral_ratio', 5)
-          .order('viral_ratio', { ascending: false })
-          .limit(500);
+          .order('viral_ratio', { ascending: false });
+
+        const { data: rows, error: err } = await (
+          hasCategory
+            ? base.in('category', dbValues).limit(200)
+            : base.limit(500)
+        );
 
         if (err) throw err;
         setData(rows ?? []);
@@ -196,7 +205,7 @@ const CreatorInsightsPage = () => {
       }
     };
     fetchData();
-  }, []);
+  }, [category]);
 
   // Reset modal state when video changes
   useEffect(() => {
