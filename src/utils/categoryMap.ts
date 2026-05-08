@@ -54,8 +54,26 @@ export const CAT_MAP: Record<Cat, string[]> = {
   'Other': ['Other'],
 };
 
-export const normalizeCategory = (c: string | null | undefined): string =>
-  DB_CAT_MAP[c?.toLowerCase() ?? ''] ?? c ?? 'Other';
+export const normalizeCategory = (c: string | null | undefined): string => {
+  const cat = c?.toLowerCase() ?? '';
+  if (DB_CAT_MAP[cat]) return DB_CAT_MAP[cat];
+  if (cat.startsWith('niche_')) return 'Other';
+  return c ?? 'Other';
+};
+
+// 한글 카테고리 라벨 → viral_title_archive DB 카테고리 키
+export const KOR_TO_DB: Record<string, string> = {
+  '먹방': 'people_blogs',
+  '반려동물': 'pets_animals',
+  '음악·댄스': 'music',
+  '게임': 'gaming',
+  '건강': 'howto_style',
+  '요리레시피': 'howto_style',
+  '예능': 'entertainment',
+  '뉴스': 'news_politics',
+  '스포츠': 'sports',
+  '과학': 'science_tech',
+};
 
 export const VISIBLE_CATEGORIES = CATS;
 export const ENABLE_NICHE = false;

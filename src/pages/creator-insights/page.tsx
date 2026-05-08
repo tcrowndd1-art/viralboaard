@@ -24,22 +24,25 @@ interface Comment {
   likeCount: number;
 }
 
+// DB(viral_title_archive) 실제 카테고리: autos_vehicles, film_animation, pets_animals,
+// howto_style, sports, entertainment, science_tech, music, comedy, people_blogs, news_politics
+// 존재하지 않는 키(mukbang, how_to, education, health)는 제거 — 클릭 시 0건 방지
 const CATEGORIES = [
   { value: 'all',        label: '전체',       dbValues: [] as string[] },
-  { value: 'mukbang',    label: '먹방',        dbValues: ['people_blogs', 'mukbang', 'niche_mukbang'] },
+  { value: 'mukbang',    label: '먹방',        dbValues: ['people_blogs'] },
   { value: 'entertain',  label: '예능·드라마', dbValues: ['entertainment'] },
   { value: 'comedy',     label: '개그·유머',   dbValues: ['comedy'] },
   { value: 'pets',       label: '반려동물',    dbValues: ['pets_animals'] },
   { value: 'sports',     label: '야구·축구',   dbValues: ['sports'] },
-  { value: 'finance',    label: '재테크·주식', dbValues: ['news_politics', 'how_to'] },
+  { value: 'finance',    label: '재테크·주식', dbValues: ['news_politics'] },
   { value: 'music',      label: '음악·댄스',   dbValues: ['music'] },
-  { value: 'cooking',    label: '요리레시피',  dbValues: ['how_to', 'howto_style'] },
+  { value: 'cooking',    label: '요리레시피',  dbValues: ['howto_style'] },
   { value: 'beauty',     label: '뷰티·패션',   dbValues: ['howto_style'] },
   { value: 'daily',      label: '육아·일상',   dbValues: ['people_blogs'] },
-  { value: 'eduscience', label: '교육·과학',   dbValues: ['education', 'science_tech'] },
+  { value: 'eduscience', label: '교육·과학',   dbValues: ['science_tech'] },
   { value: 'gaming',     label: '게임',        dbValues: ['gaming'] },
   { value: 'science',    label: '과학',        dbValues: ['science_tech'] },
-  { value: 'health',     label: '건강',        dbValues: ['health'] },
+  { value: 'health',     label: '건강',        dbValues: ['howto_style'] },
 ];
 
 const DB_CATEGORY_LABELS: Record<string, string> = {

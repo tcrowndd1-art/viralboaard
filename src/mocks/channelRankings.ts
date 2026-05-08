@@ -52,7 +52,6 @@ export const categories = [
   'All Categories',
   'Entertainment',
   'Music',
-  'Education',
   'Gaming',
   'Sports',
   'News',

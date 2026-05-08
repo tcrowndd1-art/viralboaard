@@ -1,6 +1,5 @@
 import { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import { videoCategories } from '@/mocks/videoRankings';
 import { countries } from '@/mocks/channelRankings';
 import { RankingVideoItem, ViralVideoItem } from '@/services/youtube';
 import { viralMockData } from '@/mocks/viralData';
@@ -26,11 +25,23 @@ const REGION_MAP: Record<string, string> = {
   ...countries.reduce((acc, c) => ({ ...acc, [c.code]: c.code }), {} as Record<string, string>),
 };
 
+// display name → raw DB category values (reverse of DB_CAT_MAP)
+const CAT_TO_DB: Record<string, string[]> = {
+  Entertainment: ['entertainment', 'comedy', 'film_animation'],
+  Gaming:        ['gaming'],
+  Music:         ['music'],
+  Sports:        ['sports'],
+  Science:       ['science', 'science_tech'],
+  Psychology:    ['psychology'],
+  'Self-Dev':    ['self_dev', 'howto_style', 'self-dev'],
+  Other:         ['news_politics', 'people_blogs', 'reference', 'autos_vehicles', 'pets_animals', 'education', 'health', 'stories', 'other'],
+};
+
 const loadSavedVideos = (): Set<string> => {
   try {
     const raw = localStorage.getItem(SAVED_VIDEOS_KEY);
     if (raw) return new Set(JSON.parse(raw) as string[]);
-  } catch { /* ignore */ }
+  } catch { /* intentional: localStorage */ }
   return new Set();
 };
 
@@ -303,7 +314,7 @@ const VideoRankingsPage = () => {
     });
   }, []);
 
-  const doFetch = useCallback((regionCode: string, periodName: string, periodKey: string) => {
+  const doFetch = useCallback((regionCode: string, periodName: string, periodKey: string, catFilter = 'ALL') => {
     setApiLoading(true);
     setApiError(null);
     setAllVideos([]);
@@ -313,13 +324,20 @@ const VideoRankingsPage = () => {
     const cutoff = new Date(Date.now() - days * 86_400_000).toISOString();
 
     const run = async () => {
-      const { data: current, error } = await supabase
+      let query = supabase
         .from('viralboard_data')
         .select('video_id,title,channel,channel_id,channel_thumbnail_url,subscriber_count,views,published_at,fetched_at,category,country')
         .eq('country', targetCountry)
         .gte('fetched_at', cutoff)
         .order('views', { ascending: false })
-        .limit(50);
+        .limit(200);
+
+      if (catFilter !== 'ALL') {
+        const dbValues = CAT_TO_DB[catFilter] ?? [catFilter.toLowerCase()];
+        query = query.in('category', dbValues);
+      }
+
+      const { data: current, error } = await query;
 
       if (error) throw error;
 
@@ -334,21 +352,21 @@ const VideoRankingsPage = () => {
         .limit(100);
 
       const prevRank = new Map<string, number>();
-      (prev ?? []).forEach((v: any, i: number) => prevRank.set(v.video_id, i + 1));
+      (prev ?? []).forEach((v: any, i: number) => prevRank.set(v?.video_id, i + 1));
 
       const mapped: RankingVideoItem[] = (current ?? []).map((v: any, i: number) => {
-        const pr = prevRank.get(v.video_id);
+        const pr = prevRank.get(v?.video_id);
         return {
           rank: i + 1,
-          videoId: v.video_id,
-          title: v.title ?? '',
-          channelName: v.channel ?? '',
-          channelAvatar: v.channel_thumbnail_url ?? '',
-          channelSubscribers: v.subscriber_count ?? 0,
-          views: v.views ?? 0,
-          uploadDate: v.published_at ?? v.fetched_at ?? '',
-          category: DB_CAT_MAP[v.category] ?? v.category ?? 'Other',
-          country: v.country,
+          videoId: v?.video_id,
+          title: v?.title ?? '',
+          channelName: v?.channel ?? '',
+          channelAvatar: v?.channel_thumbnail_url ?? '',
+          channelSubscribers: v?.subscriber_count ?? 0,
+          views: v?.views ?? 0,
+          uploadDate: v?.published_at ?? v?.fetched_at ?? '',
+          category: DB_CAT_MAP[v?.category] ?? v?.category ?? 'Other',
+          country: v?.country,
           rankChange: pr != null ? pr - (i + 1) : null,
         };
       });
@@ -367,8 +385,8 @@ const VideoRankingsPage = () => {
   useEffect(() => {
     const regionCode = REGION_MAP[country] ?? 'KR';
     const periodKey = period.toLowerCase();
-    doFetch(regionCode, period, periodKey);
-  }, [country, period, doFetch]);
+    doFetch(regionCode, period, periodKey, category);
+  }, [country, period, category, doFetch]);
 
   const [viralIsDemo, setViralIsDemo] = useState(false);
 
@@ -461,7 +479,16 @@ const VideoRankingsPage = () => {
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
   const hoveredVideo = paginated.find(v => v.videoId === hoveredVideoId) ?? null;
 
-  const categoryOptions = videoCategories.map(c => ({ value: c === 'All Categories' ? 'ALL' : c, label: c }));
+  // DB 정규화 표시명 기준 — Technology/News/Education/Kids는 DB 0건이라 제거
+  const categoryOptions = [
+    { value: 'ALL', label: 'All Categories' },
+    { value: 'Entertainment', label: 'Entertainment' },
+    { value: 'Music', label: 'Music' },
+    { value: 'Science', label: 'Science' },
+    { value: 'Gaming', label: 'Gaming' },
+    { value: 'Sports', label: 'Sports' },
+    { value: 'Other', label: 'Other' },
+  ];
   const CountryTrigger = () => (
     <CountryPicker current={country} onSelect={(c) => { setCountry(c); setPage(1); }} variant="bordered" />
   );

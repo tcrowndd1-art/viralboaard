@@ -169,16 +169,12 @@ export const AdStrip = ({ offset = 0 }: { offset?: number }) => {
         </p>
         <p className="text-white/30 text-[10px] truncate mt-0.5">{a.sub}</p>
       </div>
-      <a
-        href={a.url}
-        target="_blank"
-        rel="noopener noreferrer"
+      <span
         className="flex-shrink-0 text-xs font-black px-3 py-1.5 rounded cursor-pointer whitespace-nowrap"
         style={{ background: a.accent, color: '#000' }}
-        onClick={e => e.stopPropagation()}
       >
         {a.cta}
-      </a>
+      </span>
     </div>
   );
 
