@@ -19,6 +19,7 @@ interface RisingVideo {
   views_per_hour: number;
   thumbnail_url: string;
   fetched_at: string;
+  published_at?: string;
 }
 
 const COUNTRIES = [
@@ -37,7 +38,7 @@ const COUNTRIES = [
 
 const TYPES = [
   { value: 'ALL',     label: '전체' },
-  { value: 'LONG',    label: '🎬 롱폼' },
+  { value: 'LONG',    label: '🎬 Video' },
   { value: 'SHORTS',  label: '⚡ Shorts' },
 ];
 
@@ -62,6 +63,17 @@ function timeAgo(iso: string | null | undefined) {
   const m = Math.floor((diff % 3_600_000) / 60_000);
   if (h > 0) return `${h}시간 전`;
   return `${m}분 전`;
+}
+
+function pubTimeAgo(iso: string | null | undefined) {
+  if (!iso) return '';
+  const diff = Date.now() - new Date(iso).getTime();
+  const days = Math.floor(diff / 86_400_000);
+  if (days === 0) return '오늘';
+  if (days < 7) return `${days}일 전`;
+  if (days < 30) return `${Math.floor(days / 7)}주 전`;
+  if (days < 365) return `${Math.floor(days / 30)}개월 전`;
+  return `${Math.floor(days / 365)}년 전`;
 }
 
 export default function RisingPage() {
@@ -134,7 +146,7 @@ export default function RisingPage() {
               <button
                 key={c.code}
                 onClick={() => setCountry(c.code)}
-                className={`whitespace-nowrap text-sm px-3 py-1.5 rounded-full transition-colors ${
+                className={`whitespace-nowrap text-xs font-semibold px-3 py-1 rounded-full transition-colors ${
                   country === c.code
                     ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900'
                     : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
@@ -145,13 +157,13 @@ export default function RisingPage() {
             ))}
           </div>
 
-          {/* 롱폼/Shorts 탭 */}
+          {/* Video/Shorts 탭 */}
           <div className="flex gap-2 mb-6">
             {TYPES.map(tp => (
               <button
                 key={tp.value}
                 onClick={() => setType(tp.value)}
-                className={`text-sm px-3 py-1.5 rounded-full transition-colors ${
+                className={`text-xs font-semibold px-3 py-1 rounded-full transition-colors ${
                   type === tp.value
                     ? 'bg-emerald-500 text-white'
                     : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
@@ -215,16 +227,20 @@ export default function RisingPage() {
 
                   {/* 정보 */}
                   <div className="p-3">
-                    <p className="text-sm font-semibold text-gray-900 dark:text-white line-clamp-3 mb-1">{v.title}</p>
-                    <p className="text-sm md:text-xs text-gray-500 dark:text-gray-400 mb-2 font-medium md:font-normal">{v.channel}</p>
-                    <div className="flex items-center justify-between text-xs text-gray-400">
-                      <span>👁 {fmtViews(v.current_views)}</span>
+                    <p className="text-sm font-semibold text-gray-900 dark:text-white line-clamp-2 mb-1 leading-snug">{v.title}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">{v.channel}</p>
+                    <div className="flex items-center gap-2 text-xs mb-1.5">
+                      <span className="font-bold text-gray-700 dark:text-gray-200">👁 {fmtViews(v.current_views)}</span>
                       <span className="text-emerald-500 font-semibold">+{fmtViews(v.view_delta)}</span>
-                      <span>{timeAgo(v.fetched_at)}</span>
                     </div>
-                    <div className="mt-1.5 flex items-center gap-1.5">
-                      <span className="text-xs md:text-[10px] bg-gray-100 dark:bg-gray-800 text-gray-500 px-1.5 py-0.5 rounded">{v.category}</span>
-                      <span className="text-xs md:text-[10px] bg-gray-100 dark:bg-gray-800 text-gray-500 px-1.5 py-0.5 rounded">{v.country}</span>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      {v.published_at ? (
+                        <span className="text-[10px] bg-gray-100 dark:bg-gray-800 text-gray-500 px-1.5 py-0.5 rounded">📅 {pubTimeAgo(v.published_at)}</span>
+                      ) : (
+                        <span className="text-[10px] bg-gray-100 dark:bg-gray-800 text-gray-500 px-1.5 py-0.5 rounded">{timeAgo(v.fetched_at)}</span>
+                      )}
+                      <span className="text-[10px] bg-gray-100 dark:bg-gray-800 text-gray-500 px-1.5 py-0.5 rounded">{v.category}</span>
+                      <span className="text-[10px] bg-gray-100 dark:bg-gray-800 text-gray-500 px-1.5 py-0.5 rounded">{v.country}</span>
                     </div>
                   </div>
                 </div>

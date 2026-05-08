@@ -2,6 +2,8 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import { supabase } from '@/services/supabase';
 import TopHeader from '@/pages/home/components/TopHeader';
 import GlobalSidebar from '@/components/feature/GlobalSidebar';
+import { fetchYouTubeComments } from '@/utils/ytComments';
+import type { Comment } from '@/utils/ytComments';
 
 interface ViralTitle {
   video_id: string;
@@ -15,13 +17,6 @@ interface ViralTitle {
   category: string;
   thumbnail_url?: string;
   is_shorts?: boolean;
-}
-
-interface Comment {
-  author: string;
-  authorProfileImageUrl: string;
-  text: string;
-  likeCount: number;
 }
 
 // DB(viral_title_archive) 실제 카테고리: autos_vehicles, film_animation, pets_animals,
@@ -105,9 +100,6 @@ const formatRevenue = (views: number) => {
 
 const getThumbnail = (video: ViralTitle) =>
   video.thumbnail_url || `https://i.ytimg.com/vi/${video.video_id}/mqdefault.jpg`;
-
-const stripHtml = (html: string) =>
-  html.replace(/<br\s*\/?>/gi, '\n').replace(/<[^>]*>/g, '');
 
 const ViralBadge = ({ ratio }: { ratio: number }) => {
   if (ratio >= 100) {
@@ -221,30 +213,13 @@ const CreatorInsightsPage = () => {
     setCommentsLoading(true);
     setCommentsError(null);
     try {
-      const key = import.meta.env.VITE_YOUTUBE_API_KEY_1;
-      const res = await fetch(
-        `https://www.googleapis.com/youtube/v3/commentThreads?part=snippet&videoId=${videoId}&maxResults=20&order=relevance&key=${key}`
-      );
-      const json = await res.json();
-      if (!res.ok) {
-        if (json.error?.code === 403 || json.error?.errors?.[0]?.reason === 'commentsDisabled') {
-          setCommentsDisabled(true);
-        } else {
-          setCommentsError('댓글을 불러올 수 없습니다');
-        }
+      const result = await fetchYouTubeComments(videoId);
+      if (!result.ok) {
+        if (result.disabled) setCommentsDisabled(true);
+        else setCommentsError(result.error);
         return;
       }
-      const items: Comment[] = (json.items ?? []).map((item: Record<string, unknown>) => {
-        const s = (item.snippet as Record<string, unknown>)?.topLevelComment as Record<string, unknown>;
-        const sn = s?.snippet as Record<string, unknown> ?? {};
-        return {
-          author: String(sn.authorDisplayName ?? ''),
-          authorProfileImageUrl: String(sn.authorProfileImageUrl ?? ''),
-          text: stripHtml(String(sn.textDisplay ?? '')),
-          likeCount: Number(sn.likeCount ?? 0),
-        };
-      });
-      setComments(items);
+      setComments(result.comments);
     } catch {
       setCommentsError('댓글을 불러올 수 없습니다');
     } finally {
@@ -272,7 +247,7 @@ const CreatorInsightsPage = () => {
     if (category !== 'all') {
       const cat = CATEGORIES.find(c => c.value === category);
       if (cat) {
-        rows = rows.filter(r => cat.dbValues.includes(r.category));
+        rows = rows.filter(r => cat?.dbValues?.includes(r.category));
         if (category === 'finance') {
           rows = rows.filter(r => FINANCE_KEYWORDS.some(kw => r.title?.includes(kw)));
         }
@@ -301,7 +276,7 @@ const CreatorInsightsPage = () => {
       <GlobalSidebar mobileOpen={sidebarOpen} onMobileClose={() => setSidebarOpen(false)} />
 
       <div className="lg:ml-52 pt-12 pb-16 lg:pb-0 flex-1">
-        <div className="px-4 lg:px-6 py-6 space-y-5">
+        <div className="px-4 lg:px-6 py-6 space-y-5 max-w-7xl mx-auto">
 
           {/* Header */}
           <div>
@@ -472,6 +447,12 @@ const CreatorInsightsPage = () => {
                           </p>
                           <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
                             <span className="text-xs text-gray-400 dark:text-white/30">{row.channel}</span>
+                            {row.days_since_published != null && (
+                              <>
+                                <span className="text-xs text-gray-300 dark:text-white/15">·</span>
+                                <span className="text-xs text-gray-400 dark:text-white/30">{row.days_since_published}일 전</span>
+                              </>
+                            )}
                             {row.category && (
                               <>
                                 <span className="text-xs text-gray-300 dark:text-white/15">·</span>
@@ -628,6 +609,9 @@ const CreatorInsightsPage = () => {
                       <div className="bg-green-50 dark:bg-green-900/10 border border-green-200 dark:border-green-500/20 rounded-lg p-3">
                         <p className="text-xs text-green-600 dark:text-green-400 font-semibold mb-1">💰 이 영상 1편 추정 수익</p>
                         <p className="text-lg font-bold text-green-700 dark:text-green-400">{formatRevenue(selectedVideo.views)}</p>
+                        <p className="text-[10px] text-green-500/60 dark:text-green-500/40 mt-1 font-mono">
+                          {formatViews(selectedVideo.views)} 조회 × 45% 수익화율 × CPM $1~$5 ÷ 1,000
+                        </p>
                         <p className="text-xs text-green-500/70 dark:text-green-500/50 mt-0.5">낮은 CPM~높은 CPM 범위 추산</p>
                       </div>
 
