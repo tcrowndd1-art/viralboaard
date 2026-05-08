@@ -1,5 +1,21 @@
 # ViralBoard — Gemini CLI 운영 규칙
 
+## 🔒 절대 금지 - 물리적 차단됨
+- src/, backend/, scripts/ 폴더 쓰기 금지 (sandbox read-only로 차단됨)
+- 자기가 작성한 docs/analysis/ 파일 자가 수정 금지 (사용자 컨펌 필수)
+- "Implementation Plan", "Code Fix" 등 구현 제안은 docs/analysis/ 새 파일에만
+- 사용자 명시 명령 없이 파일 생성/수정 시도 = 룰 위반 + 차단됨
+
+## 위반 시 자동 동작
+1. OS sandbox = 시도 차단
+2. pre-commit hook = 우회 차단
+3. 위반 패턴 #012 등재 = 학습
+
+## 허용 동작
+- 읽기 (ReadFile, SearchText)
+- docs/analysis/YYYY-MM-DD-[주제].md 신규 작성 (사용자 컨펌 후)
+- Shell 명령 (사용자 컨펌 시만)
+
 ## 절대 규칙 — 작업 제안 전 필수
 사용자에게 "다음 작업 뭐할까요?" 묻기 전 반드시:
 1. docs/BACKLOG.md 전체 읽기
