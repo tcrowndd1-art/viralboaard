@@ -40,3 +40,13 @@ jobs:
           path: backend/scripts/fetch_log_*.txt
           if-no-files-found: ignore
           retention-days: 7
+
+      - name: Notify Telegram on failure
+        if: failure()
+        env:
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+        run: |
+          curl -s -X POST "https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage" \
+            -d "chat_id=${TELEGRAM_CHAT_ID}" \
+            -d "text=❌ daily-fetch failed (run ${{ github.run_id }}) — https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
