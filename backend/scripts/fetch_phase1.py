@@ -3,8 +3,9 @@ ViralBoard Phase 1 Fetcher
 - ÃƒÂ­Ã…Â Ã‚Â¸ÃƒÂ«Ã…Â¾Ã¢â€žÂ¢ 1: ÃƒÂ¬Ã‚Â¹Ã‚Â´ÃƒÂ­Ã¢â‚¬Â¦Ã…â€™ÃƒÂªÃ‚Â³Ã‚Â ÃƒÂ«Ã‚Â¦Ã‚Â¬ mostPopular (KR/US/JP/BR, 5ÃƒÂ¬Ã‚Â¢Ã¢â‚¬Â¦)
 - ÃƒÂ­Ã…Â Ã‚Â¸ÃƒÂ«Ã…Â¾Ã¢â€žÂ¢ 2: ÃƒÂ¬Ã‚Â°Ã‚Â¸ÃƒÂªÃ‚Â³Ã‚Â  ÃƒÂ¬Ã‚Â±Ã¢â‚¬Å¾ÃƒÂ«Ã¢â‚¬Å¾Ã‚Â ÃƒÂ¬Ã‚Â¶Ã¢â‚¬ÂÃƒÂ¬Ã‚Â Ã‚Â (5ÃƒÂªÃ‚Â°Ã…â€œ, ÃƒÂªÃ‚ÂµÃ‚Â­ÃƒÂªÃ‚Â°Ã¢â€šÂ¬ ÃƒÂ«Ã‚Â¬Ã‚Â´ÃƒÂªÃ‚Â´Ã¢â€šÂ¬ ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â reference ÃƒÂ­Ã†â€™Ã…â€œÃƒÂªÃ‚Â·Ã‚Â¸)
 """
-import os, sys, re, requests
-from datetime import datetime, date, timezone
+import os, sys, re, json, requests
+from datetime import datetime, date, timezone, timedelta
+from pathlib import Path
 from supabase import create_client
 from dotenv import load_dotenv
 
@@ -35,6 +36,39 @@ SUPABASE_KEY = os.getenv('SUPABASE_SERVICE_KEY')
 if not API_KEYS or not SUPABASE_URL or not SUPABASE_KEY:
     print('[FATAL] ÃƒÂ­Ã¢â€žÂ¢Ã‹Å“ÃƒÂªÃ‚Â²Ã‚Â½ÃƒÂ«Ã‚Â³Ã¢â€šÂ¬ÃƒÂ¬Ã‹â€ Ã‹Å“ ÃƒÂ«Ã‹â€ Ã¢â‚¬Å¾ÃƒÂ«Ã‚ÂÃ‚Â½')
     sys.exit(1)
+
+
+# G2.5: invalid (region, category) skip cache (mostPopular missing combos)
+CACHE_PATH = Path(__file__).parent.parent / "data" / "invalid_combos.json"
+CACHE_TTL_DAYS = 7
+INVALID_REASONS = {
+    'videoChartNotFound', 'videoChartNotFoundForCategory',
+    'unsupportedRegionCode', 'unsupportedVideoCategoryRegion',
+    'forbidden', 'notFound',
+}
+
+def load_invalid_combos():
+    if not CACHE_PATH.exists():
+        return set()
+    try:
+        data = json.loads(CACHE_PATH.read_text(encoding='utf-8'))
+        cutoff = (datetime.now(timezone.utc) - timedelta(days=CACHE_TTL_DAYS)).isoformat()
+        return {(c, ci) for c, ci, ts in data if ts > cutoff}
+    except Exception:
+        return set()
+
+def save_invalid_combos(combos):
+    try:
+        CACHE_PATH.parent.mkdir(parents=True, exist_ok=True)
+        now = datetime.now(timezone.utc).isoformat()
+        data = [[c, ci, now] for c, ci in combos]
+        CACHE_PATH.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding='utf-8')
+    except Exception as e:
+        print(f'[WARN] invalid_combos save failed: {e}')
+
+INVALID_COMBOS = load_invalid_combos()
+print(f'[INFO] invalid_combos cache: {len(INVALID_COMBOS)} entries (TTL {CACHE_TTL_DAYS}d)')
+
 
 CATEGORIES = {
     # ÃƒÂªÃ‚Â¸Ã‚Â°ÃƒÂ¬Ã‚Â¡Ã‚Â´ 12
@@ -93,17 +127,34 @@ def parse_duration(s):
 
 
 def fetch_category(cat_id, country):
-    """videos.list mostPopular ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â 1 unit"""
-    r = requests.get('https://www.googleapis.com/youtube/v3/videos', params={
-        'part': 'snippet,statistics,contentDetails',
-        'chart': 'mostPopular',
-        'regionCode': country,
-        'videoCategoryId': cat_id,
-        'maxResults': PER_CATEGORY,
-        'key': next_key(),
-    }, timeout=30)
-    r.raise_for_status()
-    return r.json().get('items', [])
+    """videos.list mostPopular - 1 unit. G2.5: pre-skip + post-cache invalid combos"""
+    if (country, cat_id) in INVALID_COMBOS:
+        return []
+    try:
+        r = requests.get('https://www.googleapis.com/youtube/v3/videos', params={
+            'part': 'snippet,statistics,contentDetails',
+            'chart': 'mostPopular',
+            'regionCode': country,
+            'videoCategoryId': cat_id,
+            'maxResults': PER_CATEGORY,
+            'key': next_key(),
+        }, timeout=30)
+        r.raise_for_status()
+        return r.json().get('items', [])
+    except requests.HTTPError as e:
+        status = e.response.status_code if e.response is not None else 0
+        reason = 'unknown'
+        if e.response is not None:
+            try:
+                reason = e.response.json()['error']['errors'][0]['reason']
+            except Exception:
+                pass
+        if status in (400, 403, 404) and reason in INVALID_REASONS:
+            INVALID_COMBOS.add((country, cat_id))
+            print(f'    [SKIP-CACHE] {country}/{cat_id}: {status} {reason}')
+            return []
+        msg = f'{status} {reason}'
+        raise requests.HTTPError(msg, response=e.response) from e
 
 
 def fetch_channel_details(channel_ids):
@@ -441,6 +492,8 @@ def main():
         print(f'  {f}')
 
     migrate_to_archive(sb)
+    save_invalid_combos(INVALID_COMBOS)
+    print(f'[INFO] invalid_combos saved: {len(INVALID_COMBOS)} entries')
 
 
 if __name__ == '__main__':
