@@ -289,20 +289,35 @@ def save(supabase, records):
 
 # Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬ Ã¬â€¹Â Ã¬â€žÂ Ã«Ââ€ž Ã­Å Â¸Ã«Å¾â„¢ (24h Ã¬ÂÂ´Ã«â€šÂ´ Ã¬â€¹Â ÃªÂ·Å“ Ã«â€“Â¡Ã¬Æ’Â Ã¬ËœÂÃ¬Æ’Â) Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬Ã¢â€â‚¬
 def fetch_fresh_videos(country, hours=24, max_results=20):
-    """search.list (100u) + videos.list (1u) Ã¢â‚¬â€ Ã­â€¢Å“ ÃªÂµÂ­ÃªÂ°â‚¬Ã«â€¹Â¹ ~101 units"""
-    from datetime import timedelta
+    """search.list (100u) + videos.list (1u) - per country ~101 units. G2.6: cache invalid"""
+    if (country, 'fresh') in INVALID_COMBOS:
+        return []
     published_after = (datetime.now(timezone.utc) - timedelta(hours=hours)).isoformat()
 
-    r = requests.get('https://www.googleapis.com/youtube/v3/search', params={
-        'part': 'snippet',
-        'type': 'video',
-        'order': 'viewCount',
-        'regionCode': country,
-        'publishedAfter': published_after,
-        'maxResults': max_results,
-        'key': next_key(),
-    }, timeout=30)
-    r.raise_for_status()
+    try:
+        r = requests.get('https://www.googleapis.com/youtube/v3/search', params={
+            'part': 'snippet',
+            'type': 'video',
+            'order': 'viewCount',
+            'regionCode': country,
+            'publishedAfter': published_after,
+            'maxResults': max_results,
+            'key': next_key(),
+        }, timeout=30)
+        r.raise_for_status()
+    except requests.HTTPError as e:
+        status = e.response.status_code if e.response is not None else 0
+        reason = 'unknown'
+        if e.response is not None:
+            try:
+                reason = e.response.json()['error']['errors'][0]['reason']
+            except Exception:
+                pass
+        if status in (400, 403, 404) and reason in INVALID_REASONS:
+            INVALID_COMBOS.add((country, 'fresh'))
+            print(f'    [SKIP-CACHE] {country}/fresh: {status} {reason}')
+            return []
+        raise requests.HTTPError(f'{status} {reason}', response=e.response) from e
 
     items = r.json().get('items', [])
     video_ids = [i['id']['videoId'] for i in items if i.get('id', {}).get('videoId')]
@@ -349,7 +364,15 @@ def fetch_fresh_track(supabase):
             failed.append(f'{country}: {mask_secrets(str(e))}')
             print(f'  [FAIL] {country}: {mask_secrets(str(e))}')
 
-    if not quota_exhausted:
+    # G2.6: SECONDARY runs every 6h (hours 0,6,12,18 UTC = 4x/day)
+    current_hour = datetime.now(timezone.utc).hour
+    do_secondary = (current_hour % 6 == 0)
+
+    if not do_secondary:
+        print(f'  [SKIP] SECONDARY this run (hour={current_hour} UTC, runs every 6h)')
+    elif quota_exhausted:
+        print('  [SKIP] PRIORITY quota exhausted - SECONDARY skipped')
+    else:
         for country in SECONDARY_COUNTRIES:
             try:
                 items = fetch_fresh_videos(country, hours=24, max_results=15)
@@ -357,10 +380,10 @@ def fetch_fresh_track(supabase):
                     rec = to_record(item, 'fresh_24h', country, ref=False, style='fresh_track')
                     rec['is_shorts'] = 0 < rec['duration_seconds'] <= 60
                     fresh_records.append(rec)
-                print(f'  [S] {country}: {len(items)}ÃªÂ±Â´')
+                print(f'  [S] {country}: {len(items)}')
             except requests.HTTPError as e:
                 if e.response is not None and e.response.status_code == 403:
-                    print(f'  [QUOTA] {country} Ã¢â‚¬â€ Ã«â€šËœÃ«Â¨Â¸Ã¬Â§â‚¬ SECONDARY Ã¬Â¤â€˜Ã«â€¹Â¨')
+                    print(f'  [QUOTA] {country} - SECONDARY abort')
                     failed.append(f'{country}: QUOTA')
                     break
                 failed.append(f'{country}: {mask_secrets(str(e))}')
@@ -368,8 +391,6 @@ def fetch_fresh_track(supabase):
             except Exception as e:
                 failed.append(f'{country}: {mask_secrets(str(e))}')
                 print(f'  [FAIL] {country}: {mask_secrets(str(e))}')
-    else:
-        print('  [SKIP] PRIORITY quota Ã¬â€ Å’Ã¬Â§â€ž Ã¢â€ â€™ SECONDARY 21ÃªÂ°Å“ÃªÂµÂ­ Ã¬Å Â¤Ã­â€šÂµ')
 
     saved = save(supabase, fresh_records)
     print(f'  [OK] Ã¬â€¹Â Ã¬â€žÂ Ã«Ââ€ž Ã¬Â â‚¬Ã¬Å¾Â¥: {saved}ÃªÂ±Â´ (Ã¬Ë†ËœÃ¬Â§â€˜ {len(fresh_records)}ÃªÂ±Â´, Ã¬â€¹Â¤Ã­Å’Â¨ {len(failed)}ÃªÂ±Â´)')
