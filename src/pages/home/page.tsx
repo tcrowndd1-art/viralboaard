@@ -207,7 +207,9 @@ const VideoCard = ({
       <div className="flex items-start gap-1.5">
         <div className="flex-1 min-w-0 cursor-pointer" onClick={() => playVideo(v.videoId, false)}>
           <p className="text-[12px] text-gray-900 dark:text-white/85 font-semibold line-clamp-2 leading-snug mb-1 group-hover:text-red-500 dark:group-hover:text-red-400 transition-colors">{v.title}</p>
-          <div className="flex items-center gap-1 flex-wrap">
+
+          {/* G4.1 모바일 (<md): inline meta 기존 유지 */}
+          <div className="flex items-center gap-1 flex-wrap md:hidden">
             <span className="text-[10px] text-gray-400 dark:text-white/30 truncate max-w-[120px]">{v.channelName}</span>
             <span className="text-[10px] text-gray-300 dark:text-white/15">·</span>
             <span className="text-[10px] text-gray-400 dark:text-white/30 font-mono inline-flex items-center gap-0.5"><i className="ri-eye-line text-[10px]"></i>{fmtViews(v.views)}</span>
@@ -218,6 +220,21 @@ const VideoCard = ({
             {multi && <span className={`text-[8px] font-black px-1 py-px rounded leading-none ${multi.cls}`}>{multi.text}</span>}
             <span className="text-[10px] text-gray-300 dark:text-white/15">·</span>
             <span className={`text-[10px] ${_vcDaysAgo <= 30 ? 'text-emerald-500 dark:text-emerald-400' : 'text-gray-400 dark:text-white/30'}`}>{ageText}</span>
+          </div>
+
+          {/* G4.1 데스크톱 (md+): 채널 + 우측 2x2 메타 grid (조회수/좋아요/댓글/구독자) */}
+          <div className="hidden md:block">
+            <div className="flex items-center gap-1 mb-1">
+              <span className="text-[10px] text-gray-500 dark:text-white/45 truncate flex-1 min-w-0">{v.channelName}</span>
+              <span className={`text-[10px] flex-shrink-0 ${_vcDaysAgo <= 30 ? 'text-emerald-500 dark:text-emerald-400' : 'text-gray-400 dark:text-white/30'}`}>{ageText}</span>
+              {multi && <span className={`text-[8px] font-black px-1 py-px rounded leading-none flex-shrink-0 ${multi.cls}`}>{multi.text}</span>}
+            </div>
+            <div className="grid grid-cols-2 gap-x-2 gap-y-0.5 border-l-2 border-gray-100 dark:border-white/[0.06] pl-2">
+              <span className="text-[10px] text-gray-500 dark:text-white/45 font-mono inline-flex items-center gap-1"><i className="ri-eye-line text-[11px] text-sky-500"></i>{fmtViews(v.views)}</span>
+              <span className="text-[10px] text-gray-500 dark:text-white/45 font-mono inline-flex items-center gap-1"><i className="ri-thumb-up-line text-[11px] text-rose-500"></i>{fmtViews(v.likes ?? 0)}</span>
+              <span className="text-[10px] text-gray-500 dark:text-white/45 font-mono inline-flex items-center gap-1"><i className="ri-chat-3-line text-[11px] text-emerald-500"></i>{fmtViews(v.comments ?? 0)}</span>
+              <span className="text-[10px] text-gray-500 dark:text-white/45 font-mono inline-flex items-center gap-1"><i className="ri-user-line text-[11px] text-amber-500"></i>{fmtViews(v.subscribers ?? 0)}</span>
+            </div>
           </div>
         </div>
         <button onClick={(e) => { e.stopPropagation(); onToggleSave(v.videoId); }}
@@ -374,9 +391,7 @@ const ShortsSection = ({ data, activeCat, loaded, loading = false, onRefresh }: 
           <span className="text-[9px] text-gray-400 dark:text-white/40 font-mono">{items.length}</span>
         </div>
         {noData ? (
-          <div className="px-4 sm:px-6 py-8 text-center text-[12px] text-gray-400 dark:text-white/40">
-            이 카테고리는 아직 수집된 데이터가 없습니다
-          </div>
+          <EmptyState message="데이터 부족 — 다른 카테고리를 시도해보세요" />
         ) : (
         <>
         {/* Cards — mobile: 2-col, desktop: split 4+4 */}
@@ -495,9 +510,7 @@ const VideoSection = ({
     <section className={`transition-opacity duration-300 ${loading ? 'opacity-60' : 'opacity-100'}`}>
       <SectionHeader icon={icon} iconColor={iconColor} title={title} glowColor={glowColor} badge={badge} />
       {noData ? (
-        <div className="px-4 sm:px-6 py-8 text-center text-[12px] text-gray-400 dark:text-white/40">
-          {emptyMessage ?? '이 카테고리는 아직 수집된 데이터가 없습니다'}
-        </div>
+        <EmptyState message={emptyMessage ?? '데이터 부족 — 다른 카테고리를 시도해보세요'} />
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 px-4 sm:px-6">
           {paged.length === 0
@@ -556,7 +569,9 @@ const TrendingSection = ({ items, loaded, country = 'KR', loading = false, onRef
                 <div className="h-3 bg-gray-100 dark:bg-white/8 rounded w-2/3" />
               </div>
             ))
-          : paged.map(v => <TrendCard key={v.videoId} v={v} />)
+          : loaded && items.length < 4
+            ? <EmptyState message="데이터 부족 — 다른 카테고리를 시도해보세요" />
+            : paged.map(v => <TrendCard key={v.videoId} v={v} />)
         }
       </div>
       {items.length > PER_PAGE && (
@@ -567,6 +582,30 @@ const TrendingSection = ({ items, loaded, country = 'KR', loading = false, onRef
     </section>
   );
 };
+
+/* ─── G3 helpers ─── */
+function viewsPerHour(v: { views: number; uploadDate?: string | null }): number {
+  if (!v.uploadDate) return 0;
+  const ms = Date.now() - new Date(v.uploadDate).getTime();
+  const hours = Math.max(1, ms / 3_600_000);
+  return v.views / hours;
+}
+
+function uniqByChannel<T extends { channelId?: string }>(items: T[]): T[] {
+  const seen = new Set<string>();
+  return items.filter(v => {
+    const id = v.channelId ?? '';
+    if (seen.has(id)) return false;
+    seen.add(id);
+    return true;
+  });
+}
+
+const EmptyState = ({ message }: { message: string }) => (
+  <div className="flex flex-col items-center justify-center py-12 text-zinc-500 dark:text-zinc-400 col-span-full">
+    <p className="text-sm">{message}</p>
+  </div>
+);
 
 /* ═══════════════ MAIN PAGE ═══════════════ */
 const HomePage = () => {
@@ -646,12 +685,15 @@ const HomePage = () => {
     setShortsLoading(true);
     (async () => {
       try {
+        // G3.1+G3.2: longform 90일 / shorts 30일 (shorts는 클라이언트에서 추가 필터)
+        const _ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 3600 * 1000).toISOString();
         const { data, error } = await supabase
           .from('viralboard_data')
           .select('*')
           .eq('country', activeCountry)
+          .gte('published_at', _ninetyDaysAgo)
           .order('views', { ascending: false })
-          .limit(100);
+          .limit(200);
         if (cancelled) return;
         if (error) throw error;
         if (!data || data.length === 0) return;
@@ -700,18 +742,9 @@ const HomePage = () => {
           .order('views', { ascending: false })
           .limit(50);
         if (cancelled) return;
+        // G3.3: fallback re-fetch 제거 — 7일 윈도우 데이터 < 4건이면 EmptyState 노출
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        let _trendSrc: any[] = trendRaw ?? [];
-        if (_trendSrc.length < 4) {
-          const { data: fallback } = await supabase
-            .from('viralboard_data')
-            .select('video_id, title, channel, channel_id, thumbnail_url, views, published_at')
-            .eq('country', activeCountry)
-            .order('views', { ascending: false })
-            .limit(50);
-          if (cancelled) return;
-          _trendSrc = fallback ?? [];
-        }
+        const _trendSrc: any[] = trendRaw ?? [];
         const _nowMs = Date.now();
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const _withVph = _trendSrc.map((v: any) => ({
@@ -724,8 +757,10 @@ const HomePage = () => {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           .sort((a: any, b: any) => b._vph - a._vph)
           .slice(0, 16);
+        // G3 fix: uniqByChannel 적용 (zack de filme 2개 등 중복 제거)
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const trending: TrendingVideoItem[] = _withVph.map((v: any, i: number) => ({
+        const _deduped = uniqByChannel(_withVph.map((v: any) => ({ ...v, channelId: v.channel_id })));
+        const trending: TrendingVideoItem[] = _deduped.map((v: any, i: number) => ({
           rank: i + 1,
           title: v.title,
           score: v._vph >= 10_000
@@ -838,7 +873,7 @@ const HomePage = () => {
           .limit(200);
         if (cancelled) return;
         if (error) throw error;
-        const _publishCutoff = Date.now() - 30 * 24 * 3600 * 1000;
+        const _publishCutoff = Date.now() - 7 * 24 * 3600 * 1000;  // G3.4: 30일 → 7일
         const risingFiltered = (data ?? []).filter((v: any) =>
           (v.subscriber_count ?? 0) > 0 &&
           v.views / v.subscriber_count >= 100 &&
@@ -997,6 +1032,20 @@ const HomePage = () => {
       ? []
       : viralMockData;
   const longformPool = videoPool.filter(v => !v.isShorts);
+
+  // G3+/G3++: shorts pool with 30-day filter, views_per_hour sort, channel diversification
+  const _thirtyDaysAgoMs = Date.now() - 30 * 24 * 3600 * 1000;
+  const shortsPool = uniqByChannel(
+    [...videoPool]
+      .filter(v =>
+        v.isShorts &&
+        v.duration > 0 && v.duration <= 60 &&  // G3 fix: 가로영상 강제 차단
+        (v.country ?? '').toUpperCase() === activeCountry.toUpperCase() &&
+        v.uploadDate && new Date(v.uploadDate).getTime() >= _thirtyDaysAgoMs
+      )
+      .sort((a, b) => viewsPerHour(b) - viewsPerHour(a))
+  );
+
   // risingVideos: dedicated Supabase fetch (no mock fallback) — see useEffect above
   const risingVideos = useMemo(() => {
     const base = activeCat === 'All'
@@ -1012,7 +1061,8 @@ const HomePage = () => {
     }
     return arr;
   }, [risingRaw, activeCat, risingSeed]);
-  const topViewVideos = filterByCat([...longformPool].sort((a, b) => b.views - a.views));
+  // G3++: 채널 다양화 (90일 longform 윈도우는 Effect A 쿼리에서 적용됨)
+  const topViewVideos = filterByCat(uniqByChannel([...longformPool].sort((a, b) => b.views - a.views)));
   const topViewsAll = topViewVideos;
   const chBySubs  = [...popularChannels].sort((a, b) => b.subscribers - a.subscribers);
   const chByViews = [...popularChannels].sort((a, b) => b.totalViews - a.totalViews);
@@ -1238,7 +1288,7 @@ const HomePage = () => {
 
           {/* ── Shorts (category-aware) ── */}
           <ShortsSection
-            data={videoPool.filter(v => v.isShorts && (v.country ?? '').toUpperCase() === activeCountry.toUpperCase())}
+            data={shortsPool}
             activeCat={activeCat}
             loaded={shortsLoaded}
             loading={shortsLoading}

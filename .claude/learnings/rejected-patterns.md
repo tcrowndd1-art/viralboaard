@@ -2,7 +2,7 @@
 source: c:\Ai_Wiki\.claude\learnings\rejected-patterns.md (마스터)
 sync_policy: master → project (단방향)
 project_specific: 마스터에 없는 ViralBoard 특화 패턴만 아래 추가
-last_synced: 2026-05-07
+last_synced: 2026-05-10
 ---
 
 # Rejected Patterns
@@ -106,6 +106,36 @@ last_synced: 2026-05-07
 - 실패 시 플래그 정정 후 재실행 → 통과 후 등재
 - 발견된 플래그 변경사항은 즉시 해당 워크플로우 문서에 반영
 **검증**: `git log --grep="fix.*workflow\|fix.*flag"` → 등재 후 수정 커밋 0건
+
+---
+
+### #013: 자기 보고 자기 검증 (작업 AI = 검증 AI)
+**등재**: 2026-05-10 | BLOCKED | 세션: feature/0905-cycle1
+**위반**: Claude Code가 작업 + 자기 "완료" 보고 → 17일 헛삽질 + cycle1 7시간 같은 패턴 반복 (DLL 가설, quota 200K 추정 등 자체 진단이 모두 어긋남)
+**금지**:
+- 작업한 AI가 동일 작업 검증
+- "테스트 통과 = 사용자 만족" 단정
+- 코드 변경 후 자가 시각 검증 없이 "완료" 선언
+**대체**:
+- 사이클 종료 시 독립 AI 검증 의무 (Gemini CLI Adversarial Review)
+- 사용자 시각 점검 (브라우저/실데이터)
+- 매 사이클 종료 docs/audit/YYYY-MM-DD-cycle[N]-review.md 보고서 생성
+**검증**: 사이클 종료 시 `docs/audit/` 디렉토리에 독립 검증 보고서 존재 (없으면 사이클 미완료)
+
+---
+
+### #014: audit 보고서 미참조 plan 작성 (#013 운영 강화)
+**등재**: 2026-05-10 | BLOCKED | 세션: feature/0905-cycle1 (audit 활성화)
+**위반**: 새 cycle 시작 시 직전 사이클 `docs/audit/` review.md 미읽기 → audit이 휴지가 됨 = #013 위반 누적
+**금지**:
+- cycle plan 작성 시 직전 audit 미인용
+- audit "잔여" / "이월" 항목 무시한 plan 작성
+- audit 결과 모순되는 작업 우선순위
+**대체**:
+- cycle plan Phase 0 = 직전 `docs/audit/` 최신 review.md 자동 인용
+- Plan 첫 줄에 audit URL/path 인용 의무
+- master-tracker.md 업데이트가 매 사이클 종료 의무
+**검증**: cycle plan 첫 줄에 `audited_against: docs/audit/YYYY-MM-DD-cycleN-...md` frontmatter 존재
 
 ---
 
