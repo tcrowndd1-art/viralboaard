@@ -374,9 +374,7 @@ const ShortsSection = ({ data, activeCat, loaded, loading = false, onRefresh }: 
           <span className="text-[9px] text-gray-400 dark:text-white/40 font-mono">{items.length}</span>
         </div>
         {noData ? (
-          <div className="px-4 sm:px-6 py-8 text-center text-[12px] text-gray-400 dark:text-white/40">
-            이 카테고리는 아직 수집된 데이터가 없습니다
-          </div>
+          <EmptyState message="데이터 부족 — 다른 카테고리를 시도해보세요" />
         ) : (
         <>
         {/* Cards — mobile: 2-col, desktop: split 4+4 */}
@@ -495,9 +493,7 @@ const VideoSection = ({
     <section className={`transition-opacity duration-300 ${loading ? 'opacity-60' : 'opacity-100'}`}>
       <SectionHeader icon={icon} iconColor={iconColor} title={title} glowColor={glowColor} badge={badge} />
       {noData ? (
-        <div className="px-4 sm:px-6 py-8 text-center text-[12px] text-gray-400 dark:text-white/40">
-          {emptyMessage ?? '이 카테고리는 아직 수집된 데이터가 없습니다'}
-        </div>
+        <EmptyState message={emptyMessage ?? '데이터 부족 — 다른 카테고리를 시도해보세요'} />
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 px-4 sm:px-6">
           {paged.length === 0
@@ -582,7 +578,6 @@ function uniqByChannel<T extends { channelId?: string }>(items: T[]): T[] {
   const seen = new Set<string>();
   return items.filter(v => {
     const id = v.channelId ?? '';
-    if (!id) return true;
     if (seen.has(id)) return false;
     seen.add(id);
     return true;
@@ -745,8 +740,10 @@ const HomePage = () => {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           .sort((a: any, b: any) => b._vph - a._vph)
           .slice(0, 16);
+        // G3 fix: uniqByChannel 적용 (zack de filme 2개 등 중복 제거)
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const trending: TrendingVideoItem[] = _withVph.map((v: any, i: number) => ({
+        const _deduped = uniqByChannel(_withVph.map((v: any) => ({ ...v, channelId: v.channel_id })));
+        const trending: TrendingVideoItem[] = _deduped.map((v: any, i: number) => ({
           rank: i + 1,
           title: v.title,
           score: v._vph >= 10_000
@@ -1025,6 +1022,7 @@ const HomePage = () => {
     [...videoPool]
       .filter(v =>
         v.isShorts &&
+        v.duration > 0 && v.duration <= 60 &&  // G3 fix: 가로영상 강제 차단
         (v.country ?? '').toUpperCase() === activeCountry.toUpperCase() &&
         v.uploadDate && new Date(v.uploadDate).getTime() >= _thirtyDaysAgoMs
       )

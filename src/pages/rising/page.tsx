@@ -198,8 +198,13 @@ export default function RisingPage() {
                   <div className="relative aspect-video bg-gray-100 dark:bg-gray-800">
                     {v.thumbnail_url ? (
                       <img
-                        src={v.thumbnail_url}
+                        src={(v.thumbnail_url ?? '').replace(/\/(hq|mq|sd)default\.jpg/, '/maxresdefault.jpg')}
                         alt={v.title}
+                        onError={(e) => {
+                          const img = e.currentTarget;
+                          if (img.src.includes('maxresdefault')) img.src = img.src.replace('maxresdefault', 'hqdefault');
+                          else if (img.src.includes('hqdefault')) img.src = img.src.replace('hqdefault', 'mqdefault');
+                        }}
                         className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                       />
                     ) : (
@@ -230,8 +235,10 @@ export default function RisingPage() {
                     <p className="text-sm font-semibold text-gray-900 dark:text-white line-clamp-2 mb-1 leading-snug">{v.title}</p>
                     <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">{v.channel}</p>
                     <div className="flex items-center gap-2 text-xs mb-1.5">
-                      <span className="font-bold text-gray-700 dark:text-gray-200">👁 {fmtViews(v.current_views)}</span>
-                      <span className="text-emerald-500 font-semibold">+{fmtViews(v.view_delta)}</span>
+                      <span className="font-bold text-gray-700 dark:text-gray-200">👁 {fmtViews((v as any).views ?? v.current_views ?? 0)}</span>
+                      {v.view_delta > 0 && (
+                        <span className="text-emerald-500 font-semibold">+{fmtViews(v.view_delta)}</span>
+                      )}
                     </div>
                     <div className="flex items-center gap-1.5 flex-wrap">
                       {v.published_at ? (
