@@ -124,6 +124,21 @@ last_synced: 2026-05-10
 
 ---
 
+### #014: audit 보고서 미참조 plan 작성 (#013 운영 강화)
+**등재**: 2026-05-10 | BLOCKED | 세션: feature/0905-cycle1 (audit 활성화)
+**위반**: 새 cycle 시작 시 직전 사이클 `docs/audit/` review.md 미읽기 → audit이 휴지가 됨 = #013 위반 누적
+**금지**:
+- cycle plan 작성 시 직전 audit 미인용
+- audit "잔여" / "이월" 항목 무시한 plan 작성
+- audit 결과 모순되는 작업 우선순위
+**대체**:
+- cycle plan Phase 0 = 직전 `docs/audit/` 최신 review.md 자동 인용
+- Plan 첫 줄에 audit URL/path 인용 의무
+- master-tracker.md 업데이트가 매 사이클 종료 의무
+**검증**: cycle plan 첫 줄에 `audited_against: docs/audit/YYYY-MM-DD-cycleN-...md` frontmatter 존재
+
+---
+
 ### #007: VITE_ 접두사 오용 (비밀 키 브라우저 노출)
 **등재**: 2026-04-22 | BLOCKED | 1회 | 세션: ffb5646
 **위반**: `VITE_SUPABASE_SERVICE_KEY` — service_role 키가 빌드 산출물에 포함됨
