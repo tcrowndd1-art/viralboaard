@@ -207,7 +207,9 @@ const VideoCard = ({
       <div className="flex items-start gap-1.5">
         <div className="flex-1 min-w-0 cursor-pointer" onClick={() => playVideo(v.videoId, false)}>
           <p className="text-[12px] text-gray-900 dark:text-white/85 font-semibold line-clamp-2 leading-snug mb-1 group-hover:text-red-500 dark:group-hover:text-red-400 transition-colors">{v.title}</p>
-          <div className="flex items-center gap-1 flex-wrap">
+
+          {/* G4.1 모바일 (<md): inline meta 기존 유지 */}
+          <div className="flex items-center gap-1 flex-wrap md:hidden">
             <span className="text-[10px] text-gray-400 dark:text-white/30 truncate max-w-[120px]">{v.channelName}</span>
             <span className="text-[10px] text-gray-300 dark:text-white/15">·</span>
             <span className="text-[10px] text-gray-400 dark:text-white/30 font-mono inline-flex items-center gap-0.5"><i className="ri-eye-line text-[10px]"></i>{fmtViews(v.views)}</span>
@@ -218,6 +220,21 @@ const VideoCard = ({
             {multi && <span className={`text-[8px] font-black px-1 py-px rounded leading-none ${multi.cls}`}>{multi.text}</span>}
             <span className="text-[10px] text-gray-300 dark:text-white/15">·</span>
             <span className={`text-[10px] ${_vcDaysAgo <= 30 ? 'text-emerald-500 dark:text-emerald-400' : 'text-gray-400 dark:text-white/30'}`}>{ageText}</span>
+          </div>
+
+          {/* G4.1 데스크톱 (md+): 채널 + 우측 2x2 메타 grid (조회수/좋아요/댓글/구독자) */}
+          <div className="hidden md:block">
+            <div className="flex items-center gap-1 mb-1">
+              <span className="text-[10px] text-gray-500 dark:text-white/45 truncate flex-1 min-w-0">{v.channelName}</span>
+              <span className={`text-[10px] flex-shrink-0 ${_vcDaysAgo <= 30 ? 'text-emerald-500 dark:text-emerald-400' : 'text-gray-400 dark:text-white/30'}`}>{ageText}</span>
+              {multi && <span className={`text-[8px] font-black px-1 py-px rounded leading-none flex-shrink-0 ${multi.cls}`}>{multi.text}</span>}
+            </div>
+            <div className="grid grid-cols-2 gap-x-2 gap-y-0.5 border-l-2 border-gray-100 dark:border-white/[0.06] pl-2">
+              <span className="text-[10px] text-gray-500 dark:text-white/45 font-mono inline-flex items-center gap-1"><i className="ri-eye-line text-[11px] text-sky-500"></i>{fmtViews(v.views)}</span>
+              <span className="text-[10px] text-gray-500 dark:text-white/45 font-mono inline-flex items-center gap-1"><i className="ri-thumb-up-line text-[11px] text-rose-500"></i>{fmtViews(v.likes ?? 0)}</span>
+              <span className="text-[10px] text-gray-500 dark:text-white/45 font-mono inline-flex items-center gap-1"><i className="ri-chat-3-line text-[11px] text-emerald-500"></i>{fmtViews(v.comments ?? 0)}</span>
+              <span className="text-[10px] text-gray-500 dark:text-white/45 font-mono inline-flex items-center gap-1"><i className="ri-user-line text-[11px] text-amber-500"></i>{fmtViews(v.subscribers ?? 0)}</span>
+            </div>
           </div>
         </div>
         <button onClick={(e) => { e.stopPropagation(); onToggleSave(v.videoId); }}

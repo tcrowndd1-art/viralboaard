@@ -85,23 +85,13 @@ export function VideoModal({ videoId, isShorts, onClose, isSaved = false, onTogg
     return () => { cancelled = true; };
   }, [videoId]);
 
+  // G4.3+: backend proxy 도입 전까지 댓글 fetch 비활성 (rejected-pattern #002, #003 준수)
   const fetchComments = useCallback(async () => {
-    setCommentsLoading(true);
+    // 0905-2차에서 Supabase Edge Function proxy 도입 예정
+    setCommentsDisabled(false);
     setCommentsError(null);
-    try {
-      const result = await fetchYouTubeComments(videoId);
-      if (!result.ok) {
-        if (result.disabled) setCommentsDisabled(true);
-        else setCommentsError(result.error);
-        return;
-      }
-      setComments(result.comments);
-    } catch {
-      setCommentsError('댓글을 불러올 수 없습니다');
-    } finally {
-      setCommentsLoading(false);
-    }
-  }, [videoId]);
+    setCommentsLoading(false);
+  }, []);
 
   const handleTabChange = (tab: 'info' | 'comments') => {
     setActiveTab(tab);
@@ -214,20 +204,30 @@ export function VideoModal({ videoId, isShorts, onClose, isSaved = false, onTogg
 
   const commentsContent = (
     <div className="p-4">
-      {commentsLoading && (
+      {/* G4.3+ 안내 — backend proxy 도입 전까지 비활성 (보안 정책 준수) */}
+      <div className="text-center py-12 px-4">
+        <p className="text-3xl mb-3">🔒</p>
+        <p className="text-sm font-semibold text-gray-700 dark:text-white/70 mb-2">댓글은 다음 사이클에서 제공됩니다</p>
+        <p className="text-xs text-gray-500 dark:text-white/40 leading-relaxed">
+          보안 정책에 따라 backend proxy 적용 후 표시됩니다.<br />
+          (API 키 클라이언트 노출 방지 — 0905-2차 작업)
+        </p>
+      </div>
+      {/* legacy render path — disabled by fetchComments no-op */}
+      {false && commentsLoading && (
         <div className="flex items-center justify-center py-12">
           <div className="w-6 h-6 border-2 border-gray-200 dark:border-white/20 border-t-red-500 rounded-full animate-spin" />
         </div>
       )}
-      {commentsDisabled && (
+      {false && commentsDisabled && (
         <div className="text-center py-12 text-gray-400 dark:text-white/30 text-sm">
           댓글이 비활성화된 영상입니다
         </div>
       )}
-      {commentsError && !commentsDisabled && (
+      {false && commentsError && !commentsDisabled && (
         <div className="text-center py-12 text-red-400 dark:text-red-500/60 text-sm">{commentsError}</div>
       )}
-      {!commentsLoading && !commentsDisabled && !commentsError && (
+      {false && !commentsLoading && !commentsDisabled && !commentsError && (
         <div className="space-y-4">
           {comments.length === 0 ? (
             <div className="text-center py-12 text-gray-400 dark:text-white/30 text-sm">댓글이 없습니다</div>

@@ -233,11 +233,19 @@ export default function RisingPage() {
                   {/* 정보 */}
                   <div className="p-3">
                     <p className="text-sm font-semibold text-gray-900 dark:text-white line-clamp-2 mb-1 leading-snug">{v.title}</p>
-                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">{v.channel}</p>
-                    <div className="flex items-center gap-2 text-xs mb-1.5">
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mb-2 truncate">{v.channel}</p>
+
+                    {/* G4.1 메타: 모바일 inline + md+ 2x2 grid */}
+                    <div className="flex md:hidden items-center gap-2 text-xs mb-1.5">
                       <span className="font-bold text-gray-700 dark:text-gray-200">👁 {fmtViews((v as any).views ?? v.current_views ?? 0)}</span>
+                      {v.view_delta > 0 && <span className="text-emerald-500 font-semibold">+{fmtViews(v.view_delta)}</span>}
+                    </div>
+                    <div className="hidden md:grid grid-cols-2 gap-x-2 gap-y-0.5 mb-1.5 border-l-2 border-gray-100 dark:border-gray-800 pl-2">
+                      <span className="text-[11px] text-gray-600 dark:text-gray-300 font-mono inline-flex items-center gap-1"><i className="ri-eye-line text-[12px] text-sky-500"></i>{fmtViews((v as any).views ?? v.current_views ?? 0)}</span>
+                      <span className="text-[11px] text-gray-600 dark:text-gray-300 font-mono inline-flex items-center gap-1"><i className="ri-chat-3-line text-[12px] text-emerald-500"></i>{fmtViews((v as any).comments ?? 0)}</span>
+                      <span className="text-[11px] text-gray-600 dark:text-gray-300 font-mono inline-flex items-center gap-1"><i className="ri-user-line text-[12px] text-amber-500"></i>{fmtViews((v as any).subscriber_count ?? 0)}</span>
                       {v.view_delta > 0 && (
-                        <span className="text-emerald-500 font-semibold">+{fmtViews(v.view_delta)}</span>
+                        <span className="text-[11px] text-emerald-500 font-mono inline-flex items-center gap-1"><i className="ri-arrow-up-line text-[12px]"></i>{fmtViews(v.view_delta)}</span>
                       )}
                     </div>
                     <div className="flex items-center gap-1.5 flex-wrap">
