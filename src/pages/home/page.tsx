@@ -902,7 +902,7 @@ const HomePage = () => {
             likes: v.likes ?? 0,
             comments: v.comments ?? 0,
           }))
-          .sort((a: ViralVideoItem, b: ViralVideoItem) => (b.viralScore ?? 0) - (a.viralScore ?? 0))
+          .sort((a: ViralVideoItem, b: ViralVideoItem) => viewsPerHour(b) - viewsPerHour(a))
           .slice(0, 12);
         if (!cancelled) { setRisingRaw(mapped); setRisingLoaded(true); setRisingLoading(false); }
       } catch (e: unknown) {
@@ -1048,19 +1048,9 @@ const HomePage = () => {
 
   // risingVideos: dedicated Supabase fetch (no mock fallback) — see useEffect above
   const risingVideos = useMemo(() => {
-    const base = activeCat === 'All'
-      ? risingRaw
-      : risingRaw.filter(v => CAT_MAP[activeCat as Cat]?.some(c => c.toLowerCase() === v.category.toLowerCase()));
-    if (base.length <= 8) return base;
-    const arr = [...base];
-    let s = risingSeed;
-    for (let i = arr.length - 1; i > 0; i--) {
-      s = (s * 9301 + 49297) % 233280;
-      const j = Math.floor((s / 233280) * (i + 1));
-      [arr[i], arr[j]] = [arr[j], arr[i]];
-    }
-    return arr;
-  }, [risingRaw, activeCat, risingSeed]);
+    if (activeCat === 'All') return risingRaw;
+    return risingRaw.filter(v => CAT_MAP[activeCat as Cat]?.some(c => c.toLowerCase() === v.category.toLowerCase()));
+  }, [risingRaw, activeCat]);
   // G3++: 채널 다양화 (90일 longform 윈도우는 Effect A 쿼리에서 적용됨)
   const topViewVideos = filterByCat(uniqByChannel([...longformPool].sort((a, b) => b.views - a.views)));
   const topViewsAll = topViewVideos;
