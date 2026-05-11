@@ -104,7 +104,48 @@ export default function RisingPage() {
 
       const { data, error } = await query;
       if (error) throw error;
-      setVideos(data || []);
+
+      if (data && data.length > 0) {
+        setVideos(data);
+      } else {
+        // viralboard_rising에 데이터 없을 때 viralboard_data로 fallback (VPH 클라이언트 계산)
+        const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString();
+        let fb = supabase
+          .from('viralboard_data')
+          .select('*')
+          .gte('published_at', thirtyDaysAgo)
+          .order('views', { ascending: false })
+          .limit(300);
+        if (country !== 'ALL') fb = fb.eq('country', country);
+        if (type === 'SHORTS') fb = fb.eq('is_shorts', true);
+        if (type === 'LONG')   fb = fb.eq('is_shorts', false);
+        const { data: fbData, error: fbErr } = await fb;
+        if (fbErr) throw fbErr;
+        const nowMs = Date.now();
+        const mapped: RisingVideo[] = (fbData ?? []).map((v: any) => {
+          const pubMs = v.published_at ? new Date(v.published_at).getTime() : nowMs;
+          const hoursElapsed = Math.max(1, (nowMs - pubMs) / 3_600_000);
+          return {
+            video_id:       v.video_id,
+            title:          v.title,
+            channel:        v.channel,
+            category:       v.category,
+            country:        v.country,
+            is_shorts:      v.is_shorts ?? false,
+            current_views:  v.views ?? 0,
+            previous_views: 0,
+            view_delta:     0,
+            hours_diff:     hoursElapsed,
+            views_per_hour: (v.views ?? 0) / hoursElapsed,
+            thumbnail_url:  v.thumbnail_url ?? '',
+            fetched_at:     v.fetched_at ?? '',
+            published_at:   v.published_at,
+          };
+        })
+        .sort((a, b) => b.views_per_hour - a.views_per_hour)
+        .slice(0, 100);
+        setVideos(mapped);
+      }
       setLastUpdated(new Date().toLocaleTimeString('ko-KR'));
     } catch (e) {
       console.error('[Rising] fetch error', e);

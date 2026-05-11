@@ -650,6 +650,7 @@ const HomePage = () => {
   const [risingLastUpdated, setRisingLastUpdated] = useState(Date.now());
   const [risingSecondsAgo, setRisingSecondsAgo] = useState(0);
   const [prevChRankings, setPrevChRankings] = useState<Map<string, number>>(new Map());
+  const [catPool, setCatPool] = useState<ViralVideoItem[]>([]);
   const [risingSeed, setRisingSeed] = useState(() => {
     const RISING_SEED_KEY = 'vb_rising_seed';
     const RISING_SEED_TS = 'vb_rising_seed_ts';
@@ -950,6 +951,50 @@ const HomePage = () => {
     return () => clearInterval(id);
   }, [risingLastUpdated]);
 
+  // Category-specific fetch: Gaming/Music/Science 등이 top-200에 없을 때 보충
+  useEffect(() => {
+    if (activeCat === 'All') { setCatPool([]); return; }
+    let cancelled = false;
+    const dbCats = Object.entries(DB_CAT_MAP)
+      .filter(([, ui]) => ui === activeCat)
+      .map(([db]) => db);
+    if (dbCats.length === 0) return;
+    const _ninetyDaysAgo = new Date(Date.now() - 90 * 24 * 3600 * 1000).toISOString();
+    supabase
+      .from('viralboard_data')
+      .select('*')
+      .eq('country', activeCountry)
+      .in('category', dbCats)
+      .gte('published_at', _ninetyDaysAgo)
+      .order('views', { ascending: false })
+      .limit(100)
+      .then(({ data, error }) => {
+        if (cancelled || error || !data || data.length === 0) return;
+        const viral: ViralVideoItem[] = data.map((v: any, i: number) => ({
+          rank: i + 1,
+          videoId: v.video_id,
+          title: v.title,
+          channelName: v.channel,
+          channelAvatar: '',
+          channelId: v.channel_id,
+          subscribers: v.subscriber_count ?? 0,
+          views: v.views,
+          viralScore: v.subscriber_count > 0 ? v.views / v.subscriber_count : null,
+          uploadDate: v.published_at ?? v.fetched_at,
+          thumbnail: (v.thumbnail_url ?? '').replace(/\/(hq|mq|sd)default\.jpg/, '/maxresdefault.jpg'),
+          category: normalizeCategory(v.category),
+          country: v.country,
+          isShorts: v.is_shorts ?? false,
+          duration: v.duration_seconds ?? 0,
+          likes: v.likes ?? 0,
+          comments: v.comments ?? 0,
+        }));
+        if (!cancelled) setCatPool(viral);
+      });
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeCat, activeCountry]);
+
   const handleToggleSave = useCallback((videoId: string) => {
     setSavedIds(prev => {
       const next = new Set(prev);
@@ -1026,11 +1071,14 @@ const HomePage = () => {
   };
 
   /* fetch 완료 후 실데이터 없으면 빈 배열, 로딩 중만 mock skeleton */
-  const videoPool = liveVideos.length > 0
-    ? liveVideos
-    : homeDataLoaded
-      ? []
-      : viralMockData;
+  /* 카테고리 필터 선택 시 catPool 우선 (top-200에 없는 카테고리 보충) */
+  const videoPool = activeCat !== 'All' && catPool.length > 0
+    ? catPool
+    : liveVideos.length > 0
+      ? liveVideos
+      : homeDataLoaded
+        ? []
+        : viralMockData;
   const longformPool = videoPool.filter(v => !v.isShorts);
 
   // G3+/G3++: shorts pool with 30-day filter, views_per_hour sort, channel diversification
