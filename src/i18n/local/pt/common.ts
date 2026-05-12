@@ -2,8 +2,6 @@ const translations = {
   brand: 'ViralBoard',
   nav_home: 'Início',
   nav_video_rankings: 'Rankings de Vídeos',
-  nav_rising: 'Em Alta',
-  nav_creator_insights: 'Insights de Criadores',
   nav_channel_rankings: 'Rankings de Canais',
   nav_search: 'Buscar',
   nav_ai_studio: 'AI Studio',

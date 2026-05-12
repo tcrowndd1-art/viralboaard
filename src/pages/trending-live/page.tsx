@@ -45,6 +45,15 @@ const TrendingLivePage = () => {
       <main className="lg:ml-48 pt-12">
         <div className="max-w-6xl mx-auto px-6 py-6">
 
+          {/* Page Header */}
+          <div className="mb-6">
+            <div className="flex items-center gap-2 mb-1">
+              <i className="ri-fire-line text-xl text-red-500"></i>
+              <h1 className="text-xl font-bold text-gray-900 dark:text-white">{t('nav_trending_live')}</h1>
+            </div>
+            <p className="text-sm text-gray-500 dark:text-white/40">{t('trending_live_page_desc')}</p>
+          </div>
+
           {/* Country Selector */}
           <div className="flex items-center gap-2 mb-4">
             <CountrySelector selected={selectedCountry} onChange={setSelectedCountry} />

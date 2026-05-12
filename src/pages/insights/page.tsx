@@ -56,11 +56,11 @@ const InsightsPage = () => {
           {/* Page Header */}
           <div className="mb-8">
             <div className="flex items-center gap-2 mb-1">
-              <i className="ri-lightbulb-flash-line w-5 h-5 flex items-center justify-center text-amber-500 text-lg"></i>
-              <h1 className="text-xl font-bold text-gray-900 dark:text-white">Insights</h1>
+              <i className="ri-bar-chart-2-line w-5 h-5 flex items-center justify-center text-indigo-500 text-lg"></i>
+              <h1 className="text-xl font-bold text-gray-900 dark:text-white">📊 바이럴 패턴 분석 (90일 아카이브)</h1>
             </div>
             <p className="text-sm text-gray-500 dark:text-white/40">
-              YouTube 데이터 분석 리포트와 트렌드 인사이트를 확인하세요.
+              최근 3개월 떡상 영상 패턴 + 마이크로 채널 분석
             </p>
           </div>
 
