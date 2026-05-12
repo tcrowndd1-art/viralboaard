@@ -18,7 +18,6 @@ interface GlobalSidebarProps {
 const NAV_ITEMS = [
   { href: '/',                   icon: 'ri-home-4-line',          labelKey: 'nav_home',             exact: true  },
   { href: '/video-rankings',     icon: 'ri-video-line',           labelKey: 'nav_video_rankings',   exact: false },
-  { href: '/rising',             icon: 'ri-rocket-line',          labelKey: 'nav_rising',           exact: false },
   { href: '/creator-insights',   icon: 'ri-lightbulb-flash-line', labelKey: 'nav_creator_insights', exact: false },
   { href: '/rankings',           icon: 'ri-bar-chart-line',       labelKey: 'nav_channel_rankings', exact: false },
   { href: '/search',             icon: 'ri-search-line',          labelKey: 'nav_search',           exact: false },

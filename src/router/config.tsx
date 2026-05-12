@@ -18,7 +18,6 @@ import CommentManagerPage from "../pages/comment-manager/page";
 import VideoEditorPage from "../pages/video-editor/page";
 import ChromeExtensionPage from "../pages/chrome-extension/page";
 import RevenueCalculatorPage from "../pages/revenue-calculator/page";
-import RisingPage from '../pages/rising/page';
 import CreatorInsightsPage from "../pages/creator-insights/page";
 
 const routes: RouteObject[] = [
@@ -100,7 +99,7 @@ const routes: RouteObject[] = [
   },
   {
     path: "/rising",
-    element: <RisingPage />,
+    element: <Navigate to="/" replace />,
   },
   {
     path: "*",
