@@ -26,6 +26,26 @@ const usePlayVideo = (): PlayHandler => useContext(VideoPlayContext) ?? (() => {
 const CACHE_KEY = (q: string) => `vb_channel_${q.toLowerCase().trim()}`;
 const SAVED_VIDEOS_KEY = 'viralboard_saved_videos';
 
+const RISING_COUNTRIES = [
+  { code: 'ALL', label: '🌍 전체' },
+  { code: 'KR',  label: '🇰🇷 한국' },
+  { code: 'US',  label: '🇺🇸 미국' },
+  { code: 'BR',  label: '🇧🇷 브라질' },
+  { code: 'JP',  label: '🇯🇵 일본' },
+  { code: 'IN',  label: '🇮🇳 인도' },
+  { code: 'GB',  label: '🇬🇧 영국' },
+  { code: 'DE',  label: '🇩🇪 독일' },
+  { code: 'FR',  label: '🇫🇷 프랑스' },
+  { code: 'ID',  label: '🇮🇩 인도네시아' },
+  { code: 'MX',  label: '🇲🇽 멕시코' },
+];
+
+const RISING_TYPES = [
+  { value: 'ALL',    label: '전체' },
+  { value: 'LONG',   label: '🎬 Video' },
+  { value: 'SHORTS', label: '⚡ Shorts' },
+];
+
 const loadSavedVideos = (): Set<string> => {
   try { return new Set(JSON.parse(localStorage.getItem(SAVED_VIDEOS_KEY) ?? '[]') as string[]); }
   catch { return new Set(); }
@@ -651,6 +671,8 @@ const HomePage = () => {
   const [risingSecondsAgo, setRisingSecondsAgo] = useState(0);
   const [prevChRankings, setPrevChRankings] = useState<Map<string, number>>(new Map());
   const [catPool, setCatPool] = useState<ViralVideoItem[]>([]);
+  const [risingCountry, setRisingCountry] = useState('ALL');
+  const [risingType, setRisingType] = useState<'ALL' | 'LONG' | 'SHORTS'>('ALL');
   const [risingSeed, setRisingSeed] = useState(() => {
     const RISING_SEED_KEY = 'vb_rising_seed';
     const RISING_SEED_TS = 'vb_rising_seed_ts';
@@ -675,9 +697,6 @@ const HomePage = () => {
     setTrendingVideos([]);
     setTrendingLoaded(false);
     setTrendingLoading(false);
-    setRisingRaw([]);
-    setRisingLoaded(false);
-    setRisingLoading(false);
   }, [activeCountry]);
 
   // Effect A: liveVideos (Shorts + Top Views) — auto-refreshes every 30s
@@ -864,25 +883,26 @@ const HomePage = () => {
     const _cutoff = new Date(Date.now() - 30 * 24 * 3600 * 1000).toISOString();
     (async () => {
       try {
-        const { data, error } = await supabase
+        let query = supabase
           .from('viralboard_data')
           .select('*')
-          .eq('country', activeCountry)
           .gte('fetched_at', _cutoff)
-          .gt('subscriber_count', 0)
           .order('views', { ascending: false })
           .limit(200);
+        if (risingCountry !== 'ALL') query = query.eq('country', risingCountry);
+        if (risingType === 'SHORTS') query = query.eq('is_shorts', true);
+        if (risingType === 'LONG')   query = query.eq('is_shorts', false);
+        const { data, error } = await query;
         if (cancelled) return;
         if (error) throw error;
-        const _publishCutoff = Date.now() - 7 * 24 * 3600 * 1000;  // G3.4: 30일 → 7일
-        const risingFiltered = (data ?? []).filter((v: any) =>
-          (v.subscriber_count ?? 0) > 0 &&
-          v.views / v.subscriber_count >= 100 &&
-          !(v.is_shorts ?? false) &&
-          v.published_at &&
-          new Date(v.published_at).getTime() >= _publishCutoff
-        );
-        console.log(`[rising] fetched=${data?.length ?? 0} risingFiltered count=${risingFiltered.length} publishCutoff=${new Date(_publishCutoff).toISOString()}`);
+        const _publishCutoff = Date.now() - 7 * 24 * 3600 * 1000;
+        const risingFiltered = (data ?? []).filter((v: any) => {
+          if (!v.published_at || new Date(v.published_at).getTime() < _publishCutoff) return false;
+          if (risingType === 'SHORTS') return v.is_shorts === true;
+          if (risingType === 'LONG')   return !(v.is_shorts ?? false) && (v.subscriber_count ?? 0) > 0 && v.views / v.subscriber_count >= 100;
+          return !(v.is_shorts ?? false) && (v.subscriber_count ?? 0) > 0 && v.views / v.subscriber_count >= 100;
+        });
+        console.log(`[rising] country=${risingCountry} type=${risingType} fetched=${data?.length ?? 0} filtered=${risingFiltered.length}`);
         const mapped: ViralVideoItem[] = risingFiltered
           .map((v: any, i: number) => ({
             rank: i + 1,
@@ -912,7 +932,7 @@ const HomePage = () => {
     })();
     return () => { cancelled = true; };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeCountry, risingFetchKey]);
+  }, [risingCountry, risingType, risingFetchKey]);
 
   // Page Visibility API — pause intervals when tab is hidden
   useEffect(() => {
@@ -1334,41 +1354,86 @@ const HomePage = () => {
           />
 
 
-          {/* ── Rising Channels (떡상 영상) — 3개 + 새로고침 ── */}
-          <VideoSection icon="ri-rocket-line" iconColor="text-emerald-500"
-            title={t('home_rising_channels')}
-            glowColor="#10b981"
-            badge={
-              <div className="flex items-center gap-1.5">
-                <span className="text-[10px] text-gray-400 dark:text-white/45">{t('home_views_vs_subs')}</span>
-                {risingSecondsAgo > 0 && (
-                  <span className="text-[8px] text-gray-400 dark:text-white/30 font-mono hidden sm:inline">
-                    {risingSecondsAgo < 60 ? `${risingSecondsAgo}초 전` : `${Math.floor(risingSecondsAgo / 60)}분 전`} 업데이트
-                  </span>
-                )}
+          {/* ── Rising Channels (급상승 영상) — 국가/타입 필터 ── */}
+          <section className={`transition-opacity duration-300 ${risingLoading ? 'opacity-60' : 'opacity-100'}`}>
+            <SectionHeader icon="ri-rocket-line" iconColor="text-emerald-500"
+              title={t('home_rising_channels')}
+              glowColor="#10b981"
+              badge={
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] text-gray-400 dark:text-white/45">{t('home_views_vs_subs')}</span>
+                  {risingSecondsAgo > 0 && (
+                    <span className="text-[8px] text-gray-400 dark:text-white/30 font-mono hidden sm:inline">
+                      {risingSecondsAgo < 60 ? `${risingSecondsAgo}초 전` : `${Math.floor(risingSecondsAgo / 60)}분 전`} 업데이트
+                    </span>
+                  )}
+                  <button
+                    onClick={() => {
+                      setRisingFetchKey(k => k + 1);
+                      setRisingLastUpdated(Date.now());
+                      setRisingSecondsAgo(0);
+                    }}
+                    disabled={risingLoading}
+                    className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[8px] font-bold bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 transition-colors disabled:opacity-40 cursor-pointer"
+                    title="새로고침"
+                  >
+                    <i className={`ri-refresh-line text-[8px] ${risingLoading ? 'animate-spin' : ''}`}></i> 🔄
+                  </button>
+                </div>
+              }
+            />
+            {/* 국가 탭 */}
+            <div className="flex gap-1.5 overflow-x-auto pb-2 px-4 sm:px-6 mb-3 scrollbar-hide">
+              {RISING_COUNTRIES.map(c => (
                 <button
-                  onClick={() => {
-                    const seed = Math.random();
-                    try {
-                      sessionStorage.setItem('vb_rising_seed', String(seed));
-                      sessionStorage.setItem('vb_rising_seed_ts', String(Date.now()));
-                    } catch { /* ignore */ }
-                    setRisingSeed(seed);
-                    setRisingFetchKey(k => k + 1);
-                    setRisingLastUpdated(Date.now());
-                    setRisingSecondsAgo(0);
-                  }}
-                  disabled={risingLoading}
-                  className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[8px] font-bold bg-emerald-50 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-500/20 transition-colors disabled:opacity-40 cursor-pointer"
-                  title="다른 떡상 영상 보기"
+                  key={c.code}
+                  onClick={() => setRisingCountry(c.code)}
+                  className={`whitespace-nowrap text-[10px] font-semibold px-2.5 py-1 rounded-full transition-colors flex-shrink-0 ${
+                    risingCountry === c.code
+                      ? 'bg-emerald-500 text-white'
+                      : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+                  }`}
                 >
-                  <i className={`ri-refresh-line text-[8px] ${risingLoading ? 'animate-spin' : ''}`}></i> 🔄
+                  {c.label}
                 </button>
+              ))}
+            </div>
+            {/* Video/Shorts 토글 */}
+            <div className="flex gap-1.5 px-4 sm:px-6 mb-4">
+              {RISING_TYPES.map(tp => (
+                <button
+                  key={tp.value}
+                  onClick={() => setRisingType(tp.value as 'ALL' | 'LONG' | 'SHORTS')}
+                  className={`text-[10px] font-semibold px-2.5 py-1 rounded-full transition-colors ${
+                    risingType === tp.value
+                      ? 'bg-gray-900 text-white dark:bg-white dark:text-gray-900'
+                      : 'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700'
+                  }`}
+                >
+                  {tp.label}
+                </button>
+              ))}
+            </div>
+            {/* 카드 그리드 */}
+            {risingLoaded && risingVideos.length === 0 ? (
+              <EmptyState message={risingError ? '데이터 로드 실패 — 잠시 후 새로고침 해주세요.' : '이번 주는 급상승 영상이 없습니다. 잠시 후 다시 확인해주세요.'} />
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 px-4 sm:px-6">
+                {risingVideos.length === 0
+                  ? Array.from({ length: 4 }).map((_, i) => (
+                      <div key={i} className="animate-pulse">
+                        <div className="w-full bg-gray-100 dark:bg-white/8 rounded-xl mb-2" style={{ aspectRatio: '16/9' }} />
+                        <div className="h-3 bg-gray-100 dark:bg-white/8 rounded w-full mb-1.5" />
+                        <div className="h-3 bg-gray-100 dark:bg-white/8 rounded w-2/3" />
+                      </div>
+                    ))
+                  : risingVideos.map(v => (
+                      <VideoCard key={v.videoId} v={v} savedIds={savedIds} onToggleSave={handleToggleSave} />
+                    ))
+                }
               </div>
-            }
-            loading={risingLoading}
-            emptyMessage={risingError ? '데이터 로드 실패 — 잠시 후 새로고침 해주세요.' : '이번 주는 검증된 떡상 영상이 없습니다. 곧 업데이트됩니다.'}
-            items={risingVideos} savedIds={savedIds} onToggleSave={handleToggleSave} loaded={risingLoaded} perPage={8} />
+            )}
+          </section>
 
           {/* ── Top Views ── */}
           <VideoSection icon="ri-eye-line" iconColor="text-sky-500"
