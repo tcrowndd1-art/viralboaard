@@ -1420,20 +1420,32 @@ const HomePage = () => {
               ))}
             </div>
             {/* 카드 그리드 */}
-            {risingLoaded && risingVideos.length === 0 ? (
-              <EmptyState message={risingError ? '데이터 로드 실패 — 잠시 후 새로고침 해주세요.' : '이번 주는 급상승 영상이 없습니다. 잠시 후 다시 확인해주세요.'} />
+            {risingLoaded && (risingVideos.length === 0 || (risingType === 'LONG' && risingVideos.length < 4)) ? (
+              <EmptyState message={
+                risingError
+                  ? '데이터 로드 실패 — 잠시 후 새로고침 해주세요.'
+                  : risingType === 'LONG' && risingVideos.length > 0
+                    ? `롱폼 급상승 데이터 부족 (현재 ${risingVideos.length}개) — 다음 cron 후 갱신`
+                    : '이번 주는 급상승 영상이 없습니다. 잠시 후 다시 확인해주세요.'
+              } />
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 px-4 sm:px-6">
+              <div className={`grid gap-3 sm:gap-4 px-4 sm:px-6 ${
+                risingType === 'SHORTS'
+                  ? 'grid-cols-3 sm:grid-cols-4 lg:grid-cols-6'
+                  : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-4'
+              }`}>
                 {risingVideos.length === 0
                   ? Array.from({ length: 4 }).map((_, i) => (
                       <div key={i} className="animate-pulse">
-                        <div className="w-full bg-gray-100 dark:bg-white/8 rounded-xl mb-2" style={{ aspectRatio: '16/9' }} />
+                        <div className="w-full bg-gray-100 dark:bg-white/8 rounded-xl mb-2" style={{ aspectRatio: risingType === 'SHORTS' ? '9/16' : '16/9' }} />
                         <div className="h-3 bg-gray-100 dark:bg-white/8 rounded w-full mb-1.5" />
                         <div className="h-3 bg-gray-100 dark:bg-white/8 rounded w-2/3" />
                       </div>
                     ))
-                  : risingVideos.map(v => (
-                      <VideoCard key={v.videoId} v={v} savedIds={savedIds} onToggleSave={handleToggleSave} />
+                  : risingVideos.map((v, i) => (
+                      risingType === 'SHORTS'
+                        ? <ShortsCard key={v.videoId} v={v} rank={i + 1} />
+                        : <VideoCard key={v.videoId} v={v} savedIds={savedIds} onToggleSave={handleToggleSave} />
                     ))
                 }
               </div>
