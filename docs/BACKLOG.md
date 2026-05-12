@@ -15,7 +15,8 @@
 
 ## 🟡 MEDIUM — 다음 세션
 
-- [ ] [중] 0905-2차: fetch_fresh_track subscriber_count 채우기 — fetch_phase1.py fetch_fresh_track()에 fetch_channel_details() 호출 추가. 현재 fresh_track 비디오는 subscriber_count=NULL로 저장됨 → 홈 급상승 필터 fallback(views>=100K) 의존 중. 영구 해결은 백엔드 수정. (출처: cycle2 Phase2 진단 2026-05-12)
+- [ ] [중] 0905-2차: 급상승 롱폼 수집 강화 — fetch_fresh_track()에 YouTube Search API로 롱폼(videoDuration=long) 24h 신규 영상 별도 수집. 현재 DB는 7일 이내 롱폼 0개(전부 Shorts). ALL 탭 Shorts 포함으로 임시 해결 중. quota 소모 추가 검토 필요. (출처: cycle2 진단 2026-05-12)
+- [ ] [중] 0905-2차: fetch_fresh_track subscriber_count 채우기 — fetch_phase1.py fetch_fresh_track()에 fetch_channel_details() 호출 추가. 현재 fresh_track 비디오는 subscriber_count=NULL로 저장됨. (출처: cycle2 진단 2026-05-12)
 - [ ] [중] - Topic 채널 필터 — fetch_phase1.py 수집 시 또는 home/page.tsx 표시 시 필터링 (출처: 2026-04-27-pre-phase1-audit)
 - [ ] [중] GitHub Actions 알림 — 성공/실패 시 텔레그램 알림 step 추가 (자료 OK: TELEGRAM_BOT_TOKEN/CHAT_ID .env 보유. workflow yaml 추가만 필요) (출처: 2026-04-27-pre-phase1-audit)
 - [ ] [중] viralScore DB 저장 — 런타임 계산 대신 수집 시 저장 (쿼리 성능 개선)

@@ -899,10 +899,13 @@ const HomePage = () => {
         const risingFiltered = (data ?? []).filter((v: any) => {
           if (!v.published_at || new Date(v.published_at).getTime() < _publishCutoff) return false;
           if (risingType === 'SHORTS') return v.is_shorts === true;
-          if (v.is_shorts) return false;
-          const sub = v.subscriber_count ?? 0;
-          if (sub > 0) return v.views / sub >= 10;
-          return (v.views ?? 0) >= 100_000;
+          if (risingType === 'LONG') {
+            if (v.is_shorts) return false;
+            const sub = v.subscriber_count ?? 0;
+            if (sub > 0) return v.views / sub >= 10;
+            return (v.views ?? 0) >= 100_000;
+          }
+          return true; // ALL: Shorts + Long, date-filtered only
         });
         console.log(`[rising] country=${risingCountry} type=${risingType} fetched=${data?.length ?? 0} filtered=${risingFiltered.length}`);
         const mapped: ViralVideoItem[] = risingFiltered
